@@ -1,11 +1,11 @@
 <mxfile host="Electron">
   <diagram name="Page-1" id="paj_QznTPVTCoiDzQ3KP">
-    <mxGraphModel dx="4057" dy="2515" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="4842" dy="2987" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="3ovuxzsN7RixTQLd2s7m-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=2;strokeColor=#36393d;fillColor=#cce5ff;dashed=1;" value="" vertex="1">
-          <mxGeometry height="920" width="920" x="-960" y="60" as="geometry" />
+          <mxGeometry height="860" width="920" x="-960" y="60" as="geometry" />
         </mxCell>
         <mxCell id="3ovuxzsN7RixTQLd2s7m-3" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font face=&quot;Times New Roman&quot; style=&quot;font-size: 50px;&quot;&gt;&lt;b style=&quot;&quot;&gt;Client&lt;/b&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="30" width="350" x="-677.5" y="90" as="geometry" />
@@ -32,20 +32,17 @@
         <mxCell id="3ovuxzsN7RixTQLd2s7m-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" value="&lt;font face=&quot;Times New Roman&quot; style=&quot;font-size: 30px;&quot;&gt;&lt;b style=&quot;&quot;&gt;State Management&lt;/b&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="70" width="500" x="-750" y="360" as="geometry" />
         </mxCell>
-        <mxCell id="3ovuxzsN7RixTQLd2s7m-7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" value="&lt;font face=&quot;Times New Roman&quot; style=&quot;font-size: 30px;&quot;&gt;&lt;b style=&quot;&quot;&gt;Routing &amp;amp; Navigation&lt;/b&gt;&lt;/font&gt;" vertex="1">
+        <mxCell id="3ovuxzsN7RixTQLd2s7m-8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" value="&lt;font face=&quot;Times New Roman&quot; style=&quot;font-size: 30px;&quot;&gt;&lt;b style=&quot;&quot;&gt;Routing &amp;amp; Navigation&lt;/b&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="70" width="500" x="-750" y="460" as="geometry" />
         </mxCell>
-        <mxCell id="3ovuxzsN7RixTQLd2s7m-8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" value="&lt;font face=&quot;Times New Roman&quot; style=&quot;font-size: 30px;&quot;&gt;&lt;b style=&quot;&quot;&gt;Routing &amp;amp; Navigation&lt;/b&gt;&lt;/font&gt;" vertex="1">
+        <mxCell id="3ovuxzsN7RixTQLd2s7m-9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" value="&lt;font style=&quot;font-size: 30px;&quot;&gt;&lt;b style=&quot;&quot;&gt;Form Validation&lt;/b&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="70" width="500" x="-750" y="560" as="geometry" />
         </mxCell>
-        <mxCell id="3ovuxzsN7RixTQLd2s7m-9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" value="&lt;font style=&quot;font-size: 30px;&quot;&gt;&lt;b style=&quot;&quot;&gt;Form Validation&lt;/b&gt;&lt;/font&gt;" vertex="1">
+        <mxCell id="3ovuxzsN7RixTQLd2s7m-10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" value="&lt;font style=&quot;font-size: 30px;&quot;&gt;&lt;b style=&quot;&quot;&gt;Data Formating&lt;/b&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="70" width="500" x="-750" y="660" as="geometry" />
         </mxCell>
-        <mxCell id="3ovuxzsN7RixTQLd2s7m-10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" value="&lt;font style=&quot;font-size: 30px;&quot;&gt;&lt;b style=&quot;&quot;&gt;Data Formating&lt;/b&gt;&lt;/font&gt;" vertex="1">
-          <mxGeometry height="70" width="500" x="-750" y="760" as="geometry" />
-        </mxCell>
         <mxCell id="3ovuxzsN7RixTQLd2s7m-12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" value="&lt;font style=&quot;font-size: 30px;&quot;&gt;&lt;b style=&quot;&quot;&gt;Auth &amp;amp; UI Authorization&lt;/b&gt;&lt;/font&gt;" vertex="1">
-          <mxGeometry height="70" width="500" x="-750" y="860" as="geometry" />
+          <mxGeometry height="70" width="500" x="-750" y="760" as="geometry" />
         </mxCell>
         <mxCell id="3ovuxzsN7RixTQLd2s7m-60" edge="1" parent="1" source="3ovuxzsN7RixTQLd2s7m-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;strokeColor=default;strokeWidth=3;" target="3ovuxzsN7RixTQLd2s7m-1">
           <mxGeometry relative="1" as="geometry">
@@ -87,8 +84,14 @@
         <mxCell id="3ovuxzsN7RixTQLd2s7m-22" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0a30a;fontColor=#000000;strokeColor=#BD7000;strokeWidth=2;fontSize=30;fontStyle=1" value="&lt;font face=&quot;Times New Roman&quot;&gt;&lt;span&gt;AI Integration Module&lt;/span&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="70" width="600" x="680" y="750" as="geometry" />
         </mxCell>
-        <mxCell id="3ovuxzsN7RixTQLd2s7m-43" edge="1" parent="1" source="3ovuxzsN7RixTQLd2s7m-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=3;" target="3ovuxzsN7RixTQLd2s7m-41">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="IjMAnR7_jG5F8VU8MysG-3" edge="1" parent="1" source="3ovuxzsN7RixTQLd2s7m-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;strokeWidth=3;" target="IjMAnR7_jG5F8VU8MysG-1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="1023" />
+              <mxPoint x="660" y="1160" />
+              <mxPoint x="870" y="1160" />
+            </Array>
+          </mxGeometry>
         </mxCell>
         <mxCell id="3ovuxzsN7RixTQLd2s7m-23" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0a30a;fontColor=#000000;strokeColor=#BD7000;strokeWidth=2;fontSize=30;fontStyle=1" value="&lt;font face=&quot;Times New Roman&quot;&gt;&lt;span&gt;Meeting Integration Management&lt;/span&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="70" width="600" x="680" y="970" as="geometry" />
@@ -139,11 +142,11 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="3ovuxzsN7RixTQLd2s7m-41" parent="1" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=https://icons.diagrams.net/icon-cache1/iOS_11_Glyphs-2907/video_call-1443.svg" value="" vertex="1">
-          <mxGeometry height="190" width="190" x="795" y="1160" as="geometry" />
+        <mxCell id="IjMAnR7_jG5F8VU8MysG-4" edge="1" parent="1" source="3ovuxzsN7RixTQLd2s7m-42" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="IjMAnR7_jG5F8VU8MysG-1" value="">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="3ovuxzsN7RixTQLd2s7m-42" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 30px;&quot;&gt;&lt;b&gt;Zoom/Google Meet API&lt;/b&gt;&lt;/font&gt;" vertex="1">
-          <mxGeometry height="30" width="200" x="790" y="1360" as="geometry" />
+        <mxCell id="3ovuxzsN7RixTQLd2s7m-42" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 40px;&quot;&gt;&lt;b style=&quot;&quot;&gt;Zoom/Google Meet API&lt;/b&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="30" width="200" x="770" y="1410" as="geometry" />
         </mxCell>
         <mxCell id="3ovuxzsN7RixTQLd2s7m-45" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d0cee2;strokeColor=#56517e;strokeWidth=2;" value="&lt;font face=&quot;Times New Roman&quot; style=&quot;font-size: 30px;&quot;&gt;&lt;b&gt;Answer Assessment&lt;/b&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="60" width="500" x="1917.5" y="-10" as="geometry" />
@@ -178,6 +181,9 @@
         </mxCell>
         <mxCell id="3ovuxzsN7RixTQLd2s7m-66" parent="1" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=https://icons.diagrams.net/icon-cache1/Ionicons_Fill_Vol_2-2187/logo-react-557.svg" value="" vertex="1">
           <mxGeometry height="140" width="140" x="-930" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="IjMAnR7_jG5F8VU8MysG-1" parent="1" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#505050;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.devices.video_camera;" value="" vertex="1">
+          <mxGeometry height="160" width="220" x="760" y="1210" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
