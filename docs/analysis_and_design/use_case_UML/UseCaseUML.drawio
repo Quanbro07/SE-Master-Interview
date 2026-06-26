@@ -1,11 +1,11 @@
 <mxfile host="Electron">
   <diagram name="Page-1" id="zqNj9vic8K7EFkW-DpvT">
-    <mxGraphModel dx="2020" dy="1213" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1230" dy="738" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="2Dc65c4oOOQ0eh-L9vqO-7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;direction=south;strokeWidth=2;" value="" vertex="1">
-          <mxGeometry height="1370" width="910" x="790" y="30" as="geometry" />
+          <mxGeometry height="1500" width="910" x="790" y="30" as="geometry" />
         </mxCell>
         <mxCell id="2Dc65c4oOOQ0eh-L9vqO-12" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;strokeWidth=2;fontSize=15;fontStyle=1" value="&lt;font&gt;&lt;span&gt;Interviewee&lt;/span&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="100" width="60" x="510" y="590" as="geometry" />
@@ -50,7 +50,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="k3ozbE0qCeHP_4LpBPwy-30" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;strokeWidth=2;fontSize=15;fontStyle=1" value="&lt;font&gt;&lt;span&gt;Stripe Service&lt;/span&gt;&lt;/font&gt;" vertex="1">
-          <mxGeometry height="100" width="60" x="1740" y="1140" as="geometry" />
+          <mxGeometry height="100" width="60" x="1740" y="1150" as="geometry" />
         </mxCell>
         <mxCell id="k3ozbE0qCeHP_4LpBPwy-31" parent="1" style="ellipse;whiteSpace=wrap;html=1;strokeWidth=2;" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;&lt;b style=&quot;&quot;&gt;Book Interviewer&lt;/b&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="90" width="190" x="910" y="440" as="geometry" />
@@ -191,7 +191,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="k3ozbE0qCeHP_4LpBPwy-78" parent="1" style="ellipse;whiteSpace=wrap;html=1;strokeWidth=2;" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;&lt;b style=&quot;&quot;&gt;Self-Practice&lt;/b&gt;&lt;/font&gt;" vertex="1">
-          <mxGeometry height="90" width="190" x="900" y="860" as="geometry" />
+          <mxGeometry height="90" width="190" x="920" y="860" as="geometry" />
         </mxCell>
         <mxCell id="k3ozbE0qCeHP_4LpBPwy-81" edge="1" parent="1" source="2Dc65c4oOOQ0eh-L9vqO-12" style="endArrow=none;html=1;rounded=0;strokeWidth=3;exitX=0.5;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="k3ozbE0qCeHP_4LpBPwy-78" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
@@ -224,7 +224,7 @@
           <mxGeometry height="30" width="60" x="1750" y="690" as="geometry" />
         </mxCell>
         <mxCell id="k3ozbE0qCeHP_4LpBPwy-90" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;&lt;b&gt;&amp;lt;&amp;lt;system&amp;gt;&amp;gt;&lt;/b&gt;&lt;/font&gt;" vertex="1">
-          <mxGeometry height="30" width="60" x="1740" y="1100" as="geometry" />
+          <mxGeometry height="30" width="60" x="1740" y="1120" as="geometry" />
         </mxCell>
         <mxCell id="k3ozbE0qCeHP_4LpBPwy-94" edge="1" parent="1" source="2Dc65c4oOOQ0eh-L9vqO-12" style="endArrow=none;html=1;rounded=0;strokeWidth=3;exitX=0.5;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="k3ozbE0qCeHP_4LpBPwy-68" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
@@ -259,6 +259,15 @@
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="550" y="830" as="sourcePoint" />
             <mxPoint x="920" y="835" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lSO7FjoTQa0lUZy2ElyX-2" parent="1" style="ellipse;whiteSpace=wrap;html=1;strokeWidth=2;" value="&lt;span style=&quot;font-size: 20px;&quot;&gt;&lt;b&gt;Manage Booking Request&lt;/b&gt;&lt;/span&gt;" vertex="1">
+          <mxGeometry height="90" width="190" x="920" y="1390" as="geometry" />
+        </mxCell>
+        <mxCell id="lSO7FjoTQa0lUZy2ElyX-3" edge="1" parent="1" source="k3ozbE0qCeHP_4LpBPwy-51" style="endArrow=none;html=1;rounded=0;strokeWidth=3;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=0.5;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" target="lSO7FjoTQa0lUZy2ElyX-2" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="610" y="1360" as="sourcePoint" />
+            <mxPoint x="930" y="1315" as="targetPoint" />
           </mxGeometry>
         </mxCell>
       </root>
