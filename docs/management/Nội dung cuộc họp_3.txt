@@ -1,0 +1,6 @@
+Nội dung chuẩn bị cho cuộc họp Design
+
+Trúc: tìm hiểu craw data + MCP server
+Quân: thiết kế data + authenticate
+Trọng: đăng nhập đăng kí page
+Khoa: tìm hiểu quy luật prompt và cách vận hành CV assessment, AI mock interview
