@@ -1,0 +1,134 @@
+/* CONTAINER CHAT PANEL BÊN PHẢI */
+.chat-panel {
+  width: 360px;
+  height: 100vh;
+  background-color: #18181c;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* CHAT HEADER (User info) */
+.chat-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.user-name {
+  color: #e4e4e7;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #52525b;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* VÙNG CHỨA TIN NHẮN (CÓ CUỘN TRANG) */
+.chat-messages {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Tùy chỉnh thanh cuộn tinh tế */
+.chat-messages::-webkit-scrollbar {
+  width: 4px;
+}
+.chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+/* ĐỊNH DẠNG BONG BÓNG TIN NHẮN */
+.message-row {
+  display: flex;
+  width: 100%;
+}
+
+/* Tin nhắn từ User (Đẩy sang phải, màu tím) */
+.message-row.user {
+  justify-content: flex-end;
+}
+
+.message-row.user .message-bubble {
+  background-color: #c6b0faa8;
+  color: #f4f4fd;
+  border-radius: 18px 18px 4px 18px;
+  max-width: 80%;
+}
+
+/* Tin nhắn từ Agent (Đẩy sang trái, màu xám sáng) */
+.message-row.agent {
+  justify-content: flex-start;
+}
+
+.message-row.agent .message-bubble {
+  background-color: #c3c7ffe8;
+  color: #09090b;
+  border-radius: 18px 18px 18px 4px;
+  max-width: 85%;
+}
+
+/* Chi tiết phần chữ bên trong bong bóng */
+.message-bubble {
+  padding: 12px 16px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.message-bubble p {
+  margin: 0;
+}
+
+.message-bubble p + p {
+  margin-top: 6px;
+}
+
+/* Ô NHẬP LIỆU PHÍA DƯỚI ĐÁY */
+.chat-input-wrapper {
+  padding: 16px;
+  background-color: #18181c;
+}
+
+.chat-input {
+  width: 100%;
+  padding: 14px 20px;
+  background-color: #27272a;
+  border: none;
+  border-radius: 20px;
+  color: #f4f4f5;
+  font-size: 14px;
+  box-sizing: border-box;
+  outline: none;
+  transition: background-color 0.2s ease;
+}
+
+.chat-input::placeholder {
+  color: #71717a;
+}
+
+.chat-input:focus {
+  background-color: #3f3f46;
+}

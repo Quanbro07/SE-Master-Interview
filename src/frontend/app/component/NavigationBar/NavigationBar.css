@@ -1,0 +1,113 @@
+.navigation-bar {
+  width: 300px;
+  min-height: 100vh;
+  padding: 24px 16px;
+  background: #111118;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  color: #d7d7e1;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  box-sizing: border-box;
+  transition: width 0.5s cubic-bezier(0.5, 0.4, 0.3, 1);
+}
+
+.navigation-bar.collapsed {
+  width: 80px;
+  transition: width 0.5s cubic-bezier(0.5, 0.4, 0.3, 1);
+}
+
+.navigation-bar.collapsed .brand-text,
+.navigation-bar.collapsed .close-icon {
+  display: none;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.brand-icon {
+  width: 100px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  position: relative;
+  transition:
+    width ease 0.5s,
+    height ease 0.5s;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.navigation-bar.collapsed .brand-icon {
+  width: 80px;
+}
+
+.brand-title {
+  margin: 0;
+  font-size: 25px;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #f8f8ff;
+}
+
+.close-icon {
+  width: 80px;
+  display: flex;
+  cursor: pointer;
+}
+
+.nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+}
+
+.nav-item {
+  padding: 14px 16px;
+  border-radius: 0px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+  cursor: pointer;
+  color: #b9b9c9;
+  margin: 0 -16px;
+}
+
+.navigation-bar.collapsed .nav-item {
+  text-align: center;
+  text-indent: -9999px; /* Mẹo ẩn chữ nhanh mà không làm mất cấu trúc */
+  white-space: nowrap;
+  overflow: hidden;
+  margin: 0; /* Trả về margin 0 để không bị lệch */
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #f4f4fd;
+}
+
+.nav-item--active {
+  background: #dbbcff42;
+  color: #f7f7ff;
+  font-weight: 800;
+  border-left: 4px solid #665c8d;
+}
+
+.nav-item--active:hover {
+  background: rgba(91, 69, 156, 0.479);
+}
+
+.navigation-bar.collapsed .nav-item--active {
+  border: none;
+  border-radius: 10px;
+  width: 52px;
+  margin: -3px;
+}

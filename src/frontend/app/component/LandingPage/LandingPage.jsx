@@ -1,24 +1,37 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import LoginPanel from "../LoginPanel/LoginPanel";
 import "./LandingPage.css";
 
 const LandingPage = () => {
   const router = useRouter();
+  const [showLoginPanel, setShowLoginPanel] = useState(false);
+  const [isClosingLogin, setIsClosingLogin] = useState(false);
 
   const handleGetStarted = () => {
     router.push("/login");
   };
 
   const handleSignIn = () => {
-    router.push("/login");
+    setShowLoginPanel(true);
+    setIsClosingLogin(false);
+  };
+
+  const handleCloseLogin = () => {
+    setIsClosingLogin(true);
+    window.setTimeout(() => {
+      setShowLoginPanel(false);
+      setIsClosingLogin(false);
+    }, 350);
   };
 
   return (
     <div className="landing-container">
-      <div className="landing-content">
-        {/* Header */}
+      <div
+        className={`landing-content${showLoginPanel ? " landing-content--blurred" : ""}`}
+      >
         <header className="landing-header">
           <div className="header-logo">
             <img src="/logo.png" alt="Master Interview" className="logo" />
@@ -29,19 +42,18 @@ const LandingPage = () => {
           </button>
         </header>
 
-        {/* Hero Section */}
         <section className="hero-section">
           <div className="hero-content">
             <h1 className="hero-title">
               Practice Interviews Like Never Before
             </h1>
             <p className="hero-subtitle">
-              Get real-time feedback, track your progress, and master your
-              interview skills with AI-powered practice sessions.
+              Get real-time feedback and master your interview skills with
+              AI-powered practice sessions.
             </p>
 
             <div className="features-grid">
-              <div className="feature-card">
+              <div className="feature-card" onClick={handleSignIn}>
                 <h3 className="feature-title">AI-Powered Feedback</h3>
                 <p className="feature-desc">
                   Real-time analysis and personalized suggestions for
@@ -49,21 +61,21 @@ const LandingPage = () => {
                 </p>
               </div>
 
-              <div className="feature-card">
+              <div className="feature-card" onClick={handleSignIn}>
                 <h3 className="feature-title">Self practice</h3>
                 <p className="feature-desc">
                   Practice at your own pace with list of questions and answers
                 </p>
               </div>
 
-              <div className="feature-card">
+              <div className="feature-card" onClick={handleSignIn}>
                 <h3 className="feature-title">Mock Interview</h3>
                 <p className="feature-desc">
                   Simulate real interview scenarios with AI-generated questions
                 </p>
               </div>
 
-              <div className="feature-card">
+              <div className="feature-card" onClick={handleSignIn}>
                 <h3 className="feature-title">Real-time Interview</h3>
                 <p className="feature-desc">
                   Interview with experts and receive instant feedback on your
@@ -74,16 +86,14 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* Sponsors Section */}
         <section className="sponsors-section">
-          <p className="sponsors-title">Trusted by</p>
+          <p className="sponsors-title">Sponsored by</p>
           <div className="sponsors-logos">
             <img src="/hcmus.png" alt="HCMUS" className="sponsor-logo" />
             <img src="/fit.png" alt="FIT HCMUS" className="sponsor-logo" />
           </div>
         </section>
 
-        {/* Footer */}
         <footer className="landing-footer">
           <div className="footer-links">
             <a href="#" className="footer-link">
@@ -101,6 +111,17 @@ const LandingPage = () => {
           </p>
         </footer>
       </div>
+
+      {showLoginPanel && (
+        <div className="landing-overlay" onClick={handleCloseLogin}>
+          <div
+            className={`login-panel-wrapper${isClosingLogin ? " login-panel-wrapper--closing" : ""}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <LoginPanel />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
