@@ -42,7 +42,6 @@ const LandingPage = () => {
 
             <div className="features-grid">
               <div className="feature-card">
-                <div className="feature-icon">✓</div>
                 <h3 className="feature-title">AI-Powered Feedback</h3>
                 <p className="feature-desc">
                   Real-time analysis and personalized suggestions for
@@ -51,37 +50,27 @@ const LandingPage = () => {
               </div>
 
               <div className="feature-card">
-                <div className="feature-icon">✓</div>
-                <h3 className="feature-title">Progress Tracking</h3>
+                <h3 className="feature-title">Self practice</h3>
                 <p className="feature-desc">
-                  Monitor your improvement over time with detailed analytics
+                  Practice at your own pace with list of questions and answers
                 </p>
               </div>
 
               <div className="feature-card">
-                <div className="feature-icon">✓</div>
-                <h3 className="feature-title">Expert Resources</h3>
+                <h3 className="feature-title">Mock Interview</h3>
                 <p className="feature-desc">
-                  Access curated interview questions and best practices
+                  Simulate real interview scenarios with AI-generated questions
                 </p>
               </div>
 
               <div className="feature-card">
-                <div className="feature-icon">✓</div>
-                <h3 className="feature-title">Multiple Formats</h3>
+                <h3 className="feature-title">Real-time Interview</h3>
                 <p className="feature-desc">
-                  Practice technical, behavioral, and situational interviews
+                  Interview with experts and receive instant feedback on your
+                  performance
                 </p>
               </div>
             </div>
-
-            <button className="cta-button" onClick={handleGetStarted}>
-              Get Started Free
-            </button>
-
-            <p className="cta-subtext">
-              No credit card required • Start practicing now
-            </p>
           </div>
         </section>
 
