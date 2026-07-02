@@ -1,0 +1,310 @@
+{
+  "questions": [
+    {
+      "question": "What is the lifecycle of a Quality Assurance Process?",
+      "answer": "Every process in Quality Assurance involves the PDCA (Plan Do Check Act) cycle, also known as the Deming cycle, consisting of planning, doing, checking, and acting to ensure continuous improvement of processes.",
+      "field": "quality assurance",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "Differentiate between Quality Assurance and Testing.",
+      "answer": "Quality Assurance (QA) is process-oriented and focuses on preventing defects through process management, while Testing is product-oriented and aims to find and fix defects that are present in the product.",
+      "field": "quality assurance",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "Differentiate between Test Plan and Test Strategy.",
+      "answer": "A Test Plan is a document that describes the testing approach, resources, schedule, and the scope of testing. A Test Strategy outlines the testing objectives and methods to be used during the project.",
+      "field": "quality assurance",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What do you mean by build and release in the context of quality assurance?",
+      "answer": "Build refers to a version of software ready for testing, while Release is the finalized application delivered to customers after development and testing.",
+      "field": "quality assurance",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What do you understand about bug leakage and bug release?",
+      "answer": "Bug Leakage occurs when a defect that should have been identified during testing is found by end-users. Bug Release refers to a version of the software released knowingly containing defects that are accepted for various reasons.",
+      "field": "quality assurance",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What do you understand about Traceability Matrix (TM) in the context of quality assurance?",
+      "answer": "A Traceability Matrix is a document that links requirements to test cases ensuring that all requirements are covered and validated in the software testing process.",
+      "field": "quality assurance",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What do you understand about defect leakage ratio in the context of quality assurance?",
+      "answer": "Defect Leakage Ratio measures the percentage of defects that escape into production after being missed during the testing phase, indicating the effectiveness of the testing process.",
+      "field": "quality assurance",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "Differentiate between Quality Assurance (QA) and Quality Control (QC).",
+      "answer": "QA is a systematic process that focuses on preventing defects by ensuring quality processes, whereas QC is about identifying defects in the products after they have been developed.",
+      "field": "quality assurance",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What do you mean by monkey testing in the context of quality assurance?",
+      "answer": "Monkey testing is a type of software testing where random inputs are provided to the application without predefined test cases to check its behavior under unexpected conditions.",
+      "field": "quality assurance",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What do you mean by gorilla testing in the context of quality assurance?",
+      "answer": "Gorilla testing is a software testing technique focused on testing a specific module exhaustively with a significant number of test cases to ensure its functionality without bugs.",
+      "field": "quality assurance",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "Differentiate between gorilla testing and monkey testing.",
+      "answer": "Gorilla testing focuses on intensive testing of a specific module, while Monkey testing involves testing the entire application with random inputs without defined test cases.",
+      "field": "quality assurance",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "Explain what is a testware in the context of quality assurance.",
+      "answer": "Testware refers to all the artifacts created during the testing process, including test cases, test scripts, data files, and other documentation that helps in executing tests.",
+      "field": "quality assurance",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "How would you ensure that your testing is thorough and comprehensive?",
+      "answer": "Utilizing the Requirement Traceability Matrix and Test Coverage Matrix helps to ensure all requirements are adequately tested and covered by test cases, minimizing gaps.",
+      "field": "quality assurance",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What do you understand about data driven testing?",
+      "answer": "Data Driven Testing is a testing methodology where test data is stored separately from the test scripts, allowing multiple tests to be executed with different data sets efficiently.",
+      "field": "quality assurance",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What do you understand about load testing and stress testing?",
+      "answer": "Load testing assesses the application's performance under expected user load, while stress testing evaluates the system’s behavior under extreme conditions beyond its capacity.",
+      "field": "quality assurance",
+      "difficulty": "Experienced"
+    },
+    {
+      "question": "Differentiate between functional and non-functional testing.",
+      "answer": "Functional testing verifies that the application meets functional requirements, while non-functional testing assesses attributes like performance, usability, and reliability.",
+      "field": "quality assurance",
+      "difficulty": "Experienced"
+    },
+    {
+      "question": "What do you understand about black box and white box testing?",
+      "answer": "Black box testing evaluates the functionality without looking into internal structures, while white box testing focuses on the internal logic and structure of the code.",
+      "field": "quality assurance",
+      "difficulty": "Experienced"
+    },
+    {
+      "question": "What is the difference between Quality Assurance and Quality Control?",
+      "answer": "Quality Assurance focuses on ensuring that the end product will be of the requested quality, while Quality Control focuses on controlling processes used in development to fulfill quality requirements.",
+      "field": "quality assurance",
+      "difficulty": "Experienced"
+    },
+    {
+      "question": "What is a Cloud Technology?",
+      "answer": "A cloud is a combination of services, networks, hardware, storage, and interfaces that helps in delivering computing as a service. It broadly has three users: the end-user, business management user, and cloud service provider.",
+      "field": "cloud computing",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What are the Cloud Storage Levels?",
+      "answer": "Cloud storage levels include files, blocks, datasets, and objects, each associated with a specific technical interface corresponding to the cloud storage device used.",
+      "field": "cloud computing",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "Describe the Cloud Computing Architecture.",
+      "answer": "The cloud computing architecture comprises all components of a cloud model that fit together from an architectural perspective, including applications, middleware, infrastructure, and services associated with cloud services.",
+      "field": "cloud computing",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "Who are the Cloud service providers in a cloud ecosystem?",
+      "answer": "Cloud service providers are the commercial vendors or companies that create and manage their own capabilities, selling their services to cloud consumers or providing services internally.",
+      "field": "cloud computing",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "Who are the Direct customers in a cloud ecosystem?",
+      "answer": "Direct customers are users who benefit from services created within a cloud environment, interacting directly with those services without awareness of the underlying cloud technology.",
+      "field": "cloud computing",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What are the main constituents that are part of the cloud ecosystem?",
+      "answer": "The main constituents of the cloud ecosystem include cloud consumers, direct customers, and cloud service providers.",
+      "field": "cloud computing",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What are the different versions of the cloud?",
+      "answer": "The different versions of the cloud include public cloud, private cloud, hybrid cloud, and multi-cloud, each serving different deployment and operational needs.",
+      "field": "cloud computing",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What do you mean by cloud delivery models?",
+      "answer": "Cloud delivery models represent the computing environments, including Infrastructure as a Service (IaaS), Platform as a Service (PaaS), Software as a Service (SaaS), and Function as a Service (FaaS).",
+      "field": "cloud computing",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What are some of the key features of Cloud Computing?",
+      "answer": "Key features of cloud computing include agility, location independence, multi-tenancy, reliability, and scalability.",
+      "field": "cloud computing",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What do you mean by encapsulation in cloud computing?",
+      "answer": "Encapsulation in cloud computing refers to packaging software code with all its dependencies so it can run consistently across different environments without compatibility issues.",
+      "field": "cloud computing",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What do you mean by Rate Limiting?",
+      "answer": "Rate Limiting is a method to restrict the amount of network traffic, helping to eliminate malicious activities and protect against API overuse.",
+      "field": "cloud computing",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What is an API Gateway?",
+      "answer": "An API gateway is a server that acts as an intermediary for API calls, managing multiple APIs and providing a uniform experience while handling tasks like authentication and rate limiting.",
+      "field": "cloud computing",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What is meant by Edge Computing?",
+      "answer": "Edge computing refers to computing that takes place at or near the source of data generation, reducing latency and bandwidth use by processing data close to its origin, often used in IoT scenarios.",
+      "field": "cloud computing",
+      "difficulty": "Experienced"
+    },
+    {
+      "question": "What are Cloud-Native Applications?",
+      "answer": "Cloud-native applications are designed to leverage cloud computing benefits, utilizing containers, microservices, and dynamic orchestration for optimized performance and development.",
+      "field": "cloud computing",
+      "difficulty": "Experienced"
+    },
+    {
+      "question": "What are cloud-enabling technologies?",
+      "answer": "Cloud-enabling technologies include broadband networks, data center technology, virtualization technology, web technology, multitenant technology, and service technology that support cloud infrastructures.",
+      "field": "cloud computing",
+      "difficulty": "Experienced"
+    },
+    {
+      "question": "What is baseline in Software Development?",
+      "answer": "A baseline is a software development milestone and reference point marked by the completion or delivery of one or more software deliverables. The main objective of the baseline is to decrease and regulate vulnerability, or project weaknesses that can easily damage the project and lead to uncontrollable changes.",
+      "field": "software engineer",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What do you mean by Software Re-engineering?",
+      "answer": "The process of updating software is known as software reengineering. This procedure entails adding new features and functionalities to the software in order to make it better and more efficient.",
+      "field": "software engineer",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What are Verification and Validation?",
+      "answer": "Verification is the process of ensuring that software accomplishes its objectives without defects. Validation is the process of determining whether a software product meets the required standards, or in other words, whether it meets the product's quality criteria.",
+      "field": "quality assurance",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What are CASE tools?",
+      "answer": "CASE tools are a collection of software application programs that automate SDLC tasks. They include analysis tools, design tools, project management tools, database management tools, and documentation tools to simplify various stages of the Software Development Life Cycle.",
+      "field": "software engineer",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What is SRS?",
+      "answer": "SRS is a formal report that serves as a representation of software that allows customers to assess whether it meets their needs. It includes user needs for a system and precise system requirements specifications.",
+      "field": "software engineer",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What are the various categories of software?",
+      "answer": "Software products are mainly categorized into system software, networking and web development software, embedded software, artificial intelligence software, and scientific software.",
+      "field": "software engineer",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What are the drawbacks of the spiral model?",
+      "answer": "The spiral model is significantly more complicated than other SDLC models. It is not recommended for small projects due to high costs and a reliance on risk analysis that necessitates a high skill level.",
+      "field": "software engineer",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What is Software prototyping and POC?",
+      "answer": "A software prototype is a working model with limited functionality. POC (Proof of Concept) is a method used to validate an idea or concept's practicality before starting the software development process.",
+      "field": "software engineer",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What are the merits of the incremental model?",
+      "answer": "The incremental model can deliver iterations faster, allows parallel development, reduces initial delivery costs, facilitates user feedback, and helps identify risks on a module basis.",
+      "field": "software engineer",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What is Software scope?",
+      "answer": "The scope of a software project is a well-defined boundary that incorporates all the activities involved in developing and delivering a software product, explicitly defining what the final product will and will not include.",
+      "field": "software engineer",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What is the waterfall method and what are its use cases?",
+      "answer": "The waterfall model is a linear SDLC approach where each step is finished sequentially. It's suitable for well-defined and unchangeable requirements, short projects, and when technology is well understood.",
+      "field": "software engineer",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What is the main difference between a computer program and computer software?",
+      "answer": "A computer program is a set of instructions expressed in a programming language, while software is a collection of multiple programs used to complete tasks.",
+      "field": "software engineer",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What does a software product manager do?",
+      "answer": "A software product manager leads and manages the software product management department, overseeing the specialization, goals, structure, and expectations of the software product.",
+      "field": "software engineer",
+      "difficulty": "Fresher"
+    },
+    {
+      "question": "What is Software Configuration Management?",
+      "answer": "Software Configuration Management (SCM) systematically manages changes in documents, codes, and other entities during the Software Development Life Cycle to enhance production while minimizing mistakes.",
+      "field": "software engineer",
+      "difficulty": "Experienced"
+    },
+    {
+      "question": "What is Modularity?",
+      "answer": "Modularity is the practice of breaking down a program's functionality into separate, independent modules which can be developed and maintained independently, leading to simpler program management.",
+      "field": "software engineer",
+      "difficulty": "Experienced"
+    },
+    {
+      "question": "What is Debugging?",
+      "answer": "Debugging is the process of finding and resolving bugs in software, ensuring the software runs correctly after identifying and correcting problems.",
+      "field": "software engineer",
+      "difficulty": "Experienced"
+    },
+    {
+      "question": "Explain the concept of modularization.",
+      "answer": "Modularization is the practice of designing applications as self-contained components with specific functionalities to make them easier to develop and maintain.",
+      "field": "software engineer",
+      "difficulty": "Experienced"
+    },
+    {
+      "question": "What are Software Metrics?",
+      "answer": "Software metrics are quantitative measures of program properties used to analyze performance, plan, estimate productivity, and include metrics like load testing and stress testing.",
+      "field": "quality assurance",
+      "difficulty": "Experienced"
+    }
+  ]
+}
