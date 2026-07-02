@@ -248,13 +248,17 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "firecrawl-py" },
+    { name = "python-dotenv" },
 ]
 
 [package.metadata]
 requires-dist = [{ name = "pydantic", specifier = ">=2.13.4" }]
 
 [package.metadata.requires-dev]
-dev = [{ name = "firecrawl-py", specifier = ">=4.31.0" }]
+dev = [
+    { name = "firecrawl-py", specifier = ">=4.31.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+]
 
 [[package]]
 name = "firecrawl-py"

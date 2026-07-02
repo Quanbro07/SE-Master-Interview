@@ -1,10 +1,20 @@
+import os
 import json
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from typing import List
 from firecrawl import Firecrawl
 
+load_dotenv()
+
+# Grab the API key we defined in the .env file
+api_key = os.getenv("FIRECRAWL_API_KEY")
+
+# Safety check: Make sure the key was actually found
+if not api_key:
+    raise ValueError("API Key not found! Please check your .env file.")
 # 1. Initialize Firecrawl
-app = Firecrawl(api_key="fc-f31f4c2923784e41898bdb7f9770e77b")
+app = Firecrawl(api_key)
 
 # 2. Define your exact JSON) schema using Pydantic
 class InterviewQuestion(BaseModel):
