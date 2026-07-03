@@ -1,6 +1,9 @@
+authentication:
+  redirect_url: ${REDIRECT_URL}
+
 spring:
   application:
-    name:backend
+    name: backend
 
   profiles:
     active: dev
