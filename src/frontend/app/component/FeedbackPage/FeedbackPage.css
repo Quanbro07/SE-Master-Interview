@@ -1,0 +1,84 @@
+.feedback-page {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  min-height: 100vh;
+  width: 100%;
+  background: #0f0f13;
+}
+
+.feedback-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  padding: 24px 32px;
+  box-sizing: border-box;
+}
+
+.feedback-content {
+  width: min(100%, 1100px);
+  display: flex;
+  justify-content: center;
+}
+
+.feedback-page .navigation-bar {
+  flex-shrink: 0;
+}
+
+.chat-trigger-header {
+  position: fixed; /* Thay đổi từ absolute sang fixed để không bị cuộn trôi */
+  top: 16px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  z-index: 999; /* Đảm bảo luôn nổi lên trên tất cả các box card */
+  padding: 8px 16px;
+  background-color: #18181c; /* Đổ lại màu đặc để không bị lộ card xuyên qua */
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.chat-trigger-header:hover {
+  transform: scale(1.05);
+  background-color: #27272a;
+}
+
+.chat-trigger-header .chatbot-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.chat-trigger-header .chatbot-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.chat-trigger-header .user-name {
+  color: #e4e4e7;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.chat-trigger-header .user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.chat-trigger-header .user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

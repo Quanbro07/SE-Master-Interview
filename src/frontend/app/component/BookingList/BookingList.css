@@ -1,0 +1,281 @@
+.booking-list-container {
+  padding: 40px;
+  color: #f8f8ff;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.main-heading {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #e4e4e7;
+  margin-top: 50px;
+}
+
+/* SECTION cấu trúc */
+.booking-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #a1a1aa;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* SLIDER bọc ngoài điều hướng */
+.section-slider-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* KHUNG CHỨA CARD CÓ HOÀN CẢNH DI CHUYỂN NGANG */
+.cards-slider {
+  display: grid;
+  grid-auto-flow: column; /* Ép các phần tử xếp hàng ngang vô tận */
+  gap: 16px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  width: 100%;
+  padding: 10px;
+}
+
+/* Ẩn thanh cuộn mặc định của trình duyệt để nhìn UI sạch hơn (vì đã có nút tịnh tiến) */
+.cards-slider::-webkit-scrollbar {
+  height: 5px;
+}
+.cards-slider::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+/* --- ĐỊNH NGHĨA CSS VARIABLE CHO CARD ĐỂ CO GIÃN TỰ ĐỘNG --- */
+/* Mặc định: 5 hộp trên dòng khi không có bar nào mở */
+.booking-list-container.grid-cols-5 .mentor-card {
+  width: calc((100vw - 380px - 16px * 4 - 80px) / 5);
+}
+/* 1 bar mở (Navbar hoặc ChatPanel) -> 4 hộp trên dòng */
+.booking-list-container.grid-cols-4 .mentor-card {
+  width: calc((100vw - 380px - 80px - 16px * 3 - 80px) / 4);
+}
+/* Cả 2 bar cùng mở -> 3 hộp trên dòng */
+.booking-list-container.grid-cols-3 .mentor-card {
+  width: calc((100vw - 300px - 360px - 16px * 2 - 80px) / 3);
+}
+
+/* ĐỊNH DẠNG BOX MENTOR */
+.mentor-card {
+  background: #27272a7a;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  /* Hiệu ứng chuyển đổi kích thước mượt mà khớp với tốc độ đóng mở của 2 bar phụ */
+  transition:
+    width 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+    background-color 0.2s;
+}
+
+.mentor-card:hover {
+  background: #27272acc;
+}
+
+.card-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-bottom: 12px;
+  background: #52525b;
+}
+
+.card-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-name {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  color: #f4f4f5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.card-role {
+  font-size: 12px;
+  color: #a1a1aa;
+  margin: 0 0 12px 0;
+}
+
+.card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11.5px;
+  color: #d4d4d8;
+  margin-bottom: 16px;
+}
+
+.view-profile-btn {
+  width: 100%;
+  padding: 8px 0;
+  background-color: rgba(57, 29, 122, 0.39);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  color: #cecece;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-profile-btn:hover {
+  background-color: #402e74;
+  color: #ffffff;
+}
+
+/* NÚT ĐIỀU HƯỚNG TỊNH TIẾN SANG HAI BÊN */
+.slider-btn {
+  position: absolute;
+  top: 40%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(24, 24, 27, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  z-index: 10;
+  opacity: 0;
+  transition:
+    opacity 0.2s,
+    background 0.2s;
+}
+
+.section-slider-wrapper:hover .slider-btn {
+  opacity: 1; /* Chỉ hiện nút bấm khi người dùng hover vào khu vực hàng đó */
+}
+
+.slider-btn:hover {
+  background: #3f3f46;
+}
+
+.btn-left {
+  left: -18px;
+}
+.btn-right {
+  right: -18px;
+}
+
+.booking-list-container.grid-cols-5 .mentor-card {
+  width: calc((100vw - 80px - 60px - (16px * 4) - 80px) / 5);
+}
+
+/* 1 bar mở (Navbar HOẶC ChatPanel mở) -> 4 hộp trên dòng */
+.booking-list-container.grid-cols-4 .mentor-card {
+  /* Trường hợp Navbar MỞ (300px) và ChatPanel ĐÓNG (60px) */
+  width: calc((100vw - 300px - 60px - (16px * 3) - 80px) / 4);
+}
+
+/* Cả 2 bar cùng mở -> 3 hộp trên dòng */
+.booking-list-container.grid-cols-3 .mentor-card {
+  width: calc((100vw - 300px - 360px - (16px * 2) - 80px) / 3);
+}
+
+/* TỔNG THỂ CONTAINER CHỨA LIST */
+.booking-list-container {
+  padding: 24px 40px;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* KHUNG BỌC NGOÀI ĐỂ CĂN GIỮA SEARCH BAR */
+.search-bar-container {
+  display: flex;
+  justify-content: center; /* Căn giữa theo trục ngang */
+  width: 100%;
+  margin-bottom: 24px;
+  /* Đảm bảo khi các thanh bên hông co giãn, khung search sẽ tịnh tiến mượt mà */
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* KHUNG SEARCH-BAR CHÍNH */
+.search-bar {
+  display: flex;
+  align-items: center;
+  background-color: #18181c; /* Màu nền xám đen đặc của hệ thống chat/nav */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 30px; /* Bo góc tròn mềm mại */
+  padding: 6px 6px 6px 18px;
+  width: 100%;
+  max-width: 520px; /* Độ rộng tối đa vừa vặn cho khung tìm kiếm */
+  box-sizing: border-box;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Ô INPUT NHẬP CHỮ */
+.search-bar input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #f4f4f5;
+  font-size: 14px;
+}
+
+.search-bar input::placeholder {
+  color: #71717a;
+}
+
+/* NÚT SEARCH MÀU XÁM - HOVER CHUYỂN TÍM */
+.search-btn {
+  background-color: #27272a; /* Mặc định màu xám tối quý phái */
+  color: #e4e4e7;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 120px;
+
+  /* Tạo hiệu ứng chuyển màu smooth 0.3 giây */
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    transform 0.1s ease;
+}
+
+/* HIỆU ỨNG HOVER SANG MÀU TÍM THƯƠNG HIỆU */
+.search-btn:hover {
+  background-color: #4326869f; /* Sắc tím công nghệ đặc trưng */
+  color: #ffffff;
+}
+
+.search-btn:active {
+  transform: scale(0.97); /* Hiệu ứng nhấn nút nhẹ */
+}

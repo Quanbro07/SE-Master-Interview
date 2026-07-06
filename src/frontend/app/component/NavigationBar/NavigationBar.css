@@ -1,3 +1,4 @@
+/* CONTAINER NAVBAR BÊN TRÁI */
 .navigation-bar {
   width: 300px;
   min-height: 100vh;
@@ -9,84 +10,117 @@
   flex-direction: column;
   gap: 32px;
   box-sizing: border-box;
-  transition: width 0.5s cubic-bezier(0.5, 0.4, 0.3, 1);
+  /* Đồng bộ bộ hiệu ứng mượt mà (Premium UX) từ ChatPanel */
+  transition:
+    width 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+    background-color 0.3s ease,
+    border-color 0.3s ease;
 }
 
+/* TRẠNG THÁI COLLAPSED (THU GỌN) */
 .navigation-bar.collapsed {
   width: 80px;
-  transition: width 0.5s cubic-bezier(0.5, 0.4, 0.3, 1);
-}
-
-.navigation-bar.collapsed .brand-text,
-.navigation-bar.collapsed .close-icon {
-  display: none;
+  padding: 24px 12px; /* Thu hẹp padding nhẹ cho cân đối icon */
 }
 
 .nav-brand {
   display: flex;
   align-items: center;
-  gap: 20px;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.navigation-bar.collapsed .nav-brand {
+  justify-content: center; /* Căn giữa logo khi thu gọn */
 }
 
 .brand-icon {
-  width: 100px;
-  border-radius: 50%;
+  width: 42px; /* Thu nhỏ kích thước logo cố định cho cân đối */
+  height: 42px;
   display: grid;
   place-items: center;
-  position: relative;
-  transition:
-    width ease 0.5s,
-    height ease 0.5s;
+  flex-shrink: 0;
+  transition: transform 0.2s ease-in-out;
+}
+
+.brand-icon:hover {
+  transform: scale(1.08);
+}
+
+.logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .brand-text {
   display: flex;
   flex-direction: column;
   justify-content: center;
-}
-
-.navigation-bar.collapsed .brand-icon {
-  width: 80px;
+  flex: 1;
+  margin-left: 12px;
 }
 
 .brand-title {
   margin: 0;
-  font-size: 25px;
+  font-size: 20px; /* Hạ nhẹ size chữ để tránh chen chúc nút close */
   line-height: 1.3;
   font-weight: 700;
   letter-spacing: 0.02em;
   color: #f8f8ff;
+  white-space: nowrap;
 }
 
 .close-icon {
-  width: 80px;
+  width: 24px;
+  height: 24px;
   display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
 }
 
+.close-icon:hover {
+  opacity: 1;
+}
+
+.close-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* DANH SÁCH MENU DI CHUYỂN */
 .nav-list {
   display: flex;
   flex-direction: column;
-  gap: 0px;
+  gap: 8px; /* Tạo khoảng cách nhỏ giữa các dòng menu */
 }
 
 .nav-item {
   padding: 14px 16px;
-  border-radius: 0px;
+  border-radius: 8px; /* Đổi thành bo góc nhẹ cho hiện đại */
   transition:
     background 0.2s ease,
-    color 0.2s ease;
+    color 0.2s ease,
+    padding 0.3s ease;
   cursor: pointer;
   color: #b9b9c9;
-  margin: 0 -16px;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
+/* Khi thu gọn menu item */
 .navigation-bar.collapsed .nav-item {
-  text-align: center;
-  text-indent: -9999px; /* Mẹo ẩn chữ nhanh mà không làm mất cấu trúc */
-  white-space: nowrap;
-  overflow: hidden;
-  margin: 0; /* Trả về margin 0 để không bị lệch */
+  justify-content: center;
+  padding: 12px 0;
+  width: 100%;
 }
 
 .nav-item:hover {
@@ -94,20 +128,31 @@
   color: #f4f4fd;
 }
 
+/* ITEM ĐANG ACTIVE */
 .nav-item--active {
   background: #dbbcff42;
   color: #f7f7ff;
   font-weight: 800;
-  border-left: 4px solid #665c8d;
+  border-left: 4px solid #c6b0fa;
 }
 
 .nav-item--active:hover {
   background: rgba(91, 69, 156, 0.479);
 }
 
+/* Active item khi thu gọn: Đổi sang dạng bao bọc bong bóng hình vuông bo góc tròn */
 .navigation-bar.collapsed .nav-item--active {
-  border: none;
-  border-radius: 10px;
-  width: 52px;
-  margin: -3px;
+  border-left: none;
+  background: #dbbcff42;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  margin: 0 auto; /* Đưa khối active nằm chính giữa thanh bar */
+}
+
+/* Kí tự đại diện hoặc Icon thay thế khi thu gọn */
+.collapsed-icon-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #c6b0fa;
 }

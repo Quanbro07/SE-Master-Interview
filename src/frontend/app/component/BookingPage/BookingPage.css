@@ -1,7 +1,634 @@
-.booking-page-body {
+/* CONTAINER TOÀN CỤM BOOKING PAGE */
+.dashboard-container {
   display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
+  width: 100vw;
+  height: 100vh;
+  background-color: #0b0b0e;
+  overflow: hidden; /* Triệt tiêu hoàn toàn scroll tổng của cả trang */
+  position: relative;
+}
+
+/* KHUNG CHÍNH Ở GIỮA chứa List Đóng vai trò là một viewport độc lập */
+.dashboard-main {
+  flex: 1;
+  height: 100vh;
+  overflow-y: auto; /* CHỈ CHO PHÉP SCROLL Ở ĐÂY */
+  background-color: #0b0b0e;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* NÚT TRIGGER HEADER - SỬA LẠI ĐỊNH VỊ FIXED */
+.chat-trigger-header {
+  position: fixed; /* Thay đổi từ absolute sang fixed để không bị cuộn trôi */
+  top: 16px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  z-index: 999; /* Đảm bảo luôn nổi lên trên tất cả các box card */
+  padding: 8px 16px;
+  background-color: #18181c; /* Đổ lại màu đặc để không bị lộ card xuyên qua */
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.chat-trigger-header:hover {
+  transform: scale(1.05);
+  background-color: #27272a;
+}
+
+.chat-trigger-header .chatbot-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.chat-trigger-header .chatbot-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.chat-trigger-header .user-name {
+  color: #e4e4e7;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.chat-trigger-header .user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.chat-trigger-header .user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* CHỈNH SỬA THANH CUỘN TỔNG Ở GIỮA */
+.dashboard-main::-webkit-scrollbar {
+  width: 6px;
+  background-color: transparent;
+}
+
+.dashboard-main::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  transition: background-color 0.2s ease;
+}
+
+.dashboard-main::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.dashboard-main::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ============================================================
+   POPUP - SHARED SHELL
+   ============================================================ */
+
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.popup-content {
+  background-color: #1c1c21;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  color: #f4f4f5;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  animation: scaleUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.popup-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.popup-btn {
+  padding: 10px 32px;
+  font-weight: 600;
+  border-radius: 20px;
+  cursor: pointer;
+  border: none;
+  font-size: 14px;
+  width: 140px;
+  transition: all 0.2s ease;
+}
+
+.popup-btn.btn-book {
+  background: linear-gradient(90deg, #243e2d 0%, #082c03 100%);
+  color: #fff;
+}
+.popup-btn.btn-book:hover {
+  background: linear-gradient(90deg, #16a34a 0%, #15803d 100%);
+}
+.popup-btn.btn-cancel {
+  background: linear-gradient(90deg, #552828 0%, #2b0303 100%);
+  color: #fff;
+}
+.popup-btn.btn-cancel:hover {
+  background: linear-gradient(90deg, #b91c1c 0%, #991b1b 100%);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes scaleUp {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ============================================================
+   PROFILE POPUP
+   The gradient border is painted as part of the element's own
+   background (background-clip trick) instead of a separate
+   absolutely-positioned pseudo-element. Because it's the same
+   box being scaled by the shared `scaleUp` animation, there is
+   no flash/flicker of an unstyled rectangle on open.
+   ============================================================ */
+
+.profile-popup-box {
+  width: 584px;
+  max-width: 92vw;
+  padding: 28px 32px;
+  border-radius: 16px;
+  border-top: 2px solid transparent;
+  border-right: 1px solid transparent;
+  border-bottom: 0;
+  border-left: 0;
+  background-image:
+    linear-gradient(349deg, #1d1d1d 26%, #011932 99.8%),
+    linear-gradient(135deg, #ffeb6a 0%, #bf7103 100%);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 4px 4px 4px 3px rgba(0, 0, 0, 0.25);
+}
+
+.profile-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 24px;
+}
+
+.profile-avatar-wrapper {
+  width: 88px;
+  height: 88px;
+  min-width: 88px;
+  border-radius: 50%;
+  border: 3px solid #7dd3fc;
+  overflow: hidden;
+}
+
+.profile-avatar-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.profile-name {
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.profile-role {
+  color: #cbd5e1;
+  font-size: 14px;
+  margin: 0;
+}
+
+.profile-rating {
+  margin-left: auto;
+  align-self: flex-start;
+  white-space: nowrap;
+  color: #fbbf24;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.profile-details-body {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 22px;
+  color: #d4d4d8;
+  line-height: 1.65;
+}
+
+.profile-left-panel {
+  background: linear-gradient(
+    180deg,
+    rgba(88, 43, 130, 0.96) 0%,
+    rgba(50, 14, 80, 0.96) 100%
+  );
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-left-header {
+  margin-bottom: 18px;
+}
+
+.profile-left-header h4,
+.profile-right-section h4 {
+  color: #c7c7d4;
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.profile-right-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-right-section {
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profile-right-section:first-child {
+  padding-top: 0;
+}
+
+.profile-right-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.profile-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.profile-list li {
+  color: #e5e7eb;
+  margin-bottom: 10px;
+  padding-left: 14px;
+  position: relative;
+  font-size: 13px;
+}
+
+.profile-list li::before {
+  content: "-";
+  position: absolute;
+  left: 0;
+  color: #a78bfa;
+}
+
+.fee-text {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.profile-popup-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+/* ============================================================
+   PAYMENT POPUP
+   ============================================================ */
+
+.payment-popup-box {
+  width: 820px;
+  padding: 32px;
+}
+
+.payment-grid {
+  display: flex;
+  gap: 40px;
+}
+
+.payment-schedule,
+.payment-form-details {
+  flex: 1 1 50%;
+  min-width: 0;
+}
+
+.payment-schedule {
+  display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  align-items: space-between;
+}
+
+.popup-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  text-align: center;
+}
+
+.payment-schedule h3,
+.payment-form-details h3 {
+  font-size: 18px;
+  margin-top: 0;
+  color: #fff;
+}
+
+.calendar-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.calendar-header {
+  text-align: center;
+  color: #a78bfa;
+  font-weight: 600;
+}
+
+.calendar-nav-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calendar-nav-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.calendar-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.calendar-weekdays span {
+  color: #9ca3af;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.calendar-dates {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  min-height: calc(38px * 5 + 8px * 4);
+  height: calc(38px * 5 + 8px * 4);
+}
+
+.calendar-day {
+  height: 30px;
+  width: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+.calendar-day:hover:not(.disabled):not(.active) {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.calendar-day.empty {
+  background: transparent;
+  cursor: default;
+  border: none;
+}
+
+.calendar-day.disabled {
+  color: rgba(123, 127, 134, 0.7);
+  cursor: not-allowed;
+}
+
+.calendar-day.active {
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 700;
+  border-color: #3b82f6;
+}
+
+.time-slots-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.time-action-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.time-slots {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.payment-actions-inline {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-left: auto;
+  margin-top: 60px;
+}
+
+.slot-btn {
+  background-color: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.slot-btn.selected {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.1);
+}
+.slot-btn.disabled-slot {
+  color: #52525b;
+  background: linear-gradient(90deg, #131316 0%, #27272a 100%);
+  cursor: not-allowed;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.input-group label {
+  font-size: 11px;
+  color: #a1a1aa;
+  font-weight: 600;
+}
+.input-group input {
+  background-color: #27272a;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  color: #fff;
+  outline: none;
+}
+.input-row {
+  display: flex;
+  gap: 16px;
+}
+
+.total-price-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #27272a;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 20px 0 10px;
+}
+.price-tag {
+  background-color: #22c55e;
+  color: #000;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+.payment-note {
+  font-size: 11px;
+  color: #71717a;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.payment-actions {
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.booking-notice {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  gap: 16px;
+  width: fit-content;
+  max-width: 90%;
+  margin: 16px auto 20px;
+  padding: 10px 24px;
+  border-radius: 8px;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  animation:
+    noticeSlideIn 0.35s ease-out,
+    noticeFadeOut 0.4s ease-in 4.6s forwards;
+}
+
+.notice-text {
+  color: #4ade80;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.notice-dash {
+  width: 40px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes noticeSlideIn {
+  from {
+    transform: translateY(-24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes noticeFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }

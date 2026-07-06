@@ -1,8 +1,6 @@
 import React from "react";
-import LoginPanel from "./component/LoginPanel/LoginPanel";
-import LandingPage from "./component/LandingPage/LandingPage";
-import BookingPage from "./component/BookingPage/BookingPage";
+import FeedbackPage from "./component/FeedbackPage/FeedbackPage";
 
 export default function Home() {
-  return <BookingPage />;
+  return <FeedbackPage />;
 }

@@ -1,9 +1,8 @@
 "use client";
-import React, { useState } from "react";
-import "./ChatPanel.css"; // Đảm bảo đường dẫn file CSS chính xác
+import React, { useState, useEffect, useRef } from "react";
+import "./ChatPanel.css";
 
-const ChatPanel = () => {
-  // Mock dữ liệu tin nhắn khớp với ảnh mẫu
+const ChatPanel = ({ isCollapsed, onClose }) => {
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -13,21 +12,21 @@ const ChatPanel = () => {
     {
       id: 2,
       sender: "agent",
-      text: "Sure! Here are your questions about Back-end development.\nLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
-    },
-    {
-      id: 3,
-      sender: "user",
-      text: "Show me the key answer",
-    },
-    {
-      id: 4,
-      sender: "agent",
-      text: "Sure!\n-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+      text: "Sure! Here are your questions about Back-end development.\nLorem ipsum...",
     },
   ]);
-
   const [input, setInput] = useState("");
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (!isCollapsed) {
+      scrollToBottom();
+    }
+  }, [messages, isCollapsed]);
 
   const handleSendMessage = (e) => {
     if (e.key === "Enter" && input.trim() !== "") {
@@ -40,16 +39,19 @@ const ChatPanel = () => {
   };
 
   return (
-    <aside className="chat-panel">
-      {/* Chat Header */}
+    <aside className={`chat-panel ${isCollapsed ? "collapsed" : ""}`}>
+      {/* Chat Header nội bộ */}
       <div className="chat-header">
+        <div className="chatbot-icon" onClick={onClose}>
+          <img src="/logo.png" alt="Chatbot Icon" />
+        </div>
         <span className="user-name">John</span>
         <div className="user-avatar">
           <img src="/user.png" alt="User Avatar" />
         </div>
       </div>
 
-      {/* Khu vực hiển thị tin nhắn */}
+      {/* Thân tin nhắn */}
       <div className="chat-messages">
         {messages.map((msg) => (
           <div key={msg.id} className={`message-row ${msg.sender}`}>
@@ -60,9 +62,10 @@ const ChatPanel = () => {
             </div>
           </div>
         ))}
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Ô nhập liệu tin nhắn phía dưới */}
+      {/* Ô nhập liệu */}
       <div className="chat-input-wrapper">
         <input
           type="text"
