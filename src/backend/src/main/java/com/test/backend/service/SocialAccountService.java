@@ -1,6 +1,7 @@
 package com.test.backend.service;
 
 import com.test.backend.entity.socialAccount.SocialAccount;
+import com.test.backend.entity.socialAccount.SocialAccountProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -8,7 +9,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class SocialAccountService {
 
-    public SocialAccount createSocialAccountAndReturn(String provider, String providerId) {
+    public SocialAccount createSocialAccountAndReturn(SocialAccountProvider provider, String providerId) {
         return SocialAccount.builder()
                 .provider(provider)
                 .providerId(providerId)

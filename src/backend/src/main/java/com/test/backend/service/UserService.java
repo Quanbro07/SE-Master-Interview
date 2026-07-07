@@ -1,6 +1,6 @@
 package com.test.backend.service;
 
-import com.test.backend.dto.RegisterRequest;
+import com.test.backend.dto.authentication.RegisterRequest;
 import com.test.backend.entity.user.User;
 import com.test.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

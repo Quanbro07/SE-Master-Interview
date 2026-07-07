@@ -42,7 +42,7 @@ public class User {
     @Column(name = "linkedin_url", length = 512)
     private String linkedinUrl;
 
-    @Column(name = "githubz_url", length = 512)
+    @Column(name = "github_url", length = 512)
     private String githubUrl;
 
     @Column(name = "role", nullable = false)

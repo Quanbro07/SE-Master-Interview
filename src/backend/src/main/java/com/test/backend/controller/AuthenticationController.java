@@ -1,8 +1,7 @@
 package com.test.backend.controller;
 
-import com.nimbusds.openid.connect.sdk.AuthenticationRequest;
-import com.test.backend.dto.AuthenticationResponse;
-import com.test.backend.dto.RegisterRequest;
+import com.test.backend.dto.authentication.AuthenticationResponse;
+import com.test.backend.dto.authentication.RegisterRequest;
 import com.test.backend.service.authentication.AuthenticationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,12 +13,12 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/auth")
 public class AuthenticationController {
 
-    private AuthenticationService authenticationService;
+    private final AuthenticationService authenticationService;
 
     @PostMapping("/register")
     public ResponseEntity<AuthenticationResponse> register(
             @RequestBody RegisterRequest registerRequest,
-            @RequestHeader("Authentication") String authHeader) {
+            @RequestHeader("Authorization") String authHeader) {
 
         String tempToken = authHeader.substring(7);
 
@@ -31,7 +30,7 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthenticationResponse> login(
-            @RequestHeader("Authentication") String authHeader) {
+            @RequestHeader("Authorization") String authHeader) {
 
         String tempToken = authHeader.substring(7);
 
