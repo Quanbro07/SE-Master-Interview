@@ -32,28 +32,35 @@
   margin: 0;
   font-size: 14px;
 }
-.self-field-grid {
+.self-field-select-wrap {
   display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
   justify-content: center;
   margin: 20px 0 6px;
 }
-.self-field-btn {
-  min-width: 140px;
-  padding: 12px 18px;
-  border-radius: 999px;
-  border: 1px solid rgba(167, 139, 250, 0.25);
-  background: rgba(255, 255, 255, 0.04);
-  color: #e6e6ea;
+.self-field-select {
+  width: 100%;
+  max-width: 320px;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f5f5ff;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-size: 15px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
   cursor: pointer;
-  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
 }
-.self-field-btn:hover,
-.self-field-btn.active {
-  background: rgba(167, 139, 250, 0.16);
+.self-field-select:hover,
+.self-field-select:focus {
   border-color: rgba(167, 139, 250, 0.55);
-  transform: translateY(-2px);
+  outline: none;
+}
+.self-field-select option {
+  background: #18181c;
+  color: #f5f5ff;
+}
+.self-field-grid {
+  display: none;
 }
 .self-loader-area {
   display: flex;
@@ -116,9 +123,9 @@
   margin-top: 28px;
 }
 .self-card {
-  width: 720px;
+  width: 780px;
   max-width: 100%;
-  min-height: 240px;
+  min-height: 340px;
   position: relative;
   transform-style: preserve-3d;
   transition: transform 0.8s cubic-bezier(0.65, 0.05, 0.36, 1);
@@ -130,10 +137,10 @@
   position: absolute;
   inset: 0;
   border-radius: 20px;
-  padding: 30px 28px;
+  padding: 40px 36px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   backface-visibility: hidden;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
@@ -146,52 +153,62 @@
   transform: rotateY(180deg);
   color: #e6e6ea;
 }
+.self-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 22px;
+}
 .self-card-title {
   font-size: 16px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #bdbdc8;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
 }
 .self-question {
-  font-size: 20px;
-  line-height: 1.6;
+  font-size: 22px;
+  line-height: 1.5;
   margin: 0;
+  max-width: 100%;
 }
 .self-answer {
-  font-size: 18px;
+  font-size: 19px;
   line-height: 1.7;
   margin: 0;
-}
-.self-card-note {
-  margin-top: 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-.self-card-note span {
-  color: #bdbdc8;
+  max-width: 100%;
 }
 .self-card-btn {
-  padding: 10px 18px;
+  padding: 12px 22px;
   background: linear-gradient(90deg, #7c3aed 0%, #a78bfa 100%);
   color: #fff;
   border: none;
   border-radius: 999px;
   cursor: pointer;
-  transition: transform 180ms ease, box-shadow 180ms ease;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
 }
-.self-card-btn:hover {
+.self-card-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 10px 20px rgba(124,62,237,0.3);
 }
+.self-card-btn:disabled {
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.55);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
 .self-card-footer {
+  position: absolute;
+  bottom: 24px;
+  left: 36px;
+  right: 36px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 18px;
 }
 .self-card-step {
   color: #cfcfd3;

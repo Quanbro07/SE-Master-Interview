@@ -144,30 +144,61 @@ const SelfPracticePage = () => {
             {showCard && (
               <div className={`self-card ${flipped ? "flipped" : ""}`} onClick={toggleFlip}>
                 <div className="self-card-face self-card-front">
-                  <div>
+                  <div className="self-card-content">
                     <p className="self-card-title">{selectedField}</p>
                     <h2 className="self-question">{selectedQuestion.prompt}</h2>
                   </div>
-                  <div className="self-card-note">
-                    <span>Tap the card to reveal the answer</span>
-                    <button className="self-card-btn">See answer</button>
+                  <div className="self-card-footer">
+                    <button
+                      className="self-card-btn"
+                      disabled={currentIndex === 0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        prevQuestion();
+                      }}
+                    >
+                      Prev
+                    </button>
+                    <span className="self-card-step">{currentIndex + 1}/{questions.length}</span>
+                    <button
+                      className="self-card-btn"
+                      disabled={currentIndex + 1 >= questions.length}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        nextQuestion();
+                      }}
+                    >
+                      Next
+                    </button>
                   </div>
                 </div>
                 <div className="self-card-face self-card-back">
-                  <div>
+                  <div className="self-card-content">
                     <p className="self-card-title">Answer</p>
                     <p className="self-answer">{selectedQuestion.answer}</p>
                   </div>
                   <div className="self-card-footer">
+                    <button
+                      className="self-card-btn"
+                      disabled={currentIndex === 0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        prevQuestion();
+                      }}
+                    >
+                      Prev
+                    </button>
                     <span className="self-card-step">{currentIndex + 1}/{questions.length}</span>
-                    <div style={{ display: "flex", gap: "10px" }}>
-                      <button className="self-card-btn" onClick={(e) => { e.stopPropagation(); prevQuestion(); }}>
-                        Prev
-                      </button>
-                      <button className="self-card-btn" onClick={(e) => { e.stopPropagation(); nextQuestion(); }}>
-                        Next
-                      </button>
-                    </div>
+                    <button
+                      className="self-card-btn"
+                      disabled={currentIndex + 1 >= questions.length}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        nextQuestion();
+                      }}
+                    >
+                      Next
+                    </button>
                   </div>
                 </div>
               </div>
