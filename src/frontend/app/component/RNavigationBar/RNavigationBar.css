@@ -1,5 +1,5 @@
-/* CONTAINER NAVBAR BÊN TRÁI */
-.navigation-bar {
+/* CONTAINER NAVBAR - INTERVIEWER SIDE */
+.i-nav-bar {
   position: sticky;
   top: 0;
   align-self: flex-start;
@@ -14,32 +14,31 @@
   flex-direction: column;
   gap: 32px;
   box-sizing: border-box;
-  /* Đồng bộ bộ hiệu ứng mượt mà (Premium UX) từ ChatPanel */
   transition:
     width 0.3s cubic-bezier(0.25, 1, 0.5, 1),
     background-color 0.3s ease,
     border-color 0.3s ease;
 }
 
-/* TRẠNG THÁI COLLAPSED (THU GỌN) */
-.navigation-bar.collapsed {
+/* COLLAPSED STATE */
+.i-nav-bar.collapsed {
   width: 80px;
-  padding: 24px 12px; /* Thu hẹp padding nhẹ cho cân đối icon */
+  padding: 24px 12px;
 }
 
-.nav-brand {
+.i-nav-brand {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
 }
 
-.navigation-bar.collapsed .nav-brand {
-  justify-content: center; /* Căn giữa logo khi thu gọn */
+.i-nav-bar.collapsed .i-nav-brand {
+  justify-content: center;
 }
 
-.brand-icon {
-  width: 42px; /* Thu nhỏ kích thước logo cố định cho cân đối */
+.i-nav-brand-icon {
+  width: 42px;
   height: 42px;
   display: grid;
   place-items: center;
@@ -47,17 +46,17 @@
   transition: transform 0.2s ease-in-out;
 }
 
-.brand-icon:hover {
+.i-nav-brand-icon:hover {
   transform: scale(1.08);
 }
 
-.logo-image {
+.i-nav-logo-image {
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
-.brand-text {
+.i-nav-brand-text {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -65,9 +64,9 @@
   margin-left: 12px;
 }
 
-.brand-title {
+.i-nav-brand-title {
   margin: 0;
-  font-size: 20px; /* Hạ nhẹ size chữ để tránh chen chúc nút close */
+  font-size: 20px;
   line-height: 1.3;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -75,7 +74,7 @@
   white-space: nowrap;
 }
 
-.close-icon {
+.i-nav-close-icon {
   width: 24px;
   height: 24px;
   display: flex;
@@ -87,26 +86,26 @@
   transition: opacity 0.2s ease;
 }
 
-.close-icon:hover {
+.i-nav-close-icon:hover {
   opacity: 1;
 }
 
-.close-image {
+.i-nav-close-image {
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
-/* DANH SÁCH MENU DI CHUYỂN */
-.nav-list {
+/* MENU LIST */
+.i-nav-list {
   display: flex;
   flex-direction: column;
-  gap: 8px; /* Tạo khoảng cách nhỏ giữa các dòng menu */
+  gap: 8px;
 }
 
-.nav-item {
+.i-nav-item {
   padding: 14px 16px;
-  border-radius: 8px; /* Đổi thành bo góc nhẹ cho hiện đại */
+  border-radius: 8px;
   transition:
     background 0.2s ease,
     color 0.2s ease,
@@ -120,42 +119,41 @@
   box-sizing: border-box;
 }
 
-/* Khi thu gọn menu item */
-.navigation-bar.collapsed .nav-item {
+.i-nav-bar.collapsed .i-nav-item {
   justify-content: center;
   padding: 12px 0;
   width: 100%;
 }
 
-.nav-item:hover {
+.i-nav-item:hover {
   background: rgba(255, 255, 255, 0.04);
   color: #f4f4fd;
 }
 
-/* ITEM ĐANG ACTIVE */
-.nav-item--active {
-  background: #dbbcff42;
+/* ACTIVE ITEM */
+.i-nav-item--active {
+  background: #6d74f942;
   color: #f7f7ff;
   font-weight: 800;
-  border-left: 4px solid #c6b0fa;
+  border-left: 4px solid #b0b5fa;
 }
 
-.nav-item--active:hover {
-  background: rgba(91, 69, 156, 0.479);
+.i-nav-item--active:hover {
+  background: rgba(45, 49, 171, 0.479);
 }
 
-/* Active item khi thu gọn: Đổi sang dạng bao bọc bong bóng hình vuông bo góc tròn */
-.navigation-bar.collapsed .nav-item--active {
+/* Active item when collapsed: rounded square bubble */
+.i-nav-bar.collapsed .i-nav-item--active {
   border-left: none;
   background: #dbbcff42;
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  margin: 0 auto; /* Đưa khối active nằm chính giữa thanh bar */
+  margin: 0 auto;
 }
 
-/* Kí tự đại diện hoặc Icon thay thế khi thu gọn */
-.collapsed-icon-text {
+/* Fallback letter icon when collapsed */
+.i-nav-collapsed-icon-text {
   font-size: 16px;
   font-weight: 700;
   color: #c6b0fa;
@@ -184,9 +182,7 @@
   cursor: pointer;
   z-index: 30;
   box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
-  transition:
-    transform 0.15s ease,
-    background 0.15s ease;
+  transition: transform 0.15s ease, background 0.15s ease;
 }
 
 .role-switch-fab:hover {
@@ -230,15 +226,4 @@
 .navigation-bar.collapsed .role-switch-fab:hover,
 .i-nav-bar.collapsed .role-switch-fab:hover {
   transform: translateX(-50%) scale(1.08);
-}
-
-.change-to-interviewer {
-  background: #39088f;
-  box-shadow: 0 6px 18px rgba(60, 7, 154, 0.4);
-  border: #310381;
-}
-
-.change-to-interviewer:hover {
-  background: #340780;
-  transform: scale(1.08);
 }

@@ -1,0 +1,336 @@
+.rp-root {
+  display: flex;
+  min-height: 100vh;
+  background: #0f0f13;
+  color: #f4f4f5;
+}
+.rp-main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px;
+}
+.rp-inner {
+  width: 100%;
+  max-width: 900px;
+  padding: 40px 48px;
+  border-radius: 20px;
+  background: #18181c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+}
+.rp-title {
+  text-align: center;
+  margin: 0 0 28px;
+  font-size: 28px;
+  letter-spacing: 0.06em;
+  color: #e4e4e7;
+  font-weight: 900;
+}
+
+/* --- Basic info card --- */
+.rp-basic-card {
+  padding: 26px 28px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 36px;
+}
+
+.rp-basic-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.rp-avatar-block {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.rp-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #4338ca);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.rp-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rp-name {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #f8f8ff;
+}
+.rp-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #a1a1aa;
+  font-style: italic;
+}
+
+.rp-input-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.rp-input-subtitle {
+  font-size: 13px;
+}
+
+.rp-edit-btn {
+  padding: 10px 22px;
+  border-radius: 8px;
+  border: none;
+  background: #6d28d9;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.rp-edit-btn:hover {
+  background: #5b21b6;
+}
+
+.rp-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+.rp-cancel-btn,
+.rp-save-btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+.rp-cancel-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e4e4e7;
+}
+.rp-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.rp-save-btn {
+  background: #16a34a;
+  color: #fff;
+}
+.rp-save-btn:hover {
+  background: #15803d;
+}
+
+.rp-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 24px;
+  margin-bottom: 20px;
+}
+
+.rp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.rp-field-bio {
+  margin-bottom: 20px;
+}
+
+.rp-label {
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #9c9ca8;
+}
+.rp-value {
+  margin: 0;
+  font-size: 14px;
+  color: #e4e4e7;
+}
+.rp-bio-text {
+  line-height: 1.6;
+  color: #d4d4d8;
+}
+
+.rp-input,
+.rp-textarea {
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f4f4f5;
+  font-size: 14px;
+  font-family: inherit;
+}
+.rp-input:focus,
+.rp-textarea:focus {
+  outline: none;
+  border-color: #7c3aed;
+  background: rgba(255, 255, 255, 0.08);
+}
+.rp-textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.rp-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+.rp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(58, 85, 237, 0.18);
+  border: 1px solid rgba(58, 61, 237, 0.4);
+  color: #b4bafe;
+  font-size: 12px;
+  font-weight: 600;
+}
+.rp-tag-remove {
+  border: none;
+  background: none;
+  color: #d8b4fe;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.rp-tag-remove:hover {
+  color: #fff;
+}
+
+.rp-tag-input-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.rp-tag-input {
+  flex: 1;
+}
+.rp-tag-add-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #6d28d9;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rp-tag-add-btn:hover {
+  background: #5b21b6;
+}
+
+/* --- Milestones --- */
+.rp-section-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #e4e4e7;
+  margin: 0 0 16px;
+}
+
+.rp-milestone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rp-milestone-card {
+  display: flex;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+.rp-milestone-card:hover {
+  border-color: rgba(124, 58, 237, 0.35);
+  background: rgba(124, 58, 237, 0.06);
+}
+
+.rp-milestone-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(124, 58, 237, 0.15);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.rp-milestone-body {
+  flex: 1;
+  min-width: 0;
+}
+.rp-milestone-top-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rp-milestone-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f4f4f5;
+}
+.rp-milestone-date {
+  font-size: 12px;
+  color: #9c9ca8;
+  white-space: nowrap;
+}
+.rp-milestone-desc {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #a1a1aa;
+  line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+  .rp-main {
+    padding: 20px;
+  }
+  .rp-inner {
+    padding: 24px;
+  }
+  .rp-field-grid {
+    grid-template-columns: 1fr;
+  }
+  .rp-basic-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .rp-milestone-top-row {
+    flex-direction: column;
+    gap: 2px;
+  }
+}

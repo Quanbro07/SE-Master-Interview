@@ -1,7 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
 import NavigationBar from "../NavigationBar/NavigationBar";
-import PageTitle from "../PageTitle/PageTitle";
 import "./SelfPracticePage.css";
 
 const fields = [
@@ -106,7 +105,8 @@ const SelfPracticePage = () => {
       <NavigationBar />
       <main className="self-main">
         <section className="self-inner">
-          <PageTitle />
+          <h1 className="selfpractice-title">-----SELF PRACTICE-----</h1>
+
           <div className="self-intro">
             <p className="self-subtitle">Choose your position</p>
           </div>
@@ -135,14 +135,19 @@ const SelfPracticePage = () => {
                     <div key={idx} className="dot" />
                   ))}
                 </div>
-                <div className="self-loading-text">Generating questions, please wait !</div>
+                <div className="self-loading-text">
+                  Generating questions, please wait !
+                </div>
               </div>
             )}
           </div>
 
           <div className="self-card-area">
             {showCard && (
-              <div className={`self-card ${flipped ? "flipped" : ""}`} onClick={toggleFlip}>
+              <div
+                className={`self-card ${flipped ? "flipped" : ""}`}
+                onClick={toggleFlip}
+              >
                 <div className="self-card-face self-card-front">
                   <div className="self-card-content">
                     <p className="self-card-title">{selectedField}</p>
@@ -159,7 +164,9 @@ const SelfPracticePage = () => {
                     >
                       Prev
                     </button>
-                    <span className="self-card-step">{currentIndex + 1}/{questions.length}</span>
+                    <span className="self-card-step">
+                      {currentIndex + 1}/{questions.length}
+                    </span>
                     <button
                       className="self-card-btn"
                       disabled={currentIndex + 1 >= questions.length}
@@ -188,7 +195,9 @@ const SelfPracticePage = () => {
                     >
                       Prev
                     </button>
-                    <span className="self-card-step">{currentIndex + 1}/{questions.length}</span>
+                    <span className="self-card-step">
+                      {currentIndex + 1}/{questions.length}
+                    </span>
                     <button
                       className="self-card-btn"
                       disabled={currentIndex + 1 >= questions.length}

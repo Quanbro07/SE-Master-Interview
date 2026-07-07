@@ -1,0 +1,249 @@
+.r-calendar-root {
+  display: flex;
+  min-height: 100vh;
+  background: #0f0f13;
+  color: #f4f4f5;
+}
+.r-calendar-main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px;
+}
+.r-calendar-inner {
+  width: 100%;
+  max-width: 1040px;
+  padding: 40px 48px;
+  border-radius: 20px;
+  background: #18181c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+  width: 800px;
+}
+.r-calendar-title {
+  text-align: center;
+  margin: 0 0 28px;
+  font-size: 28px;
+  letter-spacing: 0.06em;
+  font-weight: 900;
+  color: #e4e4e7;
+}
+
+.r-calendar-card {
+  position: relative;
+  padding: 24px 32px 28px;
+  border-radius: 16px;
+  background: #2a2a30;
+  border: 1px solid transparent;
+  transition: border-color 0.2s ease;
+  text-transform: uppercase;
+}
+.r-calendar-card.is-editing {
+  border-color: #061e3f;
+  box-shadow: 0 0 4px 4px rgba(4, 27, 139, 0.203);
+}
+
+.r-calendar-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.topbar-label {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: #cbd5e1;
+  margin-right: 10px;
+}
+.timezone-field,
+.repeat-field {
+  display: flex;
+  align-items: center;
+  cursor: default;
+}
+.repeat-field {
+  cursor: pointer;
+  gap: 4px;
+}
+.timezone-pill {
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: #6366f1;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.repeat-field input[type="checkbox"] {
+  width: 25px;
+  height: 25px;
+  accent-color: #7c3aed;
+  cursor: pointer;
+}
+
+.r-calendar-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.week-nav-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: #6b7280;
+  color: #1f1f24;
+  font-size: 16px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s ease;
+}
+.week-nav-btn:hover {
+  background: #9ca3af;
+}
+.month-label {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #f8f8ff;
+  min-width: 200px;
+  text-align: center;
+}
+
+.r-calendar-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.grid-header-row {
+  display: grid;
+  grid-template-columns: 64px repeat(7, minmax(0, 1fr));
+  margin-bottom: 8px;
+}
+
+.grid-day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.weekday-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #b6c2ff;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.weekday-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: #7e8fe1;
+}
+.grid-day-header.faded-month .weekday-date {
+  opacity: 0.4;
+}
+
+.grid-hour-row {
+  display: grid;
+  grid-template-columns: 64px repeat(7, minmax(0, 1fr));
+  align-items: center;
+  margin-bottom: 3px;
+}
+.grid-time-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #cbd5e1;
+  text-align: right;
+  padding-right: 12px;
+}
+
+.slot-cell {
+  justify-self: center;
+  width: 38px;
+  height: 38px; /* square instead of rectangular */
+  aspect-ratio: 1 / 1;
+  border-radius: 6px;
+  border: none;
+  background: #6b7280;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    transform 0.1s ease;
+  user-select: none;
+}
+.slot-cell:hover {
+  filter: brightness(1.1);
+}
+.slot-cell.is-selected {
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}
+.slot-cell.is-locked {
+  cursor: default;
+  opacity: 0.9;
+}
+.slot-cell.is-locked:hover {
+  filter: none;
+}
+
+.r-calendar-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.repeat-checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: #0715a9;
+  cursor: pointer;
+}
+
+.edit-save-btn {
+  padding: 10px 40px;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  color: #1f1f24;
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+}
+.edit-save-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+.edit-save-btn.edit-mode {
+  background: linear-gradient(180deg, #eab308, #ca8a04);
+  color: #1f1f24;
+}
+.edit-save-btn.save-mode {
+  background: linear-gradient(180deg, #16a34a, #15803d);
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .r-calendar-main {
+    padding: 20px;
+  }
+  .r-calendar-inner {
+    padding: 24px;
+  }
+  .r-calendar-card {
+    padding: 18px 12px 20px;
+  }
+  .grid-header-row,
+  .grid-hour-row {
+    grid-template-columns: 46px repeat(7, minmax(0, 1fr));
+  }
+  .slot-cell {
+    width: 24px;
+    height: 24px;
+  }
+}

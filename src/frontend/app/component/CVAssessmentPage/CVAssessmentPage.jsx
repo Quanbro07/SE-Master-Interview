@@ -1,7 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
 import NavigationBar from "../NavigationBar/NavigationBar";
-import PageTitle from "../PageTitle/PageTitle";
 import "./CVAssessmentPage.css";
 
 const fakeReportForFile = (file) => {
@@ -55,7 +54,7 @@ const CVAssessmentPage = () => {
       <NavigationBar />
       <main className="cv-main">
         <section className="cv-inner">
-          <PageTitle />
+          <h1 className="cvassessment-title">-----CV ASSESSMENT-----</h1>
           <div className="cv-dropzone">
             <input
               ref={inputRef}

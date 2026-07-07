@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import NavigationBar from "../NavigationBar/NavigationBar";
-import PageTitle from "../PageTitle/PageTitle";
 import "./MockInterviewPage.css";
 
 const fields = [
@@ -395,7 +394,8 @@ const MockInterviewPage = () => {
       <NavigationBar />
       <main className="mock-main">
         <section className="mock-inner">
-          <PageTitle />
+          <h1 className="mockinterview-title">-----MOCK INTERVIEW-----</h1>
+          <div className="mock-page-title-wrap"></div>
           <div className="mock-intro">
             <p className="mock-subtitle">Choose your position</p>
           </div>

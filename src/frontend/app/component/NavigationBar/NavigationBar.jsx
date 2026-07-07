@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import "./NavigationBar.css";
 import { useState } from "react";
 
@@ -15,6 +15,7 @@ const navItems = [
 
 const NavigationBar = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const toggleNavbar = () => {
@@ -23,6 +24,13 @@ const NavigationBar = () => {
 
   const isActive = (href) =>
     pathname === href || (href === "/feedback" && pathname === "/");
+
+  // DEV-ONLY: swap to the interviewer side. Once the backend has a real
+  // `type` field on the user, replace this with an actual role check /
+  // account switch instead of a hardcoded route jump.
+  const switchToInterviewer = () => {
+    router.push("/interviewer/dashboard");
+  };
 
   return (
     <aside className={`navigation-bar ${isCollapsed ? "collapsed" : ""}`}>
@@ -70,6 +78,17 @@ const NavigationBar = () => {
           );
         })}
       </nav>
+
+      {/* DEV role switcher */}
+      <button
+        type="button"
+        className="role-switch-fab change-to-interviewer"
+        onClick={switchToInterviewer}
+        title="Switch to Interviewer view (dev only)"
+      >
+        <span className="role-switch-fab-label">R</span>
+        <span className="role-switch-tooltip">Switch to Interviewer</span>
+      </button>
     </aside>
   );
 };
