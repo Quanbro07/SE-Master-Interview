@@ -2,7 +2,7 @@ package com.test.backend.entity.question;
 
 import com.test.backend.entity.category.Category;
 import com.test.backend.entity.positionQuestion.PositionQuestion;
-import com.test.backend.entity.questionKeyword.QuestionKeyword;
+import com.test.backend.entity.answerKeyword.AnswerKeyword;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -35,7 +35,7 @@ public class Question {
     // Relation
     @Builder.Default
     @OneToMany(mappedBy = "question", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<QuestionKeyword> questionKeywordList = new ArrayList<>();
+    private List<AnswerKeyword> answerKeywordList = new ArrayList<>();
 
     @Builder.Default
     @OneToMany(mappedBy = "question", fetch = FetchType.LAZY, cascade = CascadeType.ALL)

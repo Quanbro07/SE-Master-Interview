@@ -1,6 +1,5 @@
 package com.test.backend.repository;
 
-import com.test.backend.dto.question.FilterDifficulty;
 import com.test.backend.entity.question.Difficulty;
 import com.test.backend.entity.question.Question;
 import org.springframework.data.jpa.repository.JpaRepository;

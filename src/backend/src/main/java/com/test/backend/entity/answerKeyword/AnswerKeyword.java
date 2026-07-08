@@ -1,4 +1,4 @@
-package com.test.backend.entity.questionKeyword;
+package com.test.backend.entity.answerKeyword;
 
 import com.test.backend.entity.question.Question;
 import jakarta.persistence.*;
@@ -13,8 +13,8 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "question_keyword")
-public class QuestionKeyword {
+@Table(name = "answer_keyword")
+public class AnswerKeyword {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "keyword_id", nullable = false, updatable = false, unique = true)
