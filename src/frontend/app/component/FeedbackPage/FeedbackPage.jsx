@@ -2,10 +2,14 @@
 import FeedbackPanel from "../FeedbackPanel/FeedbackPanel";
 import FeedbackCard from "../FeedbackPanel/FeedbackCard";
 import NavigationBar from "../NavigationBar/NavigationBar";
+import ChatPanel from "../ChatPanel/ChatPanel";
 import "./FeedbackPage.css";
 import { useState, useRef } from "react";
 
 const FeedbackPage = () => {
+  const [navCollapsed, setNavCollapsed] = useState(false);
+  const [chatCollapsed, setChatCollapsed] = useState(false);
+
   const [activeMeeting, setActiveMeeting] = useState(null);
   const [meetings, setMeetings] = useState([
     {
@@ -112,7 +116,10 @@ const FeedbackPage = () => {
 
   return (
     <div className="feedback-page">
-      <NavigationBar />
+      <NavigationBar
+        isCollapsed={navCollapsed}
+        setIsCollapsed={setNavCollapsed}
+      />
       <main className="feedback-main">
         <div className="feedback-content">
           <FeedbackPanel
@@ -122,6 +129,7 @@ const FeedbackPage = () => {
           />
         </div>
       </main>
+
       {activeMeeting && (
         <FeedbackCard
           meeting={activeMeeting}
@@ -129,18 +137,26 @@ const FeedbackPage = () => {
           onSubmit={handleSubmit}
         />
       )}
-      <div
-        className="chat-trigger-header"
-        onClick={() => setActiveMeeting(null)}
-      >
-        <div className="chatbot-icon">
-          <img src="/logo.png" alt="Chatbot Icon" />
+
+      {chatCollapsed && (
+        <div
+          className="chat-trigger-header"
+          onClick={() => setChatCollapsed(false)}
+        >
+          <div className="chatbot-icon">
+            <img src="/logo.png" alt="Chatbot Icon" />
+          </div>
+          <span className="user-name">John</span>
+          <div className="user-avatar">
+            <img src="/user.png" alt="User Avatar" />
+          </div>
         </div>
-        <span className="user-name">John</span>
-        <div className="user-avatar">
-          <img src="/user.png" alt="User Avatar" />
-        </div>
-      </div>
+      )}
+
+      <ChatPanel
+        isCollapsed={chatCollapsed}
+        onClose={() => setChatCollapsed(true)}
+      />
     </div>
   );
 };

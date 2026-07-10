@@ -410,7 +410,7 @@ const MockInterviewPage = () => {
                 Select a position
               </option>
               {fields.map((field) => (
-                <option key={field} value={field}>
+                <option className="mock-field-option" key={field} value={field}>
                   {field}
                 </option>
               ))}

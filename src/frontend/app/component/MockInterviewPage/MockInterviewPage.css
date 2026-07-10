@@ -343,6 +343,11 @@
 .mock-action-btn:hover:not(:disabled) {
   transform: translateY(-1px);
 }
+
+.mock-field-option {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
 .mock-action-btn.primary {
   background: linear-gradient(90deg, #25511d 0%, #082c01 100%);
 }

@@ -2,18 +2,27 @@
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  min-height: 100vh;
+  height: 100vh;
   width: 100%;
   background: #0f0f13;
+  overflow: hidden; /* only .feedback-main scrolls, matches .dashboard-container */
+  position: relative;
+}
+
+.feedback-page .navigation-bar {
+  flex-shrink: 0; /* stays put, doesn't scroll with content */
 }
 
 .feedback-main {
   flex: 1;
   min-width: 0;
+  height: 100vh;
+  overflow-y: auto; /* the only scrollable region */
   display: flex;
   justify-content: center;
   padding: 24px 32px;
   box-sizing: border-box;
+  position: relative;
 }
 
 .feedback-content {
@@ -22,21 +31,37 @@
   justify-content: center;
 }
 
-.feedback-page .navigation-bar {
-  flex-shrink: 0;
+/* Custom scrollbar — same styling as .dashboard-main in BookingPage.css */
+.feedback-main::-webkit-scrollbar {
+  width: 6px;
+  background-color: transparent;
+}
+
+.feedback-main::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  transition: background-color 0.2s ease;
+}
+
+.feedback-main::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.feedback-main::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .chat-trigger-header {
-  position: fixed; /* Thay đổi từ absolute sang fixed để không bị cuộn trôi */
+  position: fixed;
   top: 16px;
   right: 24px;
   display: flex;
   align-items: center;
   gap: 12px;
   cursor: pointer;
-  z-index: 999; /* Đảm bảo luôn nổi lên trên tất cả các box card */
+  z-index: 999;
   padding: 8px 16px;
-  background-color: #18181c; /* Đổ lại màu đặc để không bị lộ card xuyên qua */
+  background-color: #18181c;
   border-radius: 30px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
