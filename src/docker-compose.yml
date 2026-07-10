@@ -1,0 +1,58 @@
+services:
+  database:
+    container_name: postgres
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5332:5432"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: master-interview-app
+    image: se-master-backend:latest
+    depends_on:
+      - database
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      
+      - POSTGRES_HOST=database
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+
+      - REDIRECT_URL=${REDIRECT_URL}
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+  
+volumes:
+  db_data:
+    name: master-interview_db_data
+  
+networks:
+  app-network:

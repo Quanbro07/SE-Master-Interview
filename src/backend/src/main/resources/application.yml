@@ -1,6 +1,26 @@
+authentication:
+  redirect_url: ${REDIRECT_URL}
+
 spring:
   application:
-    name:backend
+    name: backend
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - openid
+              - profile
+              - email
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            scope:
+              - read:user
+              - user:email
 
   profiles:
     active: dev
