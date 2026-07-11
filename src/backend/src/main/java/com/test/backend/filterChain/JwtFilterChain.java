@@ -43,8 +43,8 @@ public class JwtFilterChain extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException
     {
-
         final String authHeader = request.getHeader("Authorization");
+        log.info("Authorization: {}", authHeader);
 
         final String jwtToken;
         final String userEmail;
@@ -71,7 +71,12 @@ public class JwtFilterChain extends OncePerRequestFilter {
             if(userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 CustomUserDetail userDetail = (CustomUserDetail) userDetailsService.loadUserByUsername(userEmail);
+
+                log.info("Token: {}", jwtToken);
+                log.info("Email: {}", userEmail);
+
                 if (jwtService.isTokenValid(userDetail, jwtToken)) {
+
 
                     UsernamePasswordAuthenticationToken authenToken =
                             new UsernamePasswordAuthenticationToken(
