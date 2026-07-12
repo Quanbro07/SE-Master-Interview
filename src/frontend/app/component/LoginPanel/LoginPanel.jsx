@@ -3,58 +3,24 @@
 import React, { useState } from "react";
 import "./LoginPanel.css";
 
+// TODO: confirm this matches wherever your backend is actually reachable
+// from the browser (same value used elsewhere for API_BASE).
+const BACKEND_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+
 const LoginPanel = () => {
   const [loading, setLoading] = useState(false);
 
-  // Google OAuth Configuration
-  const GOOGLE_CLIENT_ID =
-    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
-  const GOOGLE_REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/auth/google/callback`;
-
-  // Facebook OAuth Configuration
-  const FACEBOOK_APP_ID =
-    process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || "YOUR_FACEBOOK_APP_ID";
-  const FACEBOOK_REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/auth/facebook/callback`;
-
-  // Handle Google Login
-  const handleGoogleClick = () => {
-    try {
-      setLoading(true);
-      const googleAuthUrl = new URL(
-        "https://accounts.google.com/o/oauth2/v2/auth",
-      );
-      googleAuthUrl.searchParams.set("client_id", GOOGLE_CLIENT_ID);
-      googleAuthUrl.searchParams.set("redirect_uri", GOOGLE_REDIRECT_URI);
-      googleAuthUrl.searchParams.set("response_type", "code");
-      googleAuthUrl.searchParams.set("scope", "openid email profile");
-      googleAuthUrl.searchParams.set("access_type", "offline");
-
-      window.location.href = googleAuthUrl.toString();
-    } catch (error) {
-      console.error("Google login error:", error);
-      alert("Failed to initiate Google login");
-      setLoading(false);
-    }
-  };
-
-  // Handle Facebook Login
-  const handleFacebookClick = () => {
-    try {
-      setLoading(true);
-      const facebookAuthUrl = new URL(
-        "https://www.facebook.com/v18.0/dialog/oauth",
-      );
-      facebookAuthUrl.searchParams.set("client_id", FACEBOOK_APP_ID);
-      facebookAuthUrl.searchParams.set("redirect_uri", FACEBOOK_REDIRECT_URI);
-      facebookAuthUrl.searchParams.set("scope", "public_profile,email");
-      facebookAuthUrl.searchParams.set("response_type", "code");
-
-      window.location.href = facebookAuthUrl.toString();
-    } catch (error) {
-      console.error("Facebook login error:", error);
-      alert("Failed to initiate Facebook login");
-      setLoading(false);
-    }
+  const handleProviderLogin = (provider) => {
+    setLoading(true);
+    // Spring Security's OAuth2 Login handles the rest: redirecting to the
+    // provider, exchanging the code, calling CustomOidcUserService /
+    // CustomOauth2UserService, then AuthenticationSuccessHandler redirects
+    // the browser back with a JWT attached.
+    // TODO: confirm "/oauth2/authorization/{provider}" matches SecurityConfig
+    // — this is Spring Security's default authorizationEndpoint baseUri,
+    // not yet verified against your actual config.
+    window.location.href = `${BACKEND_BASE_URL}/oauth2/authorization/${provider}`;
   };
 
   return (
@@ -124,7 +90,7 @@ const LoginPanel = () => {
           <div className="login-buttons">
             <button
               className="auth-button"
-              onClick={handleGoogleClick}
+              onClick={() => handleProviderLogin("google")}
               disabled={loading}
             >
               <img src="/google.png" alt="Google" className="button-icon" />
@@ -135,12 +101,12 @@ const LoginPanel = () => {
 
             <button
               className="auth-button"
-              onClick={handleFacebookClick}
+              onClick={() => handleProviderLogin("github")}
               disabled={loading}
             >
-              <img src="/facebook.png" alt="Facebook" className="button-icon" />
+              <img src="/github.png" alt="GitHub" className="button-icon" />
               <span className="button-text">
-                {loading ? "SIGNING IN..." : "CONTINUE WITH FACEBOOK"}
+                {loading ? "SIGNING IN..." : "CONTINUE WITH GITHUB"}
               </span>
             </button>
           </div>

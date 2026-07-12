@@ -221,6 +221,7 @@
   margin-bottom: 24px;
   /* Đảm bảo khi các thanh bên hông co giãn, khung search sẽ tịnh tiến mượt mà */
   transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  position: relative;
 }
 
 /* KHUNG SEARCH-BAR CHÍNH */
@@ -278,4 +279,56 @@
 
 .search-btn:active {
   transform: scale(0.97); /* Hiệu ứng nhấn nút nhẹ */
+}
+
+.search-dropdown {
+  position: absolute;
+  width: 31.2%;
+  top: calc(100%);
+  background-color: #1c1c21;
+  border: 1px solid rgba(48, 46, 46, 0.1);
+  border-radius: 0px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.671);
+  overflow: hidden;
+  z-index: 200;
+}
+
+.search-dropdown-item {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.search-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.search-dropdown-item:hover {
+  background-color: #2e1c58;
+}
+
+.dropdown-item-name {
+  color: #f4f4f5;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.dropdown-item-role {
+  color: #9ca3af;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.search-dropdown-empty {
+  padding: 14px 16px;
+  color: #6b7280;
+  font-size: 13px;
+  font-style: italic;
 }

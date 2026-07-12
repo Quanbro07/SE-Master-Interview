@@ -24,8 +24,17 @@ const Star = ({ filled, onClick }) => (
 const FeedbackCard = ({ meeting, onClose, onSubmit }) => {
   const [rating, setRating] = useState(5);
   const [comments, setComments] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   if (!meeting) return null;
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    if (onSubmit) {
+      await onSubmit({ meeting, rating, comments });
+    }
+    setSubmitting(false);
+  };
 
   return (
     <div className="popup-overlay" onClick={onClose}>
@@ -48,8 +57,7 @@ const FeedbackCard = ({ meeting, onClose, onSubmit }) => {
           </div>
           <div style={{ flex: 1 }}>
             <h3 style={{ margin: 0, color: "#fff" }}>
-              How was your mock interview with{" "}
-              {meeting.interviewer.replace(/^Mr\s+/, "")}?
+              How was your mock interview with {meeting.interviewer}?
             </h3>
             <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
               {[1, 2, 3, 4, 5].map((s) => (
@@ -89,12 +97,11 @@ const FeedbackCard = ({ meeting, onClose, onSubmit }) => {
           <button
             type="button"
             className="popup-btn btn-book"
-            onClick={() => {
-              if (onSubmit) onSubmit({ meeting, rating, comments });
-            }}
+            onClick={handleSubmit}
+            disabled={submitting}
             style={{ width: 140 }}
           >
-            SUBMIT
+            {submitting ? "SUBMITTING..." : "SUBMIT"}
           </button>
         </div>
       </div>
