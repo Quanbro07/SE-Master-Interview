@@ -4,6 +4,9 @@ import com.test.backend.entity.question.Question;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Builder
 @Getter
 @Setter
@@ -20,7 +23,6 @@ public class Category {
     @Column(name = "category_name", nullable = false, unique = true)
     private String categoryName;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "question_id", nullable = false)
-    private Question question;
+    @ManyToMany(mappedBy = "categories", fetch = FetchType.LAZY)
+    private Set<Question> questions = new HashSet<>();
 }

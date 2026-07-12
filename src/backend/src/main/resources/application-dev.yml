@@ -22,3 +22,6 @@ spring:
         format_sql: true
 
 
+init:
+  isDev: true
+

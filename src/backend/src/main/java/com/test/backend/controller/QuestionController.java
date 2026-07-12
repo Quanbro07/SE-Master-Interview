@@ -18,6 +18,7 @@ public class QuestionController {
 
     private final QuestionService questionService;
 
+    @PreAuthorize("hasRole('Admin')")
     @PostMapping("/insert-question")
     public ResponseEntity<?> insertQuestion(@RequestBody QuestionRequest request) {
         questionService.insertQuestion(request);
