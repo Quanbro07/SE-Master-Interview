@@ -13,7 +13,11 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "position")
+@Table(name = "position",
+    indexes = {
+        @Index(name = "idx_position_name", columnList = "position_name", unique = true)
+    }
+)
 public class Position {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

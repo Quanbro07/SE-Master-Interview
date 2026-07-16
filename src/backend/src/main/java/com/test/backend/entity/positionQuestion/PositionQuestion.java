@@ -26,4 +26,8 @@ public class PositionQuestion {
     @MapsId("questionId")
     @JoinColumn(name = "question_id", nullable = false)
     private Question question;
+
+    @Builder.Default
+    @Column(name = "is_required", nullable = false)
+    private boolean is_required = false;
 }

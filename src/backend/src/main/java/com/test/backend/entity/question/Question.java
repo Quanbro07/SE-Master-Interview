@@ -37,13 +37,14 @@ public class Question {
     // Relation
     @Builder.Default
     @OneToMany(mappedBy = "question", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<AnswerKeyword> answerKeywordList = new ArrayList<>();
+    private Set<AnswerKeyword> answerKeywordList = new HashSet<>();
 
 
     @Builder.Default
     @OneToMany(mappedBy = "question", fetch = FetchType.LAZY)
     private List<PositionQuestion> positionQuestionList = new ArrayList<>();
 
+    @Builder.Default
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "question_category",
@@ -51,4 +52,20 @@ public class Question {
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
     private Set<Category> categories = new HashSet<>();
+
+    public void addCategory(Category category) {
+        if(this.categories == null) {
+            this.categories = new HashSet<>();
+        }
+        this.categories.add(category);
+        category.getQuestions().add(this);
+    }
+
+    public void addKeyword(AnswerKeyword answerKeyword) {
+        if(this.answerKeywordList == null) {
+            this.answerKeywordList = new HashSet<>();
+        }
+        this.answerKeywordList.add(answerKeyword);
+        answerKeyword.setQuestion(this);
+    }
 }

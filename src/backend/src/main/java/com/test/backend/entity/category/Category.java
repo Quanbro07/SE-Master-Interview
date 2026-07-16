@@ -13,7 +13,11 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "category")
+@Table(name = "category",
+    indexes = {
+            @Index(name = "idx_category_name", columnList = "category_name", unique = true)
+    }
+)
 public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,6 +27,7 @@ public class Category {
     @Column(name = "category_name", nullable = false, unique = true)
     private String categoryName;
 
+    @Builder.Default
     @ManyToMany(mappedBy = "categories", fetch = FetchType.LAZY)
     private Set<Question> questions = new HashSet<>();
 }
