@@ -1,6 +1,7 @@
 package com.test.backend.entity.aiInterviewSession;
 
 import com.test.backend.entity.aiInterviewLog.AiInterviewLog;
+import com.test.backend.entity.interviewee.Interviewee;
 import com.test.backend.entity.position.Position;
 import com.test.backend.entity.user.User;
 import jakarta.persistence.*;
@@ -47,6 +48,6 @@ public class AiInterviewSession {
     private List<AiInterviewLog> aiInterviewLogList = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @JoinColumn(name = "interviewee_id", nullable = false)
+    private Interviewee interviewee;
 }

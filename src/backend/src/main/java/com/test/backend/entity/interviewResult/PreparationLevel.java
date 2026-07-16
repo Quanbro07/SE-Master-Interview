@@ -1,4 +1,4 @@
-package com.test.backend.entity.interviewerFeedback;
+package com.test.backend.entity.interviewResult;
 
 public enum PreparationLevel {
     WELL_PREPARED,
