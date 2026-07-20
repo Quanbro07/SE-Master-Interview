@@ -24,9 +24,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: master-interview-app
-    image: se-master-backend:latest
     depends_on:
       - database
+      - minio
     environment:
       - SPRING_PROFILES_ACTIVE=prod
 
@@ -49,10 +49,24 @@ services:
     networks:
       - app-network
 
+  minio:
+    image: minio/minio
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
   
 volumes:
   db_data:
     name: master-interview_db_data
+  minio_data:
+
   
 networks:
   app-network:
