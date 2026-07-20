@@ -1,0 +1,25 @@
+{
+    "cv_url": "core_ai/agents/johndoe_resume.pdf",
+    "overall_score": 62.0,
+    "match_score": 55.0,
+    "match_comment": "Emily possesses strong backend development skills and extensive experience, making her technically capable. However, her significant experience level makes her overqualified for a \"Junior Backend Developer\" role.",
+    "layout_comment": "This CV features a clean, professional two-column layout with effective whitespace and clear typography, optimizing readability and information hierarchy. The design is highly scannable, though the profile picture is a bit prominent.",
+    "improvement_suggestion": "Emily should target mid-level or senior backend developer roles that align with her extensive experience. To strengthen her profile for modern backend development, consider certifications in current frameworks like Spring Boot (Java) or Django/Flask (Python), or advanced cloud platforms (AWS, Azure).",
+    "section_feedbacks": [
+        {
+            "section_name": "gpa",
+            "score": 20.0,
+            "comment": "No GPA was provided in the CV. The Master of Business Administration degree is not directly aligned with a technical software development role."
+        },
+        {
+            "section_name": "skill",
+            "score": 85.0,
+            "comment": "Projects demonstrate strong backend skills in Java, JSP, Struts, Oracle, MS SQL Server from 'Foundational framework development,' and Python for data loading/parsing from 'Software development projects (Agile).' These align well with backend development."
+        },
+        {
+            "section_name": "experience",
+            "score": 50.0,
+            "comment": "With 11 years of experience, including lead developer and project management roles, the candidate is significantly overqualified for a 'Junior Backend Developer' position. This indicates a mismatch in seniority rather than lack of experience."
+        }
+    ]
+}
