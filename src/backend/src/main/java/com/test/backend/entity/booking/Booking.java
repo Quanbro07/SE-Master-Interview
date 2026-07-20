@@ -1,7 +1,9 @@
 package com.test.backend.entity.booking;
 
 import com.test.backend.entity.bookingReview.BookingReview;
-import com.test.backend.entity.interviewerFeedback.InterviewerFeedback;
+import com.test.backend.entity.interviewResult.InterviewResult;
+import com.test.backend.entity.interviewee.Interviewee;
+import com.test.backend.entity.interviewer.Interviewer;
 import com.test.backend.entity.position.Position;
 import com.test.backend.entity.user.User;
 import jakarta.persistence.*;
@@ -56,7 +58,7 @@ public class Booking {
     // Relation
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "booking_id", nullable = false, updatable = false)
-    private InterviewerFeedback interviewerFeedback;
+    private InterviewResult interviewResult;
 
     @Builder.Default
     @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY)
@@ -68,11 +70,11 @@ public class Booking {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "interviewer_id", nullable = false, updatable = false)
-    private User interviewer;
+    private Interviewer interviewer;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booker_id", nullable = false, updatable = false)
-    private User booker;
+    private Interviewee booker;
 
     @PrePersist
     @PreUpdate

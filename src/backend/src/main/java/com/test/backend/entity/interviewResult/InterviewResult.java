@@ -1,4 +1,4 @@
-package com.test.backend.entity.interviewerFeedback;
+package com.test.backend.entity.interviewResult;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -12,12 +12,12 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "inteviewer_feedback")
-public class InterviewerFeedback {
+@Table(name = "inteview_result")
+public class InterviewResult {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "feedback_id", nullable = false, updatable = false)
-    private Long feedbackId;
+    @Column(name = "result_id", nullable = false, updatable = false)
+    private Long resultId;
 
     @Column(name = "technical_score", nullable = false, updatable = false)
     private Long technicalScore; // Thang diem 100

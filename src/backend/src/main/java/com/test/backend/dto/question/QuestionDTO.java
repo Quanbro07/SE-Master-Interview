@@ -1,7 +1,11 @@
 package com.test.backend.dto.question;
 
+import java.util.List;
+
 public record QuestionDTO (
         String question,
         String answer,
-        String field
+        List<String> field,
+        InsertDifficulty difficulty,
+        List<String> keywords
 ) {}

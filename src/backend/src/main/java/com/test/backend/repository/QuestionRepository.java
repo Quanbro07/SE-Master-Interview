@@ -1,5 +1,6 @@
 package com.test.backend.repository;
 
+import com.test.backend.dto.question.QuestionRequest;
 import com.test.backend.entity.question.Difficulty;
 import com.test.backend.entity.question.Question;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,4 +22,5 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     List<Question> findAllByFilter(
             @Param("position") String position,
             @Param("difficulty")Difficulty difficulty);
+
 }

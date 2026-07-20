@@ -61,22 +61,8 @@ public class User {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<SocialAccount> socialAccountSet = new HashSet<>();
 
-    @Builder.Default
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<AiInterviewSession> aiInterviewSessionList = new ArrayList<>();
 
-    @Builder.Default
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "user_id", nullable = false)
-    private List<CVAssessment> cvAssessmentList = new ArrayList<>();
 
-    @Builder.Default
-    @OneToMany(mappedBy = "booker", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<Booking> bookingList = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "interviewer", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<Booking> inteviewList = new ArrayList<>();
 
     public void addSocialAccount(SocialAccount socialAccount) {
         if(this.socialAccountSet == null) {
