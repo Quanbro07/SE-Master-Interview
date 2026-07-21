@@ -49,7 +49,7 @@
 }
 .self-field-select {
   width: 100%;
-  max-width: 320px;
+  width: 30%;
   appearance: none;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -291,4 +291,126 @@
     width: 100%;
     min-height: 260px;
   }
+}
+
+.self-field-select-wrap {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.self-position-search {
+  position: relative;
+  min-width: 260px;
+}
+
+.self-position-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.self-position-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background-color: #1c1c21;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  z-index: 50;
+}
+
+.self-position-dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #f4f4f5;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.self-position-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.self-position-dropdown-item:hover {
+  background-color: #27272a;
+}
+
+.self-position-dropdown-empty {
+  padding: 12px 14px;
+  color: #6b7280;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.self-difficulty-select,
+.self-count-select {
+  min-width: 160px;
+}
+
+.self-error {
+  text-align: center;
+  color: #f87171;
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+
+.self-empty {
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
+  padding: 24px 0;
+}
+
+.self-sample-notice {
+  text-align: center;
+  color: #a78bfa;
+  font-size: 12px;
+  font-style: italic;
+  margin: 6px 0 0;
+}
+
+.self-answer-reveal {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: rgba(167, 139, 250, 0.08);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  border-radius: 10px;
+}
+
+.self-answer-reveal-label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #a78bfa;
+}
+
+.self-answer-reveal-text {
+  margin: 0;
+  color: #e5e7eb;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.mock-action-btn.key {
+  background: linear-gradient(90deg, #1e3a5f 0%, #0f2942 100%);
+  color: #fff;
+}
+
+.mock-action-btn.key:hover {
+  background: linear-gradient(90deg, #2c5282 0%, #1e3a5f 100%);
+}
+
+.mock-action-btn.key.active {
+  background: linear-gradient(90deg, #4c1d95 0%, #3b0764 100%);
 }

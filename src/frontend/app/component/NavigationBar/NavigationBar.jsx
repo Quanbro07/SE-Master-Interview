@@ -32,6 +32,9 @@ const NavigationBar = () => {
     router.push("/interviewer/dashboard");
   };
 
+  const switchToAdmin = () => {
+    router.push("/admin");
+  };
   return (
     <aside className={`navigation-bar ${isCollapsed ? "collapsed" : ""}`}>
       <div className="nav-brand">
@@ -80,15 +83,27 @@ const NavigationBar = () => {
       </nav>
 
       {/* DEV role switcher */}
-      <button
-        type="button"
-        className="role-switch-fab change-to-interviewer"
-        onClick={switchToInterviewer}
-        title="Switch to Interviewer view (dev only)"
-      >
-        <span className="role-switch-fab-label">R</span>
-        <span className="role-switch-tooltip">Switch to Interviewer</span>
-      </button>
+      <div className="role-switch-container">
+        <button
+          type="button"
+          className="role-switch-fab change-to-interviewer"
+          onClick={switchToInterviewer}
+          title="Switch to Interviewer view (dev only)"
+        >
+          <span className="role-switch-fab-label">R</span>
+          <span className="role-switch-tooltip">To Interviewer</span>
+        </button>
+
+        <button
+          type="button"
+          className="role-switch-fab change-to-admin"
+          onClick={switchToAdmin}
+          title="Switch to Admin view (dev only)"
+        >
+          <span className="role-switch-fab-label">A</span>
+          <span className="role-switch-tooltip">To Admin</span>
+        </button>
+      </div>
     </aside>
   );
 };

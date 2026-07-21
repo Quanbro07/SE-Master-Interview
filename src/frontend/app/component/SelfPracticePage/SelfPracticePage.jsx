@@ -1,104 +1,223 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import NavigationBar from "../NavigationBar/NavigationBar";
 import "./SelfPracticePage.css";
+import "../MockInterviewPage/MockInterviewPage.css"; // reuse mock-* card styles
+import {
+  getFallbackQuestions,
+  getFallbackPositionSuggestions,
+} from "../SharedQuestionData/sampleQuestions";
 
-const fields = [
-  "Back-end Developer",
-  "Front-end Developer",
-  "Prompt Engineer",
-  "Data Engineer",
+// TODO: confirm this matches wherever the backend is actually reachable
+// from the browser (same value used elsewhere).
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+
+const DIFFICULTY_OPTIONS = [
+  { value: "MIXED", label: "Mixed (any difficulty)" },
+  { value: "EASY", label: "Easy" },
+  { value: "MEDIUM", label: "Medium" },
+  { value: "HARD", label: "Hard" },
 ];
 
-const questionsByField = {
-  "Back-end Developer": [
-    {
-      prompt: "Describe an API versioning strategy for a public REST service.",
-      answer:
-        "Use URI versioning or request header versioning, keep backward compatibility, deprecate old versions slowly, and document changes clearly.",
-    },
-    {
-      prompt: "How do you handle database schema migrations in production?",
-      answer:
-        "Apply an immutable migration plan, use transactional migration tools, test with staging datasets, and roll out in small increments.",
-    },
-  ],
-  "Front-end Developer": [
-    {
-      prompt: "How would you optimize a React app's initial render speed?",
-      answer:
-        "Use code splitting, lazy load heavy bundles, memoize expensive components, and defer non-critical CSS to reduce time to interactive.",
-    },
-    {
-      prompt: "Explain the difference between CSS Grid and Flexbox.",
-      answer:
-        "Grid is optimized for two-dimensional layouts, while Flexbox is best for one-dimensional row or column alignment and distribution.",
-    },
-  ],
-  "Prompt Engineer": [
-    {
-      prompt: "What makes a prompt effective for a language model?",
-      answer:
-        "Be explicit, provide context, define the format, and show examples so the model can infer the task reliably.",
-    },
-    {
-      prompt: "How do you avoid hallucinations in generated output?",
-      answer:
-        "Use grounding data, ask for concise answers, validate against known facts, and constrain the response format.",
-    },
-  ],
-  "Data Engineer": [
-    {
-      prompt: "What is a good approach to ingesting large streaming data?",
-      answer:
-        "Use a distributed log system, batch small writes, autoscale consumers, and maintain exactly-once delivery when possible.",
-    },
-    {
-      prompt: "How do you design a data warehouse schema for analytics?",
-      answer:
-        "Choose a dimensional model with facts and dimensions, keep grain consistent, and denormalize for fast reporting.",
-    },
-  ],
-};
+const NUM_QUESTIONS_OPTIONS = [5, 10, 15, 20];
 
 const SelfPracticePage = () => {
-  const [selectedField, setSelectedField] = useState(null);
+  // Position autocomplete
+  const [positionQuery, setPositionQuery] = useState("");
+  const [positionSuggestions, setPositionSuggestions] = useState([]);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [selectedPosition, setSelectedPosition] = useState("");
+  const positionWrapperRef = useRef(null);
+
+  const [selectedDifficulty, setSelectedDifficulty] = useState("");
+  const [numQuestions, setNumQuestions] = useState(10);
+
   const [loading, setLoading] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [flipped, setFlipped] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  const [usingSampleData, setUsingSampleData] = useState(false);
 
-  const questions = useMemo(() => {
-    return selectedField ? questionsByField[selectedField] || [] : [];
-  }, [selectedField]);
+  const [pool, setPool] = useState([]);
+  const [poolIndex, setPoolIndex] = useState(0);
 
-  const selectedQuestion = questions[currentIndex];
-  const showCard = selectedField && !loading && selectedQuestion;
+  const [answerText, setAnswerText] = useState("");
+  const [recording, setRecording] = useState(false);
+  const [mediaError, setMediaError] = useState("");
+  const [audioUrl, setAudioUrl] = useState("");
+  const recorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
-  const pickField = async (field) => {
-    setSelectedField(field);
+  // Reveals suggestionAnswer for the current question in place; resets
+  // whenever the user moves to a different question.
+  const [showAnswer, setShowAnswer] = useState(false);
+
+  // Debounced autocomplete search against /api/v1/position/search?q=...,
+  // falling back to local sample positions when the backend returns
+  // nothing (no data yet) or fails.
+  useEffect(() => {
+    if (!positionQuery.trim()) {
+      setPositionSuggestions([]);
+      return;
+    }
+    const timeoutId = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/v1/position/search?q=${encodeURIComponent(positionQuery)}`,
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.length > 0) {
+            setPositionSuggestions(data);
+            return;
+          }
+        }
+        setPositionSuggestions(getFallbackPositionSuggestions(positionQuery));
+      } catch {
+        setPositionSuggestions(getFallbackPositionSuggestions(positionQuery));
+      }
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [positionQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        positionWrapperRef.current &&
+        !positionWrapperRef.current.contains(e.target)
+      ) {
+        setSuggestionsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handlePositionInputChange = (e) => {
+    setPositionQuery(e.target.value);
+    setSuggestionsOpen(true);
+    setSelectedPosition("");
+  };
+
+  const startSession = async (position) => {
+    setSelectedPosition(position);
+    setSuggestionsOpen(false);
     setLoading(true);
-    setFlipped(false);
-    setCurrentIndex(0);
-    await new Promise((resolve) => setTimeout(resolve, 1400));
-    setLoading(false);
+    setLoadError(null);
+    setUsingSampleData(false);
+    setPool([]);
+    setPoolIndex(0);
+    setAnswerText("");
+    setAudioUrl("");
+    setMediaError("");
+    setShowAnswer(false);
+
+    try {
+      const params = new URLSearchParams({
+        position,
+        numQuestions: String(numQuestions),
+      });
+      if (selectedDifficulty && selectedDifficulty !== "MIXED") {
+        params.set("difficulty", selectedDifficulty);
+      }
+      const res = await fetch(
+        `${API_BASE}/api/v1/question/question?${params.toString()}`,
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.length > 0) {
+          setPool(data);
+          setLoading(false);
+          return;
+        }
+      }
+      // No backend data yet — use local samples instead of showing empty.
+      setPool(getFallbackQuestions(position, selectedDifficulty, numQuestions));
+      setUsingSampleData(true);
+    } catch {
+      setPool(getFallbackQuestions(position, selectedDifficulty, numQuestions));
+      setUsingSampleData(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleFlip = () => {
-    if (!showCard) return;
-    setFlipped((prev) => !prev);
+  const handleSelectPosition = (name) => {
+    setPositionQuery(name);
+    startSession(name);
   };
 
+  const currentQuestion = pool[poolIndex] || null;
+  const hasMoreInPool = poolIndex < pool.length - 1;
+  const showCard = selectedPosition && !loading && currentQuestion;
+
+  // TODO: integration point for a real adaptive endpoint, if/when one is
+  // added for self-practice too. Currently just walks the pre-fetched pool.
   const nextQuestion = () => {
-    if (currentIndex + 1 >= questions.length) return;
-    setCurrentIndex((prev) => prev + 1);
-    setFlipped(false);
+    if (!hasMoreInPool) return;
+    setPoolIndex((prev) => prev + 1);
+    setAnswerText("");
+    setAudioUrl("");
+    setMediaError("");
+    setShowAnswer(false);
   };
 
-  const prevQuestion = () => {
-    if (currentIndex === 0) return;
-    setCurrentIndex((prev) => prev - 1);
-    setFlipped(false);
+  const revealAnswer = () => {
+    setShowAnswer((prev) => !prev);
   };
+
+  const startRecording = async () => {
+    setMediaError("");
+    if (recording) {
+      stopRecording();
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setMediaError("Microphone is not supported in this browser.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.addEventListener("dataavailable", (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      });
+
+      recorder.addEventListener("stop", () => {
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+        stream.getTracks().forEach((track) => track.stop());
+      });
+
+      recorder.start();
+      setRecording(true);
+    } catch (error) {
+      setMediaError(
+        "Unable to access microphone. Please allow permission and retry.",
+      );
+    }
+  };
+
+  const stopRecording = () => {
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+    }
+    setRecording(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recorderRef.current && recorderRef.current.state !== "inactive") {
+        recorderRef.current.stop();
+      }
+    };
+  }, []);
 
   return (
     <div className="self-page-root">
@@ -107,25 +226,72 @@ const SelfPracticePage = () => {
         <section className="self-inner">
           <h1 className="selfpractice-title">-----SELF PRACTICE-----</h1>
 
-          <div className="self-intro">
-            <p className="self-subtitle">Choose your position</p>
-          </div>
           <div className="self-field-select-wrap">
+            <div className="self-position-search" ref={positionWrapperRef}>
+              <input
+                type="text"
+                className="self-field-select self-position-input"
+                placeholder="Type a position (e.g. Backend Developer)"
+                value={positionQuery}
+                onChange={handlePositionInputChange}
+                onFocus={() => positionQuery.trim() && setSuggestionsOpen(true)}
+              />
+              {suggestionsOpen && positionQuery.trim() && (
+                <div className="self-position-dropdown">
+                  {positionSuggestions.length > 0 ? (
+                    positionSuggestions.map((name) => (
+                      <button
+                        type="button"
+                        key={name}
+                        className="self-position-dropdown-item"
+                        onClick={() => handleSelectPosition(name)}
+                      >
+                        {name}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="self-position-dropdown-empty">
+                      No positions match &quot;{positionQuery}&quot;.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <select
-              className="self-field-select"
-              value={selectedField || ""}
-              onChange={(e) => pickField(e.target.value)}
+              className="self-field-select self-difficulty-select"
+              value={selectedDifficulty}
+              onChange={(e) => setSelectedDifficulty(e.target.value)}
             >
               <option value="" disabled>
-                Select a field
+                Select difficulty
               </option>
-              {fields.map((field) => (
-                <option key={field} value={field}>
-                  {field}
+              {DIFFICULTY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="self-field-select self-count-select"
+              value={numQuestions}
+              onChange={(e) => setNumQuestions(Number(e.target.value))}
+            >
+              {NUM_QUESTIONS_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n} questions
                 </option>
               ))}
             </select>
           </div>
+
+          {loadError && <p className="self-error">{loadError}</p>}
+          {usingSampleData && (
+            <p className="self-sample-notice">
+              No live data yet — showing sample questions for preview.
+            </p>
+          )}
 
           <div className="self-loader-area">
             {loading && (
@@ -142,77 +308,81 @@ const SelfPracticePage = () => {
             )}
           </div>
 
-          <div className="self-card-area">
-            {showCard && (
-              <div
-                className={`self-card ${flipped ? "flipped" : ""}`}
-                onClick={toggleFlip}
-              >
-                <div className="self-card-face self-card-front">
-                  <div className="self-card-content">
-                    <p className="self-card-title">{selectedField}</p>
-                    <h2 className="self-question">{selectedQuestion.prompt}</h2>
-                  </div>
-                  <div className="self-card-footer">
-                    <button
-                      className="self-card-btn"
-                      disabled={currentIndex === 0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        prevQuestion();
-                      }}
-                    >
-                      Prev
-                    </button>
-                    <span className="self-card-step">
-                      {currentIndex + 1}/{questions.length}
-                    </span>
-                    <button
-                      className="self-card-btn"
-                      disabled={currentIndex + 1 >= questions.length}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        nextQuestion();
-                      }}
-                    >
-                      Next
-                    </button>
-                  </div>
+          {showCard && (
+            <div className="mock-question-wrapper">
+              <div className="mock-question-card">
+                <div className="mock-card-header">
+                  <p className="mock-card-title">
+                    Self Practice: {selectedPosition}
+                  </p>
+                  <span className="self-card-step">
+                    {poolIndex + 1}/{pool.length}
+                  </span>
                 </div>
-                <div className="self-card-face self-card-back">
-                  <div className="self-card-content">
-                    <p className="self-card-title">Answer</p>
-                    <p className="self-answer">{selectedQuestion.answer}</p>
+                <h2 className="mock-question-title">
+                  {currentQuestion.content}
+                </h2>
+                <div className="mock-answer-area">
+                  <button
+                    type="button"
+                    className={`mock-micro-icon-button ${recording ? "recording" : ""}`}
+                    onClick={startRecording}
+                  >
+                    <img src="/micro.png" alt="Record" />
+                  </button>
+                  <textarea
+                    className="mock-answer-textarea"
+                    value={answerText}
+                    onChange={(e) => setAnswerText(e.target.value)}
+                    placeholder="Input your answer here or send your record."
+                  />
+                </div>
+                {audioUrl && (
+                  <audio
+                    controls
+                    src={audioUrl}
+                    style={{ width: "100%", marginTop: "10px" }}
+                  />
+                )}
+                {mediaError && (
+                  <div className="error-message">{mediaError}</div>
+                )}
+
+                {showAnswer && (
+                  <div className="self-answer-reveal">
+                    <p className="self-answer-reveal-label">Answer</p>
+                    <p className="self-answer-reveal-text">
+                      {currentQuestion.suggestionAnswer}
+                    </p>
                   </div>
-                  <div className="self-card-footer">
-                    <button
-                      className="self-card-btn"
-                      disabled={currentIndex === 0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        prevQuestion();
-                      }}
-                    >
-                      Prev
-                    </button>
-                    <span className="self-card-step">
-                      {currentIndex + 1}/{questions.length}
-                    </span>
-                    <button
-                      className="self-card-btn"
-                      disabled={currentIndex + 1 >= questions.length}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        nextQuestion();
-                      }}
-                    >
-                      Next
-                    </button>
-                  </div>
+                )}
+
+                {!hasMoreInPool && (
+                  <p className="mock-pool-exhausted">
+                    This is the last question in the batch.
+                  </p>
+                )}
+
+                <div className="mock-control-row">
+                  <button
+                    type="button"
+                    className={`mock-action-btn key ${showAnswer ? "active" : ""}`}
+                    onClick={revealAnswer}
+                  >
+                    {showAnswer ? "Hide Key" : "Key"}
+                  </button>
+                  <button
+                    type="button"
+                    className="mock-action-btn primary"
+                    onClick={nextQuestion}
+                    disabled={!hasMoreInPool}
+                  >
+                    Next
+                  </button>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </section>
       </main>
     </div>

@@ -168,14 +168,15 @@
 }
 
 .role-switch-fab {
-  position: absolute;
-  bottom: 20px;
+  position: relative;
+  bottom: auto;
+  top: 400px;
   left: 16px;
   width: 44px;
   height: 44px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  background: #2563eb;
+  background: #261093;
   color: #fff;
   font-weight: 700;
   font-size: 14px;
@@ -190,7 +191,7 @@
 }
 
 .role-switch-fab:hover {
-  background: #1d4ed8;
+  background: #4f1dd8;
   transform: scale(1.08);
 }
 
@@ -236,9 +237,55 @@
   background: #39088f;
   box-shadow: 0 6px 18px rgba(60, 7, 154, 0.4);
   border: #310381;
+  z-index: 0;
 }
 
 .change-to-interviewer:hover {
   background: #340780;
+  transform: scale(1.08);
+  z-index: 1;
+}
+
+.role-switch-container {
+  display: flex;
+  flex-direction: row;
+  width: 500px;
+  gap: 10px;
+}
+
+.change-to-admin {
+  background: #9c1089;
+  box-shadow: 0 6px 18px rgba(63, 8, 88, 0.4);
+  border: #5e0a71;
+  z-index: 0;
+}
+
+.change-to-admin:hover {
+  background: #7a0c6e;
+  transform: scale(1.08);
+}
+
+.navigation-bar.collapsed .role-switch-container,
+.i-nav-bar.collapsed .role-switch-container,
+.ad-navigation-bar.collapsed .ad-role-switch-container {
+  flex-direction: column;
+  align-items: center;
+  width: 100%; /* Đảm bảo container co theo chiều rộng mới của navbar */
+}
+
+/* Căn chỉnh vị trí của các nút FAB nổi để nằm ngay ngắn ở chính giữa */
+.navigation-bar.collapsed .role-switch-fab,
+.i-nav-bar.collapsed .role-switch-fab,
+.ad-navigation-bar.collapsed .ad-role-switch-fab {
+  left: 0;
+  top: auto; /* Xóa bỏ khoảng cách top cố định nếu có để flexbox tự sắp xếp */
+  margin: 0 auto; /* Đảm bảo nút được căn giữa tuyệt đối */
+  transform: none;
+}
+
+/* Giữ hiệu ứng scale chuẩn khi di chuột vào nút lúc đã thu gọn */
+.navigation-bar.collapsed .role-switch-fab:hover,
+.i-nav-bar.collapsed .role-switch-fab:hover,
+.ad-navigation-bar.collapsed .ad-role-switch-fab:hover {
   transform: scale(1.08);
 }

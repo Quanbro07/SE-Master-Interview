@@ -1,0 +1,209 @@
+/* CẤU TRÚC BẢNG ĐỒNG BỘ THEO DẠNG ROW FLEX CỦA DASHBOARD */
+.ad-dashboard-table {
+  display: flex;
+  flex-direction: column;
+  background: #111116;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.ad-dashboard-row-wrap {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.ad-dashboard-row {
+  display: grid;
+  grid-template-columns: 120px 2fr 1fr 1.2fr 1.2fr 1fr 150px;
+  align-items: center;
+  padding: 16px 24px;
+  gap: 16px;
+}
+
+/* Header hàng */
+.ad-dashboard-header {
+  background: #16161f;
+  color: #a1a1aa;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ad-dashboard-data-row {
+  background: #111116;
+  transition: background 0.2s ease;
+}
+
+.ad-dashboard-data-row:hover {
+  background: #15151e;
+}
+
+/* Các ô dữ liệu cốt lõi */
+.user-id-text {
+  font-family: monospace;
+  color: #fa5dd6;
+  font-weight: bold;
+}
+
+.user-info-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-profile-name {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.user-profile-email {
+  font-size: 12px;
+  color: #a1a1aa;
+}
+
+/* Tags */
+.role-tag {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+  display: inline-block;
+}
+.role-tag.interviewee {
+  background: rgba(13, 138, 114, 0.15);
+  color: #4ade80;
+}
+.role-tag.interviewer {
+  background: rgba(57, 8, 143, 0.25);
+  color: #a78bfa;
+}
+
+.status-tag {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: bold;
+}
+.status-tag.active {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+.status-tag.suspended {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+/* Tài chính */
+.finance-in {
+  color: #22c55e;
+  font-weight: 600;
+}
+.finance-out {
+  color: #f97316;
+  font-weight: 600;
+}
+
+/* Nút Action điều khiển đóng mở Dropdown */
+.cell-action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-action-btn {
+  background: rgba(250, 93, 214, 0.1);
+  border: 1px solid rgba(250, 93, 214, 0.25);
+  color: #ff85eb;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  width: 130px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.admin-action-btn:hover,
+.admin-action-btn.is-open {
+  background: #9c1089;
+  color: #ffffff;
+  border-color: #fa5dd6;
+  box-shadow: 0 0 12px rgba(250, 93, 214, 0.3);
+}
+
+/* ==========================================================================
+   DROPDOWN ACCORDION PANEL (PANEL TRƯỢT XUỐNG XEM LỊCH SỬ)
+   ========================================================================== */
+.history-panel-wrap {
+  overflow: hidden; /* Bắt buộc để framer-motion tính toán chiều cao trượt */
+}
+
+.history-dropdown-panel {
+  background: #0b0b0e;
+  padding: 24px 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.panel-inner-title {
+  font-size: 14px;
+  color: #ffffff;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.panel-financial-overview {
+  font-size: 13px;
+  color: #a1a1aa;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 24px;
+}
+
+/* Timeline bên trong panel trượt */
+.ad-mock-timeline {
+  border-left: 2px solid #9c1089;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ad-timeline-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.ad-timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -26px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fa5dd6;
+  box-shadow: 0 0 8px #fa5dd6;
+}
+
+.ad-timeline-date {
+  font-size: 11px;
+  color: #71717a;
+  font-family: monospace;
+}
+
+.ad-timeline-desc {
+  font-size: 13px;
+  color: #e4e4e7;
+  margin-top: 2px;
+}
+
+.admin-table-empty {
+  text-align: center;
+  padding: 48px;
+  color: #71717a;
+  font-style: italic;
+}
