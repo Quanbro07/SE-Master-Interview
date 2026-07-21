@@ -2,10 +2,9 @@ package com.test.backend.entity.booking;
 
 import com.test.backend.entity.bookingReview.BookingReview;
 import com.test.backend.entity.interviewResult.InterviewResult;
-import com.test.backend.entity.interviewee.Interviewee;
-import com.test.backend.entity.interviewer.Interviewer;
+import com.test.backend.entity.user.interviewee.Interviewee;
+import com.test.backend.entity.user.interviewer.Interviewer;
 import com.test.backend.entity.position.Position;
-import com.test.backend.entity.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

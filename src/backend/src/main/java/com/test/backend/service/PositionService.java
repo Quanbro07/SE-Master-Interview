@@ -3,6 +3,7 @@ package com.test.backend.service;
 import com.test.backend.entity.position.Position;
 import com.test.backend.entity.positionQuestion.PositionQuestion;
 import com.test.backend.entity.question.Question;
+import com.test.backend.repository.PositionQuestionRepository;
 import com.test.backend.repository.PositionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -15,6 +16,8 @@ import java.util.Optional;
 public class PositionService {
     private final PositionRepository positionRepository;
 
+    private final PositionQuestionRepository positionQuestionRepository;
+
     public void linkQuestion(Question question, String positionName) {
         Position position = this.checkCreateAndReturn(positionName);
 
@@ -22,6 +25,8 @@ public class PositionService {
 
         positionQuestion.setQuestion(question);
         positionQuestion.setPosition(position);
+
+        positionQuestionRepository.save(positionQuestion);
     }
 
     public Position checkCreateAndReturn(String positionName) {

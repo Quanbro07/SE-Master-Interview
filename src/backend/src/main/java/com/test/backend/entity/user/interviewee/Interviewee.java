@@ -1,4 +1,4 @@
-package com.test.backend.entity.interviewee;
+package com.test.backend.entity.user.interviewee;
 
 import com.test.backend.entity.aiInterviewSession.AiInterviewSession;
 import com.test.backend.entity.booking.Booking;
@@ -32,9 +32,8 @@ public class Interviewee {
     @JoinColumn(name = "interviewee_id") // đồng thời là PK và FK -> User.user_id
     private User user;
 
-    @Positive
-    @Column(name = "subcription_expired_date")
-    private Long subcriptionExpiredDate;
+    @Column(name = "subscription_expired_date")
+    private LocalDate subscriptionExpiredDate;
 
     @Column(name = "updated_at")
     @UpdateTimestamp

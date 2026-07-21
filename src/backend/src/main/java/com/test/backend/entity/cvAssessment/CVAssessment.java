@@ -8,7 +8,9 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Builder
 @Getter
@@ -48,9 +50,19 @@ public class CVAssessment {
     // Relation
     @Builder.Default
     @OneToMany(mappedBy = "cvAssessment", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<CVSectionFeedback> cvSectionFeedbackList = new ArrayList<>();
+    private Set<CVSectionFeedback> cvSectionFeedbackSet = new HashSet<>();
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "position_id", nullable = false)
     private Position position;
+
+    public void addCVSectionFeedBack(CVSectionFeedback cvSectionFeedback) {
+        if(this.cvSectionFeedbackSet == null) {
+            this.cvSectionFeedbackSet = new HashSet<>();
+        }
+        this.cvSectionFeedbackSet.add(cvSectionFeedback);
+
+        cvSectionFeedback.setCvAssessment(this);
+
+    }
 }

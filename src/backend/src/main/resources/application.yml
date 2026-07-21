@@ -4,6 +4,8 @@ authentication:
 spring:
   application:
     name: backend
+
+# OAUTH2
   security:
     oauth2:
       client:
@@ -24,3 +26,21 @@ spring:
 
   profiles:
     active: dev
+
+# MINIO
+minio:
+  server:
+    url: ${MINIO_SERVER_URL}
+  access:
+    key: ${MINIO_ROOT_USER}
+  secret:
+    key: ${MINIO_ROOT_PASSWORD}
+
+  bucket:
+    cv: cv-bucket
+
+#Internal
+internal:
+  url: http://localhost:8000
+  cv-assessment:
+    endpoint: /assess-cv

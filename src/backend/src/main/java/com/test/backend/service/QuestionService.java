@@ -3,6 +3,7 @@ package com.test.backend.service;
 import com.test.backend.dto.question.FilterDifficulty;
 import com.test.backend.dto.question.QuestionDTO;
 import com.test.backend.dto.question.QuestionRequest;
+import com.test.backend.dto.question.QuestionResponse;
 import com.test.backend.entity.answerKeyword.AnswerKeyword;
 import com.test.backend.entity.category.Category;
 import com.test.backend.entity.position.Position;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -62,12 +64,14 @@ public class QuestionService {
         }
     }
 
-    public List<Question> getQuestions(String position, FilterDifficulty difficulty, Integer numQuestions) {
+    public List<QuestionResponse> getQuestions(String position, FilterDifficulty difficulty, Integer numQuestions) {
         boolean isMixed = difficulty == FilterDifficulty.MIXED;
 
         Difficulty questionDifficulty = difficulty == null ? null : difficulty.toDifficulty();
 
         List<Question> questionList = questionRepository.findAllByFilter(position, questionDifficulty);
+
+        System.out.println(questionList);
 
         if(isMixed) {
             Collections.shuffle(questionList);
@@ -78,7 +82,9 @@ public class QuestionService {
                 .limit(numQuestions)
                 .toList();
 
-        return selectedQuestions;
+        return selectedQuestions.stream()
+                .map(this::buildQuestionResponse)
+                .toList();
     }
 
     // Helper Function
@@ -90,5 +96,14 @@ public class QuestionService {
                 .build();
 
         return question;
+    }
+
+    private QuestionResponse buildQuestionResponse(Question question) {
+        return QuestionResponse.builder()
+                .questionId(question.getQuestionId())
+                .difficulty(question.getDifficultyLevel())
+                .content(question.getContent())
+                .categoryList(question.getCategories().stream().map(Category::getCategoryName).toList())
+                .build();
     }
 }

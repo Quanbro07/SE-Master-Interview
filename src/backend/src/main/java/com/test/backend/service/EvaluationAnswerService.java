@@ -56,8 +56,14 @@ public class EvaluationAnswerService {
         }
     }
 
+    public List<EvaluationResultDTO> evaluateAllAnswers(EvaluationRequest request) {
+        return request.evaluationDTOList().stream()
+                .map(re -> this.evaluateAnswer(re.questionId(), re.answer()))
+                .toList();
+    }
+
     // Main Function
-    public EvaluationResultDTO evaluateAnswer(Long questionId, String originalAnswer) {
+    private EvaluationResultDTO evaluateAnswer(Long questionId, String originalAnswer) {
         String cleanAnswer = originalAnswer.toLowerCase().replaceAll("[.,!?;:()\"'-]", "");
         String[] answerWords = cleanAnswer.split("\\s+");
         int wordCount = answerWords.length;

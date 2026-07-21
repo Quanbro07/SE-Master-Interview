@@ -15,7 +15,8 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     @Query("""
             SELECT pq.question
             FROM PositionQuestion pq
-            WHERE pq.position.positionName = :position
+            LEFT JOIN FETCH pq.question.categories
+            WHERE LOWER(pq.position.positionName) = LOWER(:position)
              AND (:difficulty IS NULL
                        OR pq.question.difficultyLevel = :difficulty)
         """)

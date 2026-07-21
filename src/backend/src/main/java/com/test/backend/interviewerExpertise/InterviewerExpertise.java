@@ -1,6 +1,6 @@
 package com.test.backend.interviewerExpertise;
 
-import com.test.backend.entity.interviewer.Interviewer;
+import com.test.backend.entity.user.interviewer.Interviewer;
 import com.test.backend.entity.position.Position;
 import jakarta.persistence.*;
 import lombok.*;
