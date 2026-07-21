@@ -30,4 +30,8 @@ public class CVBucketConfig {
             throw new RuntimeException("ERROR create CV Bucket");
         }
     }
+
+    public String getCVBucketName() {
+        return cVbucketName;
+    }
 }

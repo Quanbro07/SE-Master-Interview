@@ -1,9 +1,8 @@
 package com.test.backend.entity.aiInterviewSession;
 
 import com.test.backend.entity.aiInterviewLog.AiInterviewLog;
-import com.test.backend.entity.interviewee.Interviewee;
+import com.test.backend.entity.user.interviewee.Interviewee;
 import com.test.backend.entity.position.Position;
-import com.test.backend.entity.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

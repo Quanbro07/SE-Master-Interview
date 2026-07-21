@@ -38,3 +38,9 @@ minio:
 
   bucket:
     cv: cv-bucket
+
+#Internal
+internal:
+  url: http://localhost:8000
+  cv-assessment:
+    endpoint: /assess-cv

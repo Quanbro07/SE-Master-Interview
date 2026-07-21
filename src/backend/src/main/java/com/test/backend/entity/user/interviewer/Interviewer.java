@@ -1,4 +1,4 @@
-package com.test.backend.entity.interviewer;
+package com.test.backend.entity.user.interviewer;
 
 import com.test.backend.entity.booking.Booking;
 import com.test.backend.entity.user.User;
@@ -25,13 +25,13 @@ public class Interviewer {
     private Long interviewerId;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @MapsId // báo cho JPA: PK của Interviewee = PK của User được map ở field này
-    @JoinColumn(name = "interviewee_id") // đồng thời là PK và FK -> User.user_id
+    @MapsId // báo cho JPA: PK của Interviewer = PK của User được map ở field này
+    @JoinColumn(name = "interviewer_id") // đồng thời là PK và FK -> User.user_id
     private User user;
 
     @Builder.Default
     @Column(name = "is_stripe_connected")
-    private boolean isStripeConnected = false;
+    private Boolean isStripeConnected = Boolean.FALSE;
 
     @Column(name = "stripe_id")
     private String stripeAccountId;

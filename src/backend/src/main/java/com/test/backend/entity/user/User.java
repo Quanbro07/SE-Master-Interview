@@ -4,6 +4,8 @@ import com.test.backend.entity.aiInterviewSession.AiInterviewSession;
 import com.test.backend.entity.booking.Booking;
 import com.test.backend.entity.cvAssessment.CVAssessment;
 import com.test.backend.entity.socialAccount.SocialAccount;
+import com.test.backend.entity.user.interviewee.Interviewee;
+import com.test.backend.entity.user.interviewer.Interviewer;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.*;
@@ -60,7 +62,6 @@ public class User {
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<SocialAccount> socialAccountSet = new HashSet<>();
-
 
 
 

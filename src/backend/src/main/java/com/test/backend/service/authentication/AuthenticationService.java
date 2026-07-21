@@ -4,9 +4,14 @@ import com.test.backend.dto.authentication.AuthenticationResponse;
 import com.test.backend.dto.authentication.RegisterRequest;
 import com.test.backend.entity.socialAccount.SocialAccount;
 import com.test.backend.entity.socialAccount.SocialAccountProvider;
+import com.test.backend.entity.user.Role;
 import com.test.backend.entity.user.User;
+import com.test.backend.entity.user.interviewee.Interviewee;
+import com.test.backend.entity.user.interviewer.Interviewer;
 import com.test.backend.exception.customException.AlreadyExistException;
 import com.test.backend.exception.customException.NotFoundException;
+import com.test.backend.repository.IntervieweeRepository;
+import com.test.backend.repository.InterviewerRepository;
 import com.test.backend.repository.SocialAccountRepository;
 import com.test.backend.repository.UserRepository;
 import com.test.backend.service.SocialAccountService;
@@ -34,6 +39,10 @@ public class AuthenticationService {
     private final JwtService jwtService;
 
     private final SocialAccountRepository socialAccountRepository;
+
+    private final IntervieweeRepository intervieweeRepository;
+
+    private final InterviewerRepository interviewerRepository;
 
     @Transactional
     public AuthenticationResponse register(RegisterRequest registerRequest, String tempToken) {
@@ -67,7 +76,26 @@ public class AuthenticationService {
         // Liên kết
         newUser.addSocialAccount(newSocialAccount);
 
+        // lưu User xuống trc để pass user cho bảng interviewee và interviewer
         userRepository.save(newUser);
+
+        // check Role để tạo
+        if(registerRequest.role() == Role.Interviewee) {
+            Interviewee interviewee = Interviewee
+                    .builder()
+                    .user(newUser)
+                    .build();
+
+            intervieweeRepository.save(interviewee);
+
+        } else if (registerRequest.role() == Role.Interviewer) {
+            Interviewer interviewer = Interviewer
+                    .builder()
+                    .user(newUser)
+                    .build();
+
+            interviewerRepository.save(interviewer);
+        }
 
         return buildAuthenticationResponse(newUser);
     }
@@ -101,13 +129,15 @@ public class AuthenticationService {
 
     // Helper Function
     private AuthenticationResponse buildAuthenticationResponse(User user) {
-        Map<String, Object> extrClaims = new HashMap<>();
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("userId", user.getUserId());
+
         String email = user.getEmail();
 
-        String accessToken = jwtService.generateToken(extrClaims,email, TokenType.ACCESS);
-        String refreshToken = jwtService.generateToken(extrClaims,email, TokenType.REFRESH);
+        String accessToken = jwtService.generateToken(extraClaims,email, TokenType.ACCESS);
+        String refreshToken = jwtService.generateToken(extraClaims,email, TokenType.REFRESH);
 
-        return AuthenticationResponse.builder()
+        AuthenticationResponse.AuthenticationResponseBuilder responseBuilder =  AuthenticationResponse.builder()
                 .email(user.getEmail())
                 .userName(user.getUserName())
                 .fullName(user.getFullName())
@@ -115,8 +145,22 @@ public class AuthenticationService {
                 .githubUrl(user.getGithubUrl())
                 .role(user.getRole())
                 .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .build()
-                ;
+                .refreshToken(refreshToken);
+
+        if(user.getRole() == Role.Interviewee) {
+            Interviewee interviewee = intervieweeRepository.findByIntervieweeId(user.getUserId())
+                    .orElseThrow(() -> new NotFoundException("Error - Cannot find Interviewee based on userId"));
+
+            responseBuilder.subscriptionExpiredDate(interviewee.getSubscriptionExpiredDate());
+        }
+        else if (user.getRole() == Role.Interviewer) {
+            Interviewer interviewer = interviewerRepository.findByInterviewerId(user.getUserId())
+                    .orElseThrow(() -> new NotFoundException("Error - Cannot find Interviewer based on userId"));
+
+            responseBuilder.isStripeConnected(interviewer.getIsStripeConnected());
+            responseBuilder.stripeAccountId(interviewer.getStripeAccountId());
+        }
+
+        return responseBuilder.build();
     }
 }

@@ -12,6 +12,7 @@ public class CustomUserDetail implements UserDetails {
 
     private final User user;
 
+
     public CustomUserDetail(User user) {
         this.user = user;
     }
@@ -21,6 +22,8 @@ public class CustomUserDetail implements UserDetails {
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(user.getRole().toString()));
     }
+
+    public User getUser() {return user;}
 
     @Override
     public @Nullable String getPassword() {
