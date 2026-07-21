@@ -13,16 +13,16 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class CVBucketConfig {
     @Value("${minio.bucket.cv}")
-    private String cVbucketName;
+    private String cvBucketName;
 
     private final MinioClient minioClient;
 
     @PostConstruct
     public void initCVBucket() {
         try {
-            boolean isBucketExist = minioClient.bucketExists(BucketExistsArgs.builder().bucket(cVbucketName).build());
+            boolean isBucketExist = minioClient.bucketExists(BucketExistsArgs.builder().bucket(cvBucketName).build());
             if(!isBucketExist) {
-                minioClient.makeBucket(MakeBucketArgs.builder().bucket(cVbucketName).build());
+                minioClient.makeBucket(MakeBucketArgs.builder().bucket(cvBucketName).build());
 
             }
 
@@ -32,6 +32,6 @@ public class CVBucketConfig {
     }
 
     public String getCVBucketName() {
-        return cVbucketName;
+        return cvBucketName;
     }
 }
