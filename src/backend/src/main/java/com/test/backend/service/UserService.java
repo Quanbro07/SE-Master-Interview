@@ -11,9 +11,9 @@ import org.springframework.stereotype.Service;
 public class UserService {
     private final UserRepository userRepository;
 
-    public User createUserAndReturn(RegisterRequest request) {
+    public User createUserAndReturn(String email, RegisterRequest request) {
         return User.builder()
-                .email(request.email())
+                .email(email)
                 .userName(request.userName())
                 .fullName(request.fullName())
                 .linkedinUrl(request.linkedinUrl())

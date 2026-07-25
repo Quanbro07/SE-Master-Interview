@@ -46,4 +46,7 @@ public class Interviewer {
 
     @OneToMany(mappedBy = "interviewer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<InterviewerExpertise> expertiseList = new ArrayList<>();
+
+    // Helper
+
 }

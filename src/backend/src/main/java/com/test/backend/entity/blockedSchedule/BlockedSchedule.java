@@ -1,5 +1,6 @@
 package com.test.backend.entity.blockedSchedule;
 
+import com.test.backend.entity.user.interviewer.Interviewer;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -33,6 +34,10 @@ public class BlockedSchedule {
     @Column(name = "updated_at", nullable = false)
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "interviewer_id", updatable = false, nullable = false)
+    private Interviewer interviewer;
 
     @PrePersist
     @PreUpdate

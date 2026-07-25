@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -21,7 +20,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Component
 @Order(2)
-public class UserInit {
+public class AdminInit {
 
     private final UserRepository userRepository;
 
@@ -30,7 +29,7 @@ public class UserInit {
     private final JwtService jwtService;
 
     @Bean
-    CommandLineRunner init(UserRepository userRepository) {
+    CommandLineRunner initAdmin(UserRepository userRepository) {
         return args -> {
             // Tạo 1 admin
             boolean isAdminExists;
@@ -74,8 +73,8 @@ public class UserInit {
             String accessToken = jwtService.generateToken(new HashMap<>(), email, TokenType.ACCESS);
             String refreshToken = jwtService.generateToken(new HashMap<>(), email, TokenType.REFRESH);
 
-            System.out.println("Access Token: " + accessToken);
-            System.out.println("Refresh Token: " + refreshToken);
+            System.out.println("Admin Access Token: " + accessToken);
+            System.out.println("Admin Refresh Token: " + refreshToken);
         }
         ;
     }

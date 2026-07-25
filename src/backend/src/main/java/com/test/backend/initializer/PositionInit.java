@@ -16,17 +16,7 @@ import java.util.List;
 @Component
 @Order(1)
 public class PositionInit {
-    private final String[] positionList = {
-            // Software Engineer
-            "Software Engineer I", "Software Engineer II",
-            "Senior Software Engineer", "Staff Software Engineer",
-            "Principal Software Engineer",
-            // Developer
-            "Java Developer", "React Developer", "Full Stack Developer",
-            "Frontend Developer", "Backend Developer",
 
-            "Data Analyst", "Data Engineer", "Data Scientist", "Data Architect"
-    };
 
     @Value("${init.isDev}")
     private boolean isDev;
@@ -39,6 +29,18 @@ public class PositionInit {
             if(!isDev) {
                 return;
             }
+
+            String[] positionList = {
+                    // Software Engineer
+                    "Software Engineer I", "Software Engineer II",
+                    "Senior Software Engineer", "Staff Software Engineer",
+                    "Principal Software Engineer",
+                    // Developer
+                    "Java Developer", "React Developer", "Full Stack Developer",
+                    "Frontend Developer", "Backend Developer",
+
+                    "Data Analyst", "Data Engineer", "Data Scientist", "Data Architect"
+            };
 
             List<Position> positions = new ArrayList<>();
 

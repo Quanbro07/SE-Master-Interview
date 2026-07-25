@@ -39,8 +39,12 @@ minio:
   bucket:
     cv: cv-bucket
 
-#Internal
+# Internal
 internal:
-  url: http://localhost:8000
   cv-assessment:
     endpoint: /assess-cv
+
+# Stripe
+stripe:
+  secret_key: ${STRIPE_SECRET_KEY}
+  webhook_secret: ${STRIPE_WEBHOOK_SECRET}
