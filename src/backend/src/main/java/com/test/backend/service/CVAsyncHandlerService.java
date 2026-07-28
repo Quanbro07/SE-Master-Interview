@@ -46,7 +46,6 @@ public class CVAsyncHandlerService {
 
             cvAssessment.addCVSectionFeedBack(cvSectionFeedback);
 
-            interviewee.getCvAssessmentList().add(cvAssessment);
 
         }
 
@@ -72,9 +71,10 @@ public class CVAsyncHandlerService {
 
         cvAssessment.setCvUrl(cvUrl);
 
+        interviewee.getCvAssessmentList().add(cvAssessment);
+
         intervieweeRepository.save(interviewee);
 
-        cvAssessmentRepository.save(cvAssessment);
     }
 
 
