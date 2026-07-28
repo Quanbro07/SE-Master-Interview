@@ -62,7 +62,6 @@ lerna-debug.log*
 
 # === Archives ===
 *.zip
-*.tar.gz
 *.rar
 
 # === OS / Editor ===
