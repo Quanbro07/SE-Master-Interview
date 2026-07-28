@@ -72,9 +72,6 @@ public class JwtFilterChain extends OncePerRequestFilter {
 
                 CustomUserDetail userDetail = (CustomUserDetail) userDetailsService.loadUserByUsername(userEmail);
 
-                log.info("Token: {}", jwtToken);
-                log.info("Email: {}", userEmail);
-
                 if (jwtService.isTokenValid(userDetail, jwtToken)) {
 
 

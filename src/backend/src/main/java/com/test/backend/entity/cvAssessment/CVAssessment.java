@@ -25,7 +25,7 @@ public class CVAssessment {
     @Column(name = "assessment_id", nullable = false, updatable = false)
     private Long assessmentId;
 
-    @Column(name = "cv_url", nullable = false, updatable = false, length = 128)
+    @Column(name = "cv_url", nullable = false, updatable = false, length = 2048)
     private String cvUrl;
 
     @Column(name = "overall_score", nullable = false, updatable = false)

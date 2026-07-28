@@ -1,11 +1,16 @@
 package com.test.backend.initializer;
 
+import com.test.backend.entity.interviewerExpertise.InterviewerExpertise;
+import com.test.backend.entity.interviewerExpertise.InterviewerExpertiseLevel;
+import com.test.backend.entity.position.Position;
 import com.test.backend.entity.socialAccount.SocialAccount;
 import com.test.backend.entity.socialAccount.SocialAccountProvider;
 import com.test.backend.entity.user.Role;
 import com.test.backend.entity.user.User;
 import com.test.backend.entity.user.interviewer.Interviewer;
+import com.test.backend.repository.InterviewerExpertiseRepository;
 import com.test.backend.repository.InterviewerRepository;
+import com.test.backend.repository.PositionRepository;
 import com.test.backend.repository.UserRepository;
 import com.test.backend.service.jwt.JwtService;
 import com.test.backend.service.jwt.TokenType;
@@ -16,7 +21,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 @RequiredArgsConstructor
 @Component
@@ -29,8 +36,20 @@ public class InterviewerInnit {
 
     private final JwtService jwtService;
 
+    private final PositionRepository positionRepository;
+
+    private final InterviewerExpertiseRepository interviewerExpertiseRepository;
+
     @Value("${init.isDev}")
     private boolean isDev;
+
+    private List<String> positionList = List.of(
+            "Java Developer",
+            "Frontend Developer",
+            "Backend Developer",
+            "Data Engineer"
+    );
+
 
     @Bean
     CommandLineRunner initInterviewer() {
@@ -62,6 +81,26 @@ public class InterviewerInnit {
                 newInterviewer.setUser(newUser);
 
                 interviewerRepository.save(newInterviewer);
+
+
+                List<Position> positions = positionRepository.findAllByPositionNameIn(positionList);
+
+                List<InterviewerExpertise> interviewerExpertises = new ArrayList<>();
+
+                for(Position position : positions) {
+                    InterviewerExpertise expertise = InterviewerExpertise.builder()
+                            .interviewer(newInterviewer)
+                            .position(position)
+                            .level(InterviewerExpertiseLevel.FRESHER)
+                            .experienceYear(1)
+                            .isCertified(Boolean.TRUE)
+                            .build();
+
+                    interviewerExpertises.add(expertise);
+                }
+
+                interviewerExpertiseRepository.saveAll(interviewerExpertises);
+
             }
 
             User interviewer = userRepository.findByEmail("quanbro7612006@gmail.com")

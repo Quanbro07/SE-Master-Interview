@@ -85,4 +85,19 @@ public class GlobalExceptionHandler {
                         )
                 );
     }
+
+    // Exception handle Stripe Integration
+    @ExceptionHandler(ScheduleConflictException.class)
+    public ResponseEntity<?> handleEmptyInput(ScheduleConflictException e) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(
+                        new ErrorResponse(
+                                LocalDateTime.now().toString(),
+                                HttpStatus.CONFLICT.value(),
+                                HttpStatus.CONFLICT.getReasonPhrase(),
+                                e.getMessage()
+                        )
+                );
+    }
 }

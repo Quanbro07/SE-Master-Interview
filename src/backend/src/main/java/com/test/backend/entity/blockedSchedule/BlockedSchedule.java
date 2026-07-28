@@ -22,14 +22,18 @@ public class BlockedSchedule {
     @Column(name = "blocked_schedule_id", nullable = false, updatable = false)
     private Long blockedScheduleId;
 
-    @Column(name = "blocked_date", nullable = false)
-    private LocalDate blockedDate;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "purpose", nullable = false)
+    private BlockedSchedulePurpose purpose;
 
-    @Column(name = "start_time", nullable = false)
-    private LocalTime startTime;
+    @Column(name = "note")
+    private String note;
 
-    @Column(name = "end_time", nullable = false)
-    private LocalTime endTime;
+    @Column(name = "start_datetime", nullable = false)
+    private LocalDateTime startTime;
+
+    @Column(name = "end_datetime", nullable = false)
+    private LocalDateTime endTime;
 
     @Column(name = "updated_at", nullable = false)
     @UpdateTimestamp

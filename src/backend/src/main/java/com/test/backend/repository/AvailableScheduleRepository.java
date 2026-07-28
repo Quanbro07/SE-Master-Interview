@@ -32,4 +32,6 @@ public interface AvailableScheduleRepository extends JpaRepository<AvailableSche
             @Param("interviewerId") Long interviewerId,
             @Param("daysOfWeek") Set<Short> daysOfWeek
     );
+
+    List<AvailableSchedule> findAllByInterviewer_InterviewerId(Long interviewerId);
 }

@@ -1,4 +1,4 @@
-package com.test.backend.interviewerExpertise;
+package com.test.backend.entity.interviewerExpertise;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

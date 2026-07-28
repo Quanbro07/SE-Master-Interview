@@ -1,5 +1,6 @@
 package com.test.backend.repository;
 
+import com.test.backend.entity.user.User;
 import com.test.backend.entity.user.interviewer.Interviewer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -22,4 +23,6 @@ public interface InterviewerRepository extends JpaRepository<Interviewer, Long> 
         """)
     Optional<Interviewer> findByInterviewerIdFetchUser(
             @Param("interviewId") Long interviewId);
+
+    Long user(User user);
 }

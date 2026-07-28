@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalTime;
 
-public record ScheduleTimeRequest(
+public record ScheduleTimeDTO(
         @JsonProperty("start_time")
         LocalTime startTime,
 

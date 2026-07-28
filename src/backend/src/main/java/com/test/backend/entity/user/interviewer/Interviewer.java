@@ -2,9 +2,8 @@ package com.test.backend.entity.user.interviewer;
 
 import com.test.backend.entity.booking.Booking;
 import com.test.backend.entity.user.User;
-import com.test.backend.interviewerExpertise.InterviewerExpertise;
+import com.test.backend.entity.interviewerExpertise.InterviewerExpertise;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Positive;
 import lombok.*;
 import org.hibernate.annotations.UpdateTimestamp;
 

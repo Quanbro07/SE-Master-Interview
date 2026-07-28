@@ -4,11 +4,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
-public record ScheduleRequest(
+public record ScheduleDTO(
         @JsonProperty("day_of_week")
         short dayOfWeek,
 
         @JsonProperty("schedule_times")
-        List<ScheduleTimeRequest> scheduleTimeRequestList
+        List<ScheduleTimeDTO> scheduleTimeDTOList
 ) {
 }
