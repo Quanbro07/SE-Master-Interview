@@ -80,8 +80,8 @@ services:
       - MINIO_BUCKET_CV=cv-bucket
       
       # Internal
-      - INTERNAL_URL=http://ai-service:8000
-      - INTERNAL_CV_ASSESSMENT_ENDPOINT=/assess-cv
+      - INTERNAL_URL=http://localhost:8000
+      - INTERNAL_CV_ASSESSMENT_ENDPOINT=/api/ai/cv-assessment
       
       #Stripe
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
