@@ -52,9 +52,9 @@ public class CVAsyncHandlerService {
 
         cvAssessment.setPosition(position);
 
-        intervieweeRepository.save(interviewee);
 
-        String target = interviewee.getIntervieweeId().toString()+ "_" + cvAssessment.getAssessmentId().toString();
+
+        String target = interviewee.getIntervieweeId().toString() + "_" + java.util.UUID.randomUUID().toString();
 
         String cvUrl;
 
@@ -71,6 +71,8 @@ public class CVAsyncHandlerService {
         }
 
         cvAssessment.setCvUrl(cvUrl);
+
+        intervieweeRepository.save(interviewee);
 
         cvAssessmentRepository.save(cvAssessment);
     }
