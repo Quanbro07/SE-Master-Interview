@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 
@@ -32,6 +33,7 @@ public class CVAsyncHandlerService {
     private final CVAssessmentRepository cvAssessmentRepository;
 
     @Async
+    @Transactional
     public void saveCVAssessmentAndUploadFileAsync(
             Interviewee interviewee,
             Position position,
@@ -46,11 +48,11 @@ public class CVAsyncHandlerService {
 
             cvAssessment.addCVSectionFeedBack(cvSectionFeedback);
 
-
         }
 
         cvAssessment.setPosition(position);
 
+        interviewee.addCVAssessment(cvAssessment);
 
 
         String target = interviewee.getIntervieweeId().toString() + "_" + java.util.UUID.randomUUID().toString();
@@ -71,7 +73,6 @@ public class CVAsyncHandlerService {
 
         cvAssessment.setCvUrl(cvUrl);
 
-        interviewee.getCvAssessmentList().add(cvAssessment);
 
         intervieweeRepository.save(interviewee);
 

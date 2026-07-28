@@ -80,7 +80,7 @@ services:
       - MINIO_BUCKET_CV=cv-bucket
       
       # Internal
-      - INTERNAL_URL=http://localhost:8000
+      - INTERNAL_URL=http://host.docker.internal:8000
       - INTERNAL_CV_ASSESSMENT_ENDPOINT=/api/ai/cv-assessment
       
       #Stripe

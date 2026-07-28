@@ -2,6 +2,7 @@ package com.test.backend.entity.cvAssessment;
 
 import com.test.backend.entity.cvSectionFeedback.CVSectionFeedback;
 import com.test.backend.entity.position.Position;
+import com.test.backend.entity.user.interviewee.Interviewee;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -25,6 +26,8 @@ public class CVAssessment {
     @Column(name = "assessment_id", nullable = false, updatable = false)
     private Long assessmentId;
 
+
+
     @Column(name = "cv_url", length = 2048)
     private String cvUrl;
 
@@ -47,6 +50,8 @@ public class CVAssessment {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
+
+
     // Relation
     @Builder.Default
     @OneToMany(mappedBy = "cvAssessment", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
@@ -55,6 +60,10 @@ public class CVAssessment {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "position_id", nullable = false)
     private Position position;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "interviewee_id", nullable = false)
+    private Interviewee interviewee;
 
     public void addCVSectionFeedBack(CVSectionFeedback cvSectionFeedback) {
         if(this.cvSectionFeedbackSet == null) {
