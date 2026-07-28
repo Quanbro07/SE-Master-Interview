@@ -14,7 +14,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
-    show-sql: true
+    show-sql: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
     properties:
@@ -25,3 +25,13 @@ spring:
 init:
   isDev: true
 
+#Internal
+internal:
+  url: http://localhost:8000
+  cv-assessment:
+    endpoint: /assess-cv
+
+fe:
+  url: http://localhost:3000
+  stripe_refresh: /refresh
+  stripe_success: /success

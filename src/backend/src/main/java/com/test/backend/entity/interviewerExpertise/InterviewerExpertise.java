@@ -1,9 +1,12 @@
-package com.test.backend.interviewerExpertise;
+package com.test.backend.entity.interviewerExpertise;
 
 import com.test.backend.entity.user.interviewer.Interviewer;
 import com.test.backend.entity.position.Position;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDateTime;
 
 @Builder
 @Getter
@@ -27,9 +30,21 @@ public class InterviewerExpertise {
     @JoinColumn(name = "position_id")
     private Position position;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "level")
-    private String level;
+    private InterviewerExpertiseLevel level;
 
     @Column(name = "experience_year")
     private Integer experienceYear;
+
+    @Builder.Default
+    @Column(name = "isCertified")
+    private Boolean isCertified = Boolean.FALSE;
+
+    @Column(name = "cv_url", length = 2048)
+    private String cvUrl;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 }

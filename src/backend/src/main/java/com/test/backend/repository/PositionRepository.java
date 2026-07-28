@@ -11,6 +11,8 @@ import java.util.Optional;
 public interface PositionRepository extends JpaRepository<Position, Long> {
     List<Position> findAll();
 
+    List<Position> findAllByPositionNameIn(List<String> positionNameList);
+
     Optional<Position> findByPositionNameIgnoreCase(String positionName);
 
     Boolean existsByPositionNameIgnoreCase(String positionName);

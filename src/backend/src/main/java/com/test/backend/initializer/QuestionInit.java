@@ -14,17 +14,12 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @Component
-@Order(2)
+@Order(1)
 public class QuestionInit {
 
     private final CategoryRepository categoryRepository;
 
-    private final String[] categoryList = {
-            "Backend Web Development",
-            "Java Frameworks",
-            "Artificial Intelligence",
-            "Search Algorithm"
-    };
+
 
     @Value("${init.isDev}")
     private boolean isDev;
@@ -35,6 +30,14 @@ public class QuestionInit {
             if(!isDev) {
                 return;
             }
+
+            String[] categoryList = {
+                    "Backend Web Development",
+                    "Java Frameworks",
+                    "Artificial Intelligence",
+                    "Search Algorithm"
+            };
+
 
             List<Category> categories = new ArrayList<>();
 

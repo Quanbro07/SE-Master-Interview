@@ -57,7 +57,7 @@ public class AuthenticationService {
         }
 
         // Tạo user mới
-        User newUser = userService.createUserAndReturn(registerRequest);
+        User newUser = userService.createUserAndReturn(email, registerRequest);
 
         String providerStr = claims.get("provider", String.class);
         String providerId = claims.get("providerUserId", String.class);
