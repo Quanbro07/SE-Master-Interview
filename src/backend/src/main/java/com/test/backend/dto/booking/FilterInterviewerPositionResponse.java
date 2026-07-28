@@ -2,8 +2,10 @@ package com.test.backend.dto.booking;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.test.backend.entity.interviewerExpertise.InterviewerExpertiseLevel;
+import lombok.Builder;
 
-public record FilterPositionResponse(
+@Builder
+public record FilterInterviewerPositionResponse(
     @JsonProperty("interviewer_id")
     Long interviewerId,
 

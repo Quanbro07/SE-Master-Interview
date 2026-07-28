@@ -30,7 +30,7 @@ public class InternalAPIService {
 
     private final RestTemplate restTemplate;
 
-    public CVAssessmentResponse assessCV(MultipartFile file) {
+    public CVAssessmentResponse assessCV(MultipartFile file, String position) {
         String url = internalUrl + cvAssessmentEndpoint;
 
         try {
@@ -49,6 +49,7 @@ public class InternalAPIService {
             };
 
             body.add("file", fileAsResource);
+            body.add("position", position);
 
             // Đóng gói Header + Body
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);

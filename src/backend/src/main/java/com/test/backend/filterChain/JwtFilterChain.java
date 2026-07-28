@@ -90,16 +90,19 @@ public class JwtFilterChain extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authenToken);
                 }
             }
-            filterChain.doFilter(request, response);
 
         } catch (ExpiredJwtException e) {
             // HỨNG LỖI TOKEN HẾT HẠN Ở ĐÂY
             handleExceptionResponse(response, "Token Expired", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
         } catch (Exception e) {
             log.error("JWT validation failed: {}", e.getMessage(), e);
             // Hứng các lỗi JWT khác như sai chữ ký, token bị can thiệp...
             handleExceptionResponse(response, "Token không hợp lệ!", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
         }
+
+        filterChain.doFilter(request, response);
     }
 
 private void handleExceptionResponse(HttpServletResponse response, String message, int statusCode) throws IOException {

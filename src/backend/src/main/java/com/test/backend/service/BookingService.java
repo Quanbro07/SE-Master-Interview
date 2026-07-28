@@ -1,5 +1,6 @@
 package com.test.backend.service;
 
+import com.test.backend.dto.booking.FilterInterviewerPositionResponse;
 import com.test.backend.entity.interviewerExpertise.InterviewerExpertise;
 import com.test.backend.repository.InterviewerExpertiseRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,12 @@ public class BookingService {
         Page<InterviewerExpertise> expertisePage = interviewerExpertiseRepository
                 .findAllByPosition_PositionName(position, pageable);
 
+        Page<FilterInterviewerPositionResponse> response =
+                expertisePage.map(this::coverToFilterInterviewerPositionResponse);
 
+    }
+
+    private FilterInterviewerPositionResponse coverToFilterInterviewerPositionResponse(InterviewerExpertise epertise) {
+        return FilterInterviewerPositionResponse.builder().build();
     }
 }

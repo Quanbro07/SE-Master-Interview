@@ -34,8 +34,8 @@ public class CVAssessmentService {
         if(position.isEmpty()) {
             throw new NotFoundException("Position not found");
         }
-
-        CVAssessmentResponse response = internalAPIService.assessCV(file);
+        Position po = position.get();
+        CVAssessmentResponse response = internalAPIService.assessCV(file, po.getPositionName());
 
         Interviewee interviewee = intervieweeRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Interviewee not found"));
