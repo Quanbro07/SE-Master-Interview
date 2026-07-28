@@ -36,7 +36,6 @@ scoring_prompt = ChatPromptTemplate.from_messages([
 def score_cv_content(parsed_cv_data: dict, job_description: str) -> dict:
     model = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
-        google_api_key=os.getenv("GOOGLE_API_KEY")
     ).with_structured_output(CVAssessmentResult, method="json_schema")
     
     prompt = scoring_prompt.invoke({

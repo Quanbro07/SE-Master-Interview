@@ -61,7 +61,6 @@ def parse_cv(file_path: str) -> dict:
     
     model = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash", 
-        google_api_key=google_key
     ).with_structured_output(Resume, method="json_schema")
 
     # 2. Đọc và nạp nội dung từ file PDF
