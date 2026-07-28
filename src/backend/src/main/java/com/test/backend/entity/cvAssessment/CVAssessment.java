@@ -26,8 +26,6 @@ public class CVAssessment {
     @Column(name = "assessment_id", nullable = false, updatable = false)
     private Long assessmentId;
 
-
-
     @Column(name = "cv_url", length = 2048)
     private String cvUrl;
 
@@ -57,7 +55,7 @@ public class CVAssessment {
     @OneToMany(mappedBy = "cvAssessment", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<CVSectionFeedback> cvSectionFeedbackSet = new HashSet<>();
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "position_id", nullable = false)
     private Position position;
 
