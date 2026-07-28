@@ -9,6 +9,7 @@ import com.test.backend.entity.position.Position;
 import com.test.backend.entity.user.User;
 import com.test.backend.entity.user.interviewer.Interviewer;
 import com.test.backend.exception.customException.NotFoundException;
+import com.test.backend.exception.customException.StripeIntegrationException;
 import com.test.backend.repository.InterviewerExpertiseRepository;
 import com.test.backend.repository.InterviewerRepository;
 import com.test.backend.repository.PositionRepository;
@@ -48,6 +49,11 @@ public class ExpertiseService {
 
         Interviewer interviewer = interviewerRepository.findByInterviewerId(userId)
                 .orElseThrow(() -> new NotFoundException("Interviewer not found"));
+
+        // Nếu chưa có tài khoản Stripe thì ko dc check
+        if(!interviewer.getIsStripeConnected()) {
+            throw new StripeIntegrationException("Stripe is not connected");
+        }
 
         byte[] fileData;
         String contentType = file.getContentType();

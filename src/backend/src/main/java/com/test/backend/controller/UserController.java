@@ -3,6 +3,7 @@ package com.test.backend.controller;
 import com.test.backend.entity.interviewerExpertise.InterviewerExpertiseLevel;
 import com.test.backend.entity.position.Position;
 import com.test.backend.entity.user.CustomUserDetail;
+import com.test.backend.entity.user.User;
 import com.test.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,5 +20,16 @@ public class UserController {
 
     private final UserService userService;
 
+    @PostMapping("/update-avatar")
+    private ResponseEntity<String> updateAvatar(
+        @RequestParam("avatar") MultipartFile avatar,
+        @AuthenticationPrincipal CustomUserDetail userDetail) {
+
+        User user = userDetail.getUser();
+
+        userService.changeAvatar(user, avatar);
+
+        return ResponseEntity.ok("Avatar updated");
+    }
 
 }

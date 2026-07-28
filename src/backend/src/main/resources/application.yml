@@ -38,6 +38,7 @@ minio:
 
   bucket:
     cv: cv-bucket
+    avatar: avatar-bucket
 
 # Internal
 internal:
@@ -48,3 +49,8 @@ internal:
 stripe:
   secret_key: ${STRIPE_SECRET_KEY}
   webhook_secret: ${STRIPE_WEBHOOK_SECRET}
+
+# Mail
+mail:
+  username: ${MAIL_USERNAME}
+  password: ${MAIL_PASSWORD}
