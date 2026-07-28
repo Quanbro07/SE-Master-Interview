@@ -2,12 +2,14 @@ package com.test.backend.entity.question;
 
 import com.test.backend.entity.category.Category;
 import com.test.backend.entity.positionQuestion.PositionQuestion;
-import com.test.backend.entity.questionKeyword.QuestionKeyword;
+import com.test.backend.entity.answerKeyword.AnswerKeyword;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Builder
 @Getter
@@ -35,14 +37,35 @@ public class Question {
     // Relation
     @Builder.Default
     @OneToMany(mappedBy = "question", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<QuestionKeyword> questionKeywordList = new ArrayList<>();
+    private Set<AnswerKeyword> answerKeywordList = new HashSet<>();
 
-    @Builder.Default
-    @OneToMany(mappedBy = "question", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<Category> categoryList = new ArrayList<>();
 
     @Builder.Default
     @OneToMany(mappedBy = "question", fetch = FetchType.LAZY)
     private List<PositionQuestion> positionQuestionList = new ArrayList<>();
 
+    @Builder.Default
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "question_category",
+            joinColumns = @JoinColumn(name = "question_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<Category> categories = new HashSet<>();
+
+    public void addCategory(Category category) {
+        if(this.categories == null) {
+            this.categories = new HashSet<>();
+        }
+        this.categories.add(category);
+        category.getQuestions().add(this);
+    }
+
+    public void addKeyword(AnswerKeyword answerKeyword) {
+        if(this.answerKeywordList == null) {
+            this.answerKeywordList = new HashSet<>();
+        }
+        this.answerKeywordList.add(answerKeyword);
+        answerKeyword.setQuestion(this);
+    }
 }

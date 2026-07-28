@@ -4,6 +4,8 @@ import com.test.backend.entity.aiInterviewSession.AiInterviewSession;
 import com.test.backend.entity.booking.Booking;
 import com.test.backend.entity.cvAssessment.CVAssessment;
 import com.test.backend.entity.socialAccount.SocialAccount;
+import com.test.backend.entity.user.interviewee.Interviewee;
+import com.test.backend.entity.user.interviewer.Interviewer;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.*;
@@ -33,6 +35,9 @@ public class User {
     @Email
     private String email;
 
+    @Column(name = "avatar", length = 2048)
+    private String avatar;
+
     @Column(name = "user_name", length = 50)
     private String userName;
 
@@ -42,7 +47,7 @@ public class User {
     @Column(name = "linkedin_url", length = 512)
     private String linkedinUrl;
 
-    @Column(name = "githubz_url", length = 512)
+    @Column(name = "github_url", length = 512)
     private String githubUrl;
 
     @Column(name = "role", nullable = false)
@@ -61,22 +66,7 @@ public class User {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<SocialAccount> socialAccountSet = new HashSet<>();
 
-    @Builder.Default
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<AiInterviewSession> aiInterviewSessionList = new ArrayList<>();
 
-    @Builder.Default
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "user_id", nullable = false)
-    private List<CVAssessment> cvAssessmentList = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "booker", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<Booking> bookingList = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "interviewer", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<Booking> inteviewList = new ArrayList<>();
 
     public void addSocialAccount(SocialAccount socialAccount) {
         if(this.socialAccountSet == null) {

@@ -4,13 +4,20 @@ import com.test.backend.entity.question.Question;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Builder
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "category")
+@Table(name = "category",
+    indexes = {
+            @Index(name = "idx_category_name", columnList = "category_name", unique = true)
+    }
+)
 public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,7 +27,7 @@ public class Category {
     @Column(name = "category_name", nullable = false, unique = true)
     private String categoryName;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "question_id", nullable = false)
-    private Question question;
+    @Builder.Default
+    @ManyToMany(mappedBy = "categories", fetch = FetchType.LAZY)
+    private Set<Question> questions = new HashSet<>();
 }

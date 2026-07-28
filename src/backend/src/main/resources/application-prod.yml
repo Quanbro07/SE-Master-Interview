@@ -20,3 +20,15 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+
+init:
+  isDev: false
+
+#Internal
+internal:
+  url: ${INTERNAL_URL}
+
+
+fe:
+  url: ${FRONTEND_URL}

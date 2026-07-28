@@ -11,6 +11,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -26,6 +27,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class JwtFilterChain extends OncePerRequestFilter {
@@ -41,8 +43,8 @@ public class JwtFilterChain extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException
     {
-
         final String authHeader = request.getHeader("Authorization");
+        log.info("Authorization: {}", authHeader);
 
         final String jwtToken;
         final String userEmail;
@@ -69,7 +71,9 @@ public class JwtFilterChain extends OncePerRequestFilter {
             if(userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 CustomUserDetail userDetail = (CustomUserDetail) userDetailsService.loadUserByUsername(userEmail);
+
                 if (jwtService.isTokenValid(userDetail, jwtToken)) {
+
 
                     UsernamePasswordAuthenticationToken authenToken =
                             new UsernamePasswordAuthenticationToken(
@@ -92,6 +96,7 @@ public class JwtFilterChain extends OncePerRequestFilter {
             // HỨNG LỖI TOKEN HẾT HẠN Ở ĐÂY
             handleExceptionResponse(response, "Token Expired", HttpServletResponse.SC_UNAUTHORIZED);
         } catch (Exception e) {
+            log.error("JWT validation failed: {}", e.getMessage(), e);
             // Hứng các lỗi JWT khác như sai chữ ký, token bị can thiệp...
             handleExceptionResponse(response, "Token không hợp lệ!", HttpServletResponse.SC_UNAUTHORIZED);
         }

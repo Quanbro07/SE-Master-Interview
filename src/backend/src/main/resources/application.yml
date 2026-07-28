@@ -4,6 +4,8 @@ authentication:
 spring:
   application:
     name: backend
+
+# OAUTH2
   security:
     oauth2:
       client:
@@ -24,3 +26,31 @@ spring:
 
   profiles:
     active: dev
+
+# MINIO
+minio:
+  server:
+    url: ${MINIO_SERVER_URL}
+  access:
+    key: ${MINIO_ROOT_USER}
+  secret:
+    key: ${MINIO_ROOT_PASSWORD}
+
+  bucket:
+    cv: cv-bucket
+    avatar: avatar-bucket
+
+# Internal
+internal:
+  cv-assessment:
+    endpoint: /assess-cv
+
+# Stripe
+stripe:
+  secret_key: ${STRIPE_SECRET_KEY}
+  webhook_secret: ${STRIPE_WEBHOOK_SECRET}
+
+# Mail
+mail:
+  username: ${MAIL_USERNAME}
+  password: ${MAIL_PASSWORD}

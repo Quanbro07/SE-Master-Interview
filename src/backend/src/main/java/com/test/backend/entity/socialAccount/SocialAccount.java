@@ -20,7 +20,8 @@ public class SocialAccount {
     private Long socialId;
 
     @Column(name = "provider", nullable = false)
-    private String provider;
+    @Enumerated(EnumType.STRING)
+    private SocialAccountProvider provider;
 
     @Column(name = "provider_id", nullable = false)
     private String providerId;

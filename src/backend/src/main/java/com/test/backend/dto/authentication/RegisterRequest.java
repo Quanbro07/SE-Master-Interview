@@ -1,10 +1,8 @@
-package com.test.backend.dto;
+package com.test.backend.dto.authentication;
 
 import com.test.backend.entity.user.Role;
-import jakarta.persistence.EnumeratedValue;
 
 public record RegisterRequest(
-        String email,
         String userName,
         String fullName,
         String linkedinUrl,

@@ -1,5 +1,6 @@
 package com.test.backend.config;
 
+import com.test.backend.filterChain.JwtFilterChain;
 import com.test.backend.oauth2.customService.CustomOauth2UserService;
 import com.test.backend.oauth2.customUser.CustomOidcUserService;
 import com.test.backend.oauth2.successHandler.AuthenticationSuccessHandler;
@@ -11,6 +12,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -27,6 +29,8 @@ public class SecurityConfig {
     private final CustomOidcUserService customOidcUserService;
 
     private final AuthenticationSuccessHandler authenticationSuccessHandler;
+
+    private final JwtFilterChain jwtFilterChain;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -52,6 +56,8 @@ public class SecurityConfig {
 
                         .successHandler(authenticationSuccessHandler)
                 )
+
+                .addFilterBefore(jwtFilterChain, UsernamePasswordAuthenticationFilter.class)
         ;
 
         return http.build();

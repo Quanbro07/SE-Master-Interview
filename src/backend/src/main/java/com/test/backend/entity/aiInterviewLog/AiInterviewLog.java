@@ -37,10 +37,9 @@ public class AiInterviewLog {
     private LocalDateTime createdAt;
 
     // Relation
-    @Builder.Default
-    @OneToMany(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "question_id")
-    private List<Question> questionList = new ArrayList<>();
+    private Question question;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id", nullable = false)

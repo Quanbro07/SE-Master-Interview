@@ -1,5 +1,6 @@
 package com.test.backend.entity.availableSchedule;
 
+import com.test.backend.entity.user.interviewer.Interviewer;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -30,7 +31,7 @@ public class AvailableSchedule {
     @Min(2)
     @Max(8)
     @Column(name = "day_of_week", nullable = false)
-    private short dayOfWeek; // 2-8
+    private Short dayOfWeek; // 2-8
 
     @Column(name = "start_time")
     private LocalTime startTime;
@@ -45,6 +46,10 @@ public class AvailableSchedule {
     @Column(name = "updated_at", nullable = false)
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "interviewer_id", updatable = false, nullable = false)
+    private Interviewer interviewer;
 
     @PrePersist
     @PreUpdate
