@@ -1,0 +1,7 @@
+# Bỏ qua file môi trường
+.env
+
+# Bỏ qua file tài liệu test và ảnh chụp
+*.pdf
+*.png
+cv_assessment_output.json
