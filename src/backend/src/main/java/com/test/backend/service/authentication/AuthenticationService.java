@@ -139,6 +139,7 @@ public class AuthenticationService {
 
         AuthenticationResponse.AuthenticationResponseBuilder responseBuilder =  AuthenticationResponse.builder()
                 .email(user.getEmail())
+                .avatar(user.getAvatar())
                 .userName(user.getUserName())
                 .fullName(user.getFullName())
                 .linkedinUrl(user.getLinkedinUrl())

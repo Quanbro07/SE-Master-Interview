@@ -10,6 +10,8 @@ import java.time.LocalDate;
 public record AuthenticationResponse(
         String email,
 
+        String avatar,
+
         @JsonProperty("user_name")
         String userName,
 
