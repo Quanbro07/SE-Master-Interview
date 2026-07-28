@@ -57,7 +57,7 @@ public class CVAssessment {
     @OneToMany(mappedBy = "cvAssessment", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<CVSectionFeedback> cvSectionFeedbackSet = new HashSet<>();
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "position_id", nullable = false)
     private Position position;
 
