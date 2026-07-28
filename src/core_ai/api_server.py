@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 # Load biến môi trường
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
-
+print("🔑 API Key Check:", os.getenv("GOOGLE_API_KEY")[:10] + "..." if os.getenv("GOOGLE_API_KEY") else "Not Found!")
 # Import 3 hàm xịn sò từ 3 file của ông
 from core_ai.agents.cv_parsing_agent import parse_cv
 from core_ai.agents.cv_layout_agent import score_cv_layout
