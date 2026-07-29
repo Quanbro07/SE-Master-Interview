@@ -40,8 +40,14 @@ public class Booking {
     @Column(name = "cv_url", nullable = false, updatable = false)
     private String cvUrl;
 
-    @Column(name = "meeting_url", nullable = false, updatable = false)
-    private String meetingUrl;
+    @Column(name = "meeting_id", nullable = false, updatable = false)
+    private String meetingId;
+
+    @Column(name = "join_url", nullable = false, updatable = false)
+    private String joinUrl;
+
+    @Column(name = "start_url", nullable = false, updatable = false)
+    private String startUrl;
 
     @Column(name = "meeting_password")
     private String meetingPassword;

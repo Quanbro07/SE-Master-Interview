@@ -1,4 +1,4 @@
-package com.test.backend.dto.cvAssessmentDTO;
+package com.test.backend.dto.cvAssessment;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

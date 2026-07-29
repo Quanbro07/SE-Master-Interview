@@ -77,7 +77,11 @@ public class InterviewerInnit {
                 newUser.addSocialAccount(socialAccount);
                 userRepository.save(newUser);
 
-                Interviewer newInterviewer = Interviewer.builder().build();
+                Interviewer newInterviewer = Interviewer.builder()
+                        .overallRating(4.0)
+                        .totalReviews(5)
+                        .build();
+
                 newInterviewer.setUser(newUser);
 
                 interviewerRepository.save(newInterviewer);

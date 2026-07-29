@@ -17,10 +17,10 @@ public class BookingService {
     private final InterviewerExpertiseRepository interviewerExpertiseRepository;
 
     public void filterInterviewerByPosition(String position, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("ExperienceYear").descending());
+        Pageable pageable = PageRequest.of(page, size);
 
         Page<InterviewerExpertise> expertisePage = interviewerExpertiseRepository
-                .findAllByPosition_PositionName(position, pageable);
+                .findAllByPositionWithBalancedSort(position, pageable);
 
         Page<FilterInterviewerPositionResponse> response =
                 expertisePage.map(this::coverToFilterInterviewerPositionResponse);

@@ -1,14 +1,13 @@
 package com.test.backend.service;
 
 import com.test.backend.config.CVBucketConfig;
-import com.test.backend.dto.cvAssessmentDTO.CVAssessmentResponse;
-import com.test.backend.dto.cvAssessmentDTO.CVSectionFeedbackResponse;
+import com.test.backend.dto.cvAssessment.CVAssessmentResponse;
+import com.test.backend.dto.cvAssessment.CVSectionFeedbackResponse;
 import com.test.backend.entity.cvAssessment.CVAssessment;
 import com.test.backend.entity.cvSectionFeedback.CVSectionFeedback;
 import com.test.backend.entity.position.Position;
 import com.test.backend.entity.user.interviewee.Interviewee;
 import com.test.backend.repository.CVAssessmentRepository;
-import com.test.backend.repository.CVSectionFeedbackRepository;
 import com.test.backend.repository.IntervieweeRepository;
 import io.minio.errors.MinioException;
 import lombok.RequiredArgsConstructor;

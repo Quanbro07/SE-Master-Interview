@@ -44,7 +44,6 @@ public class JwtFilterChain extends OncePerRequestFilter {
             throws ServletException, IOException
     {
         final String authHeader = request.getHeader("Authorization");
-        log.info("Authorization: {}", authHeader);
 
         final String jwtToken;
         final String userEmail;

@@ -44,7 +44,7 @@ services:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    container_name: master-interview-app
+    container_name: master-interview-backend
     depends_on:
       database:
         condition: service_healthy
@@ -91,13 +91,31 @@ services:
       # Mail
       - MAIL_USERNAME=${MAIL_USERNAME}
       - MAIL_PASSWORD=${MAIL_PASSWORD}
+      
+      # Zoom
+      - ZOOM_ACCOUNT_ID=${ZOOM_ACCOUNT_ID}
+      - ZOOM_CLIENT_ID=${ZOOM_CLIENT_ID}
+      - ZOOM_CLIENT_SECRET=${ZOOM_CLIENT_SECRET}
+      - ZOOM_WEBHOOK_SECRET_TOKEN={ZOOM_WEBHOOK_SECRET_TOKEN}
     ports:
       - "8080:8080"
     networks:
       - app-network
 
 
-
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: ngrok
+    ports:
+    - "4040:4040"
+    environment:
+    - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    # Trỏ thẳng ngrok vào tên service backend và port của nó bên trong mạng lưới Docker
+    command: "http --domain=${NGROK_STATIC_DOMAIN} backend:8080" 
+    depends_on:
+    - backend
+    networks:
+      - app-network
   
 volumes:
   db_data:
