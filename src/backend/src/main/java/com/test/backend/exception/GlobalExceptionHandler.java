@@ -88,7 +88,7 @@ public class GlobalExceptionHandler {
 
     // Exception handle Schedule
     @ExceptionHandler(ScheduleConflictException.class)
-    public ResponseEntity<?> handleEmptyInput(ScheduleConflictException e) {
+    public ResponseEntity<?> handleScheduleConflict(ScheduleConflictException e) {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(
@@ -103,7 +103,7 @@ public class GlobalExceptionHandler {
 
     // Exception handle Error Type
     @ExceptionHandler(ErrorTypeException.class)
-    public ResponseEntity<?> handleEmptyInput(ErrorTypeException e) {
+    public ResponseEntity<?> handleErrprType(ErrorTypeException e) {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(
@@ -111,6 +111,34 @@ public class GlobalExceptionHandler {
                                 LocalDateTime.now().toString(),
                                 HttpStatus.CONFLICT.value(),
                                 HttpStatus.CONFLICT.getReasonPhrase(),
+                                e.getMessage()
+                        )
+                );
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<?> handleEmptyInput(InvalidTokenException e) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(
+                        new ErrorResponse(
+                                LocalDateTime.now().toString(),
+                                HttpStatus.UNAUTHORIZED.value(),
+                                HttpStatus.UNAUTHORIZED.getReasonPhrase(),
+                                e.getMessage()
+                        )
+                );
+    }
+
+    @ExceptionHandler(BlacklistTokenException.class)
+    public ResponseEntity<?> handleBlackListToken(BlacklistTokenException e) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(
+                        new ErrorResponse(
+                                LocalDateTime.now().toString(),
+                                HttpStatus.UNAUTHORIZED.value(),
+                                HttpStatus.UNAUTHORIZED.getReasonPhrase(),
                                 e.getMessage()
                         )
                 );

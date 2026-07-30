@@ -24,6 +24,7 @@ spring:
               - read:user
               - user:email
 
+
   profiles:
     active: dev
 

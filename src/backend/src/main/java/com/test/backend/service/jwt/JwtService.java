@@ -70,6 +70,22 @@ public class JwtService {
 
     }
 
+    public long getRemainTimeInMillis(String token) {
+        try {
+            Date expirationDate = extractExpiration(token);
+
+            Date now = new Date();
+
+            long remainingTime = expirationDate.getTime() - now.getTime();
+
+            return Math.max(remainingTime, 0);
+
+        }
+        catch (Exception e) {
+            return 0;
+        }
+    }
+
     private SecretKey getSignKey() {
         byte[] keyBytes = Decoders.BASE64.decode(JWT_SECRET_KEY);
         return Keys.hmacShaKeyFor(keyBytes);

@@ -6,6 +6,7 @@ import lombok.Builder;
 public record ZoomMeetingDTO(
    String joinUrl,
    String startUrl,
-   String zoomMeetingId
+   String zoomMeetingId,
+   String meetingPassword
 
 ) {}

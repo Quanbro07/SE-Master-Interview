@@ -97,6 +97,11 @@ services:
       - ZOOM_CLIENT_ID=${ZOOM_CLIENT_ID}
       - ZOOM_CLIENT_SECRET=${ZOOM_CLIENT_SECRET}
       - ZOOM_WEBHOOK_SECRET_TOKEN={ZOOM_WEBHOOK_SECRET_TOKEN}
+      
+      # redis
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     ports:
       - "8080:8080"
     networks:
@@ -104,23 +109,34 @@ services:
 
 
   ngrok:
-    image: ngrok/ngrok:latest
+    image: ngrok/ngrok:alpine
     container_name: ngrok
     ports:
-    - "4040:4040"
+      - "4040:4040"
     environment:
-    - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
     # Trỏ thẳng ngrok vào tên service backend và port của nó bên trong mạng lưới Docker
     command: "http --domain=${NGROK_STATIC_DOMAIN} backend:8080" 
     depends_on:
-    - backend
+      - backend
     networks:
       - app-network
   
+  redis:
+    image: redis:alpine
+    container_name: redis-server
+    ports:
+    - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
 volumes:
   db_data:
     name: master-interview_db_data
   minio_data:
+  redis-data:
 
   
 networks:

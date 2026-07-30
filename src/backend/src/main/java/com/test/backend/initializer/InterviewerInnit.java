@@ -43,7 +43,7 @@ public class InterviewerInnit {
     @Value("${init.isDev}")
     private boolean isDev;
 
-    private List<String> positionList = List.of(
+    private final List<String> positionList = List.of(
             "Java Developer",
             "Frontend Developer",
             "Backend Developer",
@@ -54,9 +54,6 @@ public class InterviewerInnit {
     @Bean
     CommandLineRunner initInterviewer() {
         return args -> {
-            if(!isDev) {
-                return;
-            }
 
             boolean isUserExists = userRepository.existsByEmail("quanbro7612006@gmail.com");
 
@@ -88,6 +85,8 @@ public class InterviewerInnit {
 
 
                 List<Position> positions = positionRepository.findAllByPositionNameIn(positionList);
+
+                System.out.println(positions.size());
 
                 List<InterviewerExpertise> interviewerExpertises = new ArrayList<>();
 

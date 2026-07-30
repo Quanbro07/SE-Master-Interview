@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/zoom/test")
 public class TestZoomController {
 
-    private ZoomService zoomService;
+    private final ZoomService zoomService;
 
     @GetMapping("/create")
     public ResponseEntity<?> testCreateMeeting() {
         // Tạo phòng phỏng vấn 60 phút
-        ZoomMeetingDTO meeting = zoomService.createMeeting("Phỏng vấn Backend Developer", 60);
+        ZoomMeetingDTO meeting = zoomService.createMeeting("Phỏng vấn Backend Developer", 60, "quanbro7");
         return ResponseEntity.ok(meeting);
     }
 }

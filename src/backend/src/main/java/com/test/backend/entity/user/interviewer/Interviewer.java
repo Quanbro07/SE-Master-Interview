@@ -60,6 +60,10 @@ public class Interviewer {
     @OneToMany(mappedBy = "interviewer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<InterviewerExpertise> expertiseList = new ArrayList<>();
 
+    @Builder.Default
+    @OneToMany(mappedBy = "interviewer", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<Booking> bookingList = new ArrayList<>();
+
     // Helper
 
 }

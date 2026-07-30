@@ -1,15 +1,12 @@
 package com.test.backend.zoom;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.test.backend.dto.zoom.ZoomMeetingDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import tools.jackson.databind.JsonNode;
 
 import java.util.Base64;
 import java.util.HashMap;
@@ -53,11 +50,12 @@ public class ZoomService {
 
         ResponseEntity<JsonNode> response = restTemplate.postForEntity(url, request, JsonNode.class);
 
-        return response.getBody().path("access_token").asText();
+        assert response.getBody() != null;
+        return response.getBody().path("access_token").asString();
     }
 
     // 2. Hàm tạo phòng họp
-    public ZoomMeetingDTO createMeeting(String topic, int durationMinutes) {
+    public ZoomMeetingDTO createMeeting(String topic, int durationMinutes, String password) {
         String token = getAccessToken();
 
         // Dùng API /users/me/meetings
@@ -73,6 +71,9 @@ public class ZoomService {
         body.put("type", 2); // 2 = Scheduled meeting
         body.put("duration", durationMinutes);
         body.put("timezone", "Asia/Ho_Chi_Minh"); // Set múi giờ cho chuẩn
+        if(password != null && !password.trim().isEmpty()) {
+            body.put("password", password);
+        }
 
         // Cấu hình Setting cho phòng
         Map<String, Object> settings = new HashMap<>();
@@ -88,14 +89,40 @@ public class ZoomService {
 
         JsonNode responseBody = response.getBody();
 
-        String meetingId = responseBody.path("id").asText();
-        String joinUrl = responseBody.path("join_url").asText();
-        String startUrl = responseBody.path("start_url").asText();
+        assert responseBody != null;
+        String meetingId = responseBody.path("id").asString();
+        String joinUrl = responseBody.path("join_url").asString();
+        String startUrl = responseBody.path("start_url").asString();
 
         return ZoomMeetingDTO.builder()
                 .zoomMeetingId(meetingId)
                 .joinUrl(joinUrl)
                 .startUrl(startUrl)
+                .meetingPassword(password)
                 .build();
+    }
+
+    public String getFreshStartUrl(String meetingId) {
+        String token = getAccessToken();
+        String url = "https://api.zoom.us/v2/meetings/" + meetingId;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + token);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+
+        // Dùng restTemplate.exchange cho method GET
+        ResponseEntity<JsonNode> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                request,
+                JsonNode.class
+        );
+
+        JsonNode responseBody = response.getBody();
+        assert responseBody != null;
+
+        return responseBody.path("start_url").asString();
     }
 }

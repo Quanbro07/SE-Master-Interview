@@ -16,11 +16,11 @@ public interface InterviewerExpertiseRepository extends JpaRepository<Interviewe
     @EntityGraph(attributePaths = {"interviewer.user", "position"})
     Page<InterviewerExpertise> findAllByIsCertifiedIsFalse(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"interviewer.user", "position"})
+    @EntityGraph(attributePaths = {"interviewer.user"})
     @Query("""
         SELECT ie
         FROM InterviewerExpertise ie
-        WHERE ie.position.positionName = :positionName
+        WHERE LOWER(ie.position.positionName) = LOWER(:positionName)
         ORDER BY
              (ie.interviewer.overallRating * ie.interviewer.totalReviews) / (ie.interviewer.totalReviews + 5.0) DESC
         """)

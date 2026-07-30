@@ -3,9 +3,15 @@ package com.test.backend.filterChain;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.test.backend.entity.user.CustomUserDetail;
 import com.test.backend.exception.ErrorResponse;
+import com.test.backend.exception.customException.BlacklistTokenException;
+import com.test.backend.exception.customException.InvalidTokenException;
+import com.test.backend.service.authentication.BlackListTokenService;
 import com.test.backend.service.jwt.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,6 +42,8 @@ public class JwtFilterChain extends OncePerRequestFilter {
 
     private final JwtService jwtService;
 
+    private final BlackListTokenService blacklistTokenService;
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -55,6 +63,12 @@ public class JwtFilterChain extends OncePerRequestFilter {
         }
 
         jwtToken = authHeader.substring(7);
+
+        if(blacklistTokenService.isTokenBlacklisted(jwtToken)) {
+            handleExceptionResponse(response, "Token expired - Login again", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
         try {
 
             String tokenType = jwtService.extractClaims(jwtToken, claims -> claims.get("type", String.class));
@@ -94,7 +108,7 @@ public class JwtFilterChain extends OncePerRequestFilter {
             // HỨNG LỖI TOKEN HẾT HẠN Ở ĐÂY
             handleExceptionResponse(response, "Token Expired", HttpServletResponse.SC_UNAUTHORIZED);
             return;
-        } catch (Exception e) {
+        } catch (SignatureException | MalformedJwtException | UnsupportedJwtException | IllegalArgumentException e) {
             log.error("JWT validation failed: {}", e.getMessage(), e);
             // Hứng các lỗi JWT khác như sai chữ ký, token bị can thiệp...
             handleExceptionResponse(response, "Token không hợp lệ!", HttpServletResponse.SC_UNAUTHORIZED);
@@ -104,23 +118,23 @@ public class JwtFilterChain extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-private void handleExceptionResponse(HttpServletResponse response, String message, int statusCode) throws IOException {
-    response.setStatus(statusCode);
-    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-    response.setCharacterEncoding("UTF-8");
+    private void handleExceptionResponse(HttpServletResponse response, String message, int statusCode) throws IOException {
+        response.setStatus(statusCode);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
 
-    // Tạo body JSON (bạn có thể thay bằng ErrorResponse DTO của bạn)
-    ErrorResponse errorDetails = new ErrorResponse(
-            LocalDateTime.now().toString(),
-            statusCode,
-            HttpStatus.valueOf(statusCode).getReasonPhrase(),
-            message
-    );
+        // Tạo body JSON (bạn có thể thay bằng ErrorResponse DTO của bạn)
+        ErrorResponse errorDetails = new ErrorResponse(
+                LocalDateTime.now().toString(),
+                statusCode,
+                HttpStatus.valueOf(statusCode).getReasonPhrase(),
+                message
+        );
 
-    // Dùng ObjectMapper để convert Map sang chuỗi JSON và ghi vào response
-    ObjectMapper mapper = new ObjectMapper();
-    response.getWriter().write(mapper.writeValueAsString(errorDetails));
+        // Dùng ObjectMapper để convert Map sang chuỗi JSON và ghi vào response
+        ObjectMapper mapper = new ObjectMapper();
+        response.getWriter().write(mapper.writeValueAsString(errorDetails));
 
-    // Lưu ý: Không gọi filterChain.doFilter() ở đây để chặn đứng request lại
-}
+        // Lưu ý: Không gọi filterChain.doFilter() ở đây để chặn đứng request lại
+    }
 }
