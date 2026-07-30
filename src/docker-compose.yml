@@ -39,7 +39,22 @@ services:
     command: server /data --console-address ":9001"
     networks:
       - app-network
-
+  
+  # Redis
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    
   backend:
     build: 
       context: ./backend
@@ -49,6 +64,8 @@ services:
       database:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
       #Profile
@@ -91,11 +108,14 @@ services:
       # Mail
       - MAIL_USERNAME=${MAIL_USERNAME}
       - MAIL_PASSWORD=${MAIL_PASSWORD}
+      
+      # Redis
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
     ports:
       - "8080:8080"
     networks:
       - app-network
-
 
 
   

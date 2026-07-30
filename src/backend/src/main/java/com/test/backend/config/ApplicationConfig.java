@@ -1,5 +1,6 @@
 package com.test.backend.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.test.backend.entity.user.CustomUserDetail;
 import com.test.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,5 +29,10 @@ public class ApplicationConfig {
             throws Exception {
 
         return authConfig.getAuthenticationManager();
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 }

@@ -6,8 +6,8 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/master_interview
-    username: postgres
+    url: jdbc:postgresql://localhost:5332/master_interview
+    username: quan
     password: quanbro7
     driver-class-name: org.postgresql.Driver
 

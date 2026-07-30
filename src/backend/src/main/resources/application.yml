@@ -24,6 +24,22 @@ spring:
               - read:user
               - user:email
 
+  #Gemini
+  ai:
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY}
+        chat:
+          model: gemini-3.6-flash
+          temperature: 0.7
+
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      # password: ${REDIS_PASSWORD:}
+
   profiles:
     active: dev
 
@@ -54,3 +70,10 @@ stripe:
 mail:
   username: ${MAIL_USERNAME}
   password: ${MAIL_PASSWORD}
+
+
+
+
+logging:
+  level:
+    org.springframework.ai: DEBUG
