@@ -28,31 +28,39 @@ public class Booking {
     @Column(name = "booking_id", nullable = false, updatable = false)
     private Long bookingId;
 
-    @Column(name = "booking_date", nullable = false, updatable = false)
-    private LocalDate bookingDate;
-
     @Column(name = "start_time", nullable = false, updatable = false)
-    private LocalTime startTime;
+    private LocalDateTime startTime;
 
     @Column(name = "end_time", nullable = false, updatable = false)
-    private LocalTime endTime;
+    private LocalDateTime endTime;
 
-    @Column(name = "cv_url", nullable = false, updatable = false)
+    @Column(name = "cv_url")
     private String cvUrl;
 
-    @Column(name = "meeting_url", nullable = false, updatable = false)
-    private String meetingUrl;
+    @Column(name = "meeting_id")
+    private String meetingId;
+
+    @Column(name = "join_url")
+    private String joinUrl;
+
+    @Column(name = "start_url")
+    private String startUrl;
 
     @Column(name = "meeting_password")
     private String meetingPassword;
 
+    @Builder.Default
     @Column(name = "status", nullable = false, updatable = false)
     @Enumerated(EnumType.STRING)
-    private BookingStatus status;
+    private BookingStatus status = BookingStatus.PENDING;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    @CreationTimestamp
+    private LocalDateTime updatedAt;
 
     // Relation
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)

@@ -41,7 +41,9 @@ public class SecurityConfig {
                         auth -> auth
                             .requestMatchers(
                                     "/api/v1/auth/register",
-                                    "/api/v1/auth/login"
+                                    "/api/v1/auth/login",
+                                    "/api/v1/stripe/webhook",
+                                    "/api/v1/zoom/webhook"
                                     ).permitAll()
                                 .anyRequest().authenticated()
                         )

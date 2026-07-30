@@ -21,6 +21,12 @@ spring:
       hibernate:
         format_sql: true
 
+  # Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: quanbro7
 
 init:
   isDev: true
@@ -31,7 +37,9 @@ internal:
   cv-assessment:
     endpoint: /assess-cv
 
+# Fe
 fe:
   url: http://localhost:3000
   stripe_refresh: /refresh
   stripe_success: /success
+

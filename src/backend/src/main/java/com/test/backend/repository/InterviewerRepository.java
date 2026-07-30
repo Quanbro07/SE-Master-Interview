@@ -5,10 +5,13 @@ import com.test.backend.entity.user.interviewer.Interviewer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+@Repository
 public interface InterviewerRepository extends JpaRepository<Interviewer, Long> {
+
     Optional<Interviewer> findByInterviewerId(Long interviewerId);
 
     Optional<Interviewer> findByStripeAccountId(String stripeAccountId);
@@ -22,7 +25,7 @@ public interface InterviewerRepository extends JpaRepository<Interviewer, Long> 
         WHERE i.interviewerId = :interviewerId
         """)
     Optional<Interviewer> findByInterviewerIdFetchUser(
-            @Param("interviewId") Long interviewId);
+            @Param("interviewerId") Long interviewId);
 
     Long user(User user);
 }

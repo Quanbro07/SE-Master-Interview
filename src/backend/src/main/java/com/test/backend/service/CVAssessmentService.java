@@ -1,13 +1,11 @@
 package com.test.backend.service;
 
-import com.test.backend.config.CVBucketConfig;
-import com.test.backend.dto.cvAssessmentDTO.CVAssessmentResponse;
+import com.test.backend.dto.cvAssessment.CVAssessmentResponse;
 import com.test.backend.entity.position.Position;
 import com.test.backend.entity.user.interviewee.Interviewee;
 import com.test.backend.exception.customException.NotFoundException;
 import com.test.backend.repository.IntervieweeRepository;
 import com.test.backend.repository.PositionRepository;
-import com.test.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;

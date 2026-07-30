@@ -1,6 +1,6 @@
 package com.test.backend.service;
 
-import com.test.backend.dto.cvAssessmentDTO.CVAssessmentResponse;
+import com.test.backend.dto.cvAssessment.CVAssessmentResponse;
 import com.test.backend.exception.customException.ExternalServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

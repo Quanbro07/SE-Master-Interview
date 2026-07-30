@@ -1,6 +1,8 @@
 package com.test.backend.service.authentication;
 
 import com.test.backend.dto.authentication.AuthenticationResponse;
+import com.test.backend.dto.authentication.LogoutRequest;
+import com.test.backend.dto.authentication.RefreshTokenResponse;
 import com.test.backend.dto.authentication.RegisterRequest;
 import com.test.backend.entity.socialAccount.SocialAccount;
 import com.test.backend.entity.socialAccount.SocialAccountProvider;
@@ -9,6 +11,7 @@ import com.test.backend.entity.user.User;
 import com.test.backend.entity.user.interviewee.Interviewee;
 import com.test.backend.entity.user.interviewer.Interviewer;
 import com.test.backend.exception.customException.AlreadyExistException;
+import com.test.backend.exception.customException.InvalidTokenException;
 import com.test.backend.exception.customException.NotFoundException;
 import com.test.backend.repository.IntervieweeRepository;
 import com.test.backend.repository.InterviewerRepository;
@@ -25,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +47,10 @@ public class AuthenticationService {
     private final IntervieweeRepository intervieweeRepository;
 
     private final InterviewerRepository interviewerRepository;
+
+    private final RefreshTokenService refreshTokenService;
+
+    private final BlackListTokenService blacklistTokenService;
 
     @Transactional
     public AuthenticationResponse register(RegisterRequest registerRequest, String tempToken) {
@@ -127,6 +135,42 @@ public class AuthenticationService {
         return buildAuthenticationResponse(user);
     }
 
+
+    public RefreshTokenResponse refreshToken(String refreshToken) {
+        if(refreshTokenService.getUserIdFromRefreshToken(refreshToken) == null) {
+            throw new InvalidTokenException("Error - Token is Invalid or Expired");
+        }
+
+        Claims claims = jwtService.extractAllClaims(refreshToken);
+
+        // Lấy claims ra từ refresh token
+        String email = claims.getSubject();
+        String userId = claims.get("userId", String.class);
+
+        // Bỏ vào trong claims mới
+        Map<String, Object> extraClaims = new HashMap<>();
+
+        extraClaims.put("userId", userId);
+
+        String accessToken = jwtService.generateToken(extraClaims, email, TokenType.ACCESS);
+
+        return RefreshTokenResponse.builder()
+                .accessToken(accessToken)
+                .build();
+    }
+
+    public void logout(String accessToken, LogoutRequest request) {
+        if (request.refreshToken() != null) {
+            refreshTokenService.deleteRefreshToken(request.refreshToken());
+        }
+
+        long remainTime = jwtService.getRemainTimeInMillis(accessToken);
+
+        if (remainTime > 0) {
+            blacklistTokenService.addTokenToBlacklist(accessToken, remainTime);
+        }
+    }
+
     // Helper Function
     private AuthenticationResponse buildAuthenticationResponse(User user) {
         Map<String, Object> extraClaims = new HashMap<>();
@@ -136,6 +180,10 @@ public class AuthenticationService {
 
         String accessToken = jwtService.generateToken(extraClaims,email, TokenType.ACCESS);
         String refreshToken = jwtService.generateToken(extraClaims,email, TokenType.REFRESH);
+
+        refreshTokenService.saveRefreshToken(refreshToken, user.getUserId(),
+                TokenType.REFRESH.getExpiration(),
+                TimeUnit.MILLISECONDS);
 
         AuthenticationResponse.AuthenticationResponseBuilder responseBuilder =  AuthenticationResponse.builder()
                 .email(user.getEmail())
@@ -164,4 +212,7 @@ public class AuthenticationService {
 
         return responseBuilder.build();
     }
+
+
+
 }
