@@ -12,15 +12,24 @@ import {
 } from "@stripe/react-stripe-js";
 import "./BookingPage.css";
 
-// TODO: confirm this matches wherever the backend is actually reachable
-// from the browser (same value used across CV Assessment / Feedback pages).
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
-// TODO: set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY to your real Stripe publishable key.
+// Khởi tạo Stripe instance với public key từ file .env
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
 );
+
+// Helper lấy thông tin người dùng từ localStorage
+const getStoredUser = () => {
+  if (typeof window === "undefined") return null;
+  try {
+    const userStr = localStorage.getItem("user");
+    return userStr ? JSON.parse(userStr) : null;
+  } catch (e) {
+    return null;
+  }
+};
 
 const ProfilePopup = ({ mentor, onBook, onCancel }) => {
   if (!mentor) return null;
@@ -32,7 +41,7 @@ const ProfilePopup = ({ mentor, onBook, onCancel }) => {
       >
         <div className="profile-popup-header">
           <div className="profile-avatar-wrapper">
-            <img src="/user.png" alt={mentor.name} />
+            <img src={mentor.avatar || "/user.png"} alt={mentor.name} />
           </div>
           <div className="profile-name-block">
             <h3 className="profile-name">{mentor.name}</h3>
@@ -111,21 +120,14 @@ const monthNames = [
 
 const weekdayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-// Time slots as [start, end] pairs — these map directly onto
-// Booking.startTime / Booking.endTime (LocalTime, "HH:mm" is a valid
-// ISO_LOCAL_TIME string Jackson/Spring will parse without seconds).
 const availableTimeSlots = [
   { label: "07:00-08:00", start: "07:00", end: "08:00" },
   { label: "14:30-15:30", start: "14:30", end: "15:30" },
   { label: "20:00-21:00", start: "20:00", end: "21:00" },
 ];
 
-// Parses a display string like "$15.5/ session" into a Stripe-ready amount
-// (integer, smallest currency unit — cents for USD).
-// TODO: replace with a real price coming from the backend once available;
-// this is derived from mock display data (BookingList's mockMentors).
 const parsePriceToCents = (priceLabel) => {
-  if (!priceLabel) return 1000; // fallback: $10.00
+  if (!priceLabel) return 1000;
   const match = priceLabel.match(/[\d.]+/);
   const dollars = match ? parseFloat(match[0]) : 10;
   return Math.round(dollars * 100);
@@ -171,7 +173,7 @@ const StripePaymentForm = ({ onPaid, onCancel }) => {
           onClick={handlePay}
           disabled={!stripe || processing}
         >
-          {processing ? "PROCESSING..." : "PAY"}
+          {processing ? "PROCESSING..." : "PAY NOW"}
         </button>
         <button
           className="popup-btn btn-cancel"
@@ -201,7 +203,6 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
-  // step: "booking" -> collecting date/time/CV, "payment" -> Stripe Elements
   const [step, setStep] = useState("booking");
   const [createdBooking, setCreatedBooking] = useState(null);
   const [clientSecret, setClientSecret] = useState(null);
@@ -212,7 +213,7 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
     currentMonth.getMonth(),
     1,
   ).getDay();
-  const firstWeekdayIndex = (monthStartDay + 6) % 7; // convert Sunday=0 to Monday-first
+  const firstWeekdayIndex = (monthStartDay + 6) % 7;
   const daysInMonth = new Date(
     currentMonth.getFullYear(),
     currentMonth.getMonth() + 1,
@@ -253,7 +254,6 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
   };
 
   const formatDateForBackend = (date) => {
-    // LocalDate expects "yyyy-MM-dd"
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
     const d = String(date.getDate()).padStart(2, "0");
@@ -264,69 +264,125 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
     setCvFile(e.target.files?.[0] || null);
   };
 
-  const handleSubmitBooking = async () => {
+  const handleSubmitBooking = async (e) => {
+    if (e) e.preventDefault();
     if (!cvFile) {
       setSubmitError("Please upload your CV before confirming.");
       return;
     }
+
+    // 🔍 Tìm token dưới mọi tên key phổ biến
+    let token =
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("jwt") ||
+      localStorage.getItem("auth_token");
+
+    // Nếu lưu dưới dạng object 'user' trong localStorage
+    if (!token) {
+      try {
+        const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+        token = userObj.token || userObj.accessToken || userObj.jwt;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    console.log("👉 Token tìm thấy:", token);
+
+    if (!token || token === "undefined" || token === "null") {
+      setSubmitError(
+        "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn. Vui lòng đăng nhập lại!",
+      );
+      // Chuyển hướng tới trang Login sau 2s nếu cần
+      setTimeout(() => {
+        window.location.href = "/login"; // Sửa đường dẫn login của bạn ở đây
+      }, 2000);
+      return;
+    }
+
+    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+
     setSubmitError(null);
     setSubmitting(true);
 
     try {
-      // TODO: replace with your real CV upload endpoint. This should return
-      // the URL that gets stored in Booking.cvUrl.
+      // 1. Upload CV
       const cvFormData = new FormData();
       cvFormData.append("file", cvFile);
-      const uploadRes = await fetch(`${API_BASE}/api/uploads/cv`, {
+
+      const uploadRes = await fetch(`${API_BASE}/api/v1/uploads/cv`, {
         method: "POST",
+        headers: {
+          Authorization: authHeader,
+        },
         body: cvFormData,
       });
-      if (!uploadRes.ok) throw new Error("CV upload failed");
-      const { url: cvUrl } = await uploadRes.json();
 
-      // Booking payload — every field here has a direct match on the
-      // Booking entity. meetingUrl/meetingPassword/status/createdAt are
-      // left out because they're set server-side, not by the client.
+      if (uploadRes.status === 401) {
+        throw new Error(
+          "Phiên đăng nhập không hợp lệ (401). Vui lòng đăng nhập lại.",
+        );
+      }
+
+      if (!uploadRes.ok) {
+        throw new Error("Upload CV thất bại. Vui lòng thử lại.");
+      }
+
+      const uploadData = await uploadRes.json();
+      const cvUrl = uploadData.url;
+
+      // 2. Tạo Booking
       const bookingPayload = {
         bookingDate: formatDateForBackend(selectedDate),
         startTime: selectedSlot.start,
         endTime: selectedSlot.end,
         cvUrl,
-        interviewerId: mentor?.id, // maps to Booking.interviewer
-        // TODO: positionId — needs a real Position id once that entity/
-        // endpoint is available; mentor.role is just a display label today.
-        // TODO: bookerId — should come from the logged-in user's session/
-        // auth context, not be hardcoded.
+        interviewerId: mentor?.id,
       };
 
-      const res = await fetch(`${API_BASE}/api/bookings`, {
+      const res = await fetch(`${API_BASE}/api/v1/booking`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
         body: JSON.stringify(bookingPayload),
       });
-      if (!res.ok) throw new Error("Booking request failed");
+
+      if (res.status === 401) {
+        throw new Error(
+          "Không có quyền tạo lịch (401). Vui lòng đăng nhập lại.",
+        );
+      }
+
+      if (!res.ok) throw new Error("Tạo lịch thất bại!");
+
       const booking = await res.json();
       setCreatedBooking(booking);
 
-      // Create a Stripe PaymentIntent for this booking.
-      // TODO: confirm this endpoint path and response shape against your
-      // actual PaymentController.
+      // 3. Lấy PaymentIntent từ Stripe
       const amount = parsePriceToCents(mentor?.price);
       const intentRes = await fetch(
-        `${API_BASE}/api/bookings/${booking.bookingId}/payment-intent`,
+        `${API_BASE}/api/v1/booking/${booking.bookingId || booking.id}/payment-intent`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: authHeader,
+          },
           body: JSON.stringify({ amount, currency: "usd" }),
         },
       );
-      if (!intentRes.ok) throw new Error("Could not start payment");
+
+      if (!intentRes.ok)
+        throw new Error("Không thể khởi tạo thanh toán Stripe");
       const { clientSecret: secret } = await intentRes.json();
       setClientSecret(secret);
 
       setStep("payment");
     } catch (err) {
-      setSubmitError(err.message || "Something went wrong. Please try again.");
+      setSubmitError(err.message || "Đã có lỗi xảy ra. Vui lòng thử lại.");
     } finally {
       setSubmitting(false);
     }
@@ -343,7 +399,6 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="payment-grid">
-          {/* Cột trái: Lịch biểu */}
           <div className="payment-schedule">
             <h3 className="popup-title">Book Interview with {mentor?.name}</h3>
             <div className="calendar-controls">
@@ -414,7 +469,6 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
             </div>
           </div>
 
-          {/* Cột phải: Booking details, sau đó Payment */}
           <div className="payment-form-details">
             {step === "booking" && (
               <>
@@ -464,7 +518,7 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
                     onClick={handleSubmitBooking}
                     disabled={submitting}
                   >
-                    {submitting ? "BOOKING..." : "PAYMENT"}
+                    {submitting ? "PROCESSING..." : "PROCEED TO PAYMENT"}
                   </button>
                   <button
                     className="popup-btn btn-cancel"
@@ -479,10 +533,10 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
 
             {step === "payment" && clientSecret && (
               <>
-                <h3 className="popup-title">Payment</h3>
+                <h3 className="popup-title">Stripe Payment</h3>
                 <div className="booking-summary">
                   <div className="summary-row">
-                    <span className="summary-label">Amount</span>
+                    <span className="summary-label">Total Amount</span>
                     <span className="summary-value">
                       {mentor?.price || "$10/ session"}
                     </span>
@@ -505,13 +559,22 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
 
 const BookingPage = () => {
   const [navCollapsed, setNavCollapsed] = useState(false);
-  const [chatCollapsed, setChatCollapsed] = useState(false); // Quản lý đóng/mở
+  const [chatCollapsed, setChatCollapsed] = useState(false);
 
-  const [activePopup, setActivePopup] = useState(null); // 'profile' | 'confirm' | null
+  const [activePopup, setActivePopup] = useState(null);
   const [selectedMentor, setSelectedMentor] = useState(null);
 
+  const [currentUser, setCurrentUser] = useState(null);
   const [notice, setNotice] = useState(null);
   const noticeTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    const user = getStoredUser();
+    if (user) {
+      setCurrentUser(user);
+    }
+  }, []);
+
   const showNotice = (message) => {
     setNotice(message);
     if (noticeTimeoutRef.current) {
@@ -525,6 +588,7 @@ const BookingPage = () => {
       if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
     };
   }, []);
+
   const handleOpenProfile = (mentor) => {
     setSelectedMentor(mentor);
     setActivePopup("profile");
@@ -536,12 +600,11 @@ const BookingPage = () => {
 
   const handleCloseAllPopups = () => {
     setActivePopup(null);
-    setSelectedMentor(null); // Reset dữ liệu khi quay về
+    setSelectedMentor(null);
   };
 
   return (
     <div className="dashboard-container">
-      {/* CỘT 1: Navigation Bar */}
       <NavigationBar
         isCollapsed={navCollapsed}
         setIsCollapsed={setNavCollapsed}
@@ -562,7 +625,6 @@ const BookingPage = () => {
         />
       </main>
 
-      {/* NÚT TRIGGER FIXED: Hiện lên lơ lửng khi thanh chat thu gọn */}
       {chatCollapsed && (
         <div
           className="chat-trigger-header"
@@ -571,18 +633,20 @@ const BookingPage = () => {
           <div className="chatbot-icon">
             <img src="/logo.png" alt="Chatbot Icon" />
           </div>
-          <span className="user-name">John</span>
+          <span className="user-name">
+            {currentUser?.fullName || currentUser?.userName || "Interviewee"}
+          </span>
           <div className="user-avatar">
-            <img src="/user.png" alt="User Avatar" />
+            <img src={currentUser?.avatar || "/user.png"} alt="User Avatar" />
           </div>
         </div>
       )}
 
-      {/* CỘT 3: Chat Panel luôn render để chạy mượt Transition */}
       <ChatPanel
         isCollapsed={chatCollapsed}
         onClose={() => setChatCollapsed(true)}
       />
+
       {activePopup === "profile" && (
         <ProfilePopup
           mentor={selectedMentor}
@@ -596,7 +660,9 @@ const BookingPage = () => {
           mentor={selectedMentor}
           onConfirm={() => {
             handleCloseAllPopups();
-            showNotice("Booking successful! Please check your email.");
+            showNotice(
+              "Booking & Payment Successful! Check your email for details.",
+            );
           }}
           onCancel={handleCloseAllPopups}
         />
@@ -604,4 +670,5 @@ const BookingPage = () => {
     </div>
   );
 };
+
 export default BookingPage;

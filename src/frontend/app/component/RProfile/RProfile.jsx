@@ -1,7 +1,55 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import RNavigationBar from "../RNavigationBar/RNavigationBar";
 import "./RProfile.css";
+
+// TODO: confirm this matches wherever the backend is actually reachable
+// from the browser (same value used elsewhere in the app).
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+
+const getAccessToken = () =>
+  typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+
+const authHeaders = () => {
+  const token = getAccessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// TODO: AuthenticationResponse has no userId field. This decodes the JWT
+// payload as a fallback, looking for a numeric "userId" or "sub" claim —
+// an unverified assumption about the access token's real shape.
+const getCurrentUserId = () => {
+  const token = getAccessToken();
+  if (!token) return null;
+  try {
+    const payload = token.split(".")[1];
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const json = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))
+        .join(""),
+    );
+    const claims = JSON.parse(json);
+    return claims.userId || claims.sub || null;
+  } catch {
+    return null;
+  }
+};
+
+// Reads whatever the login flow cached. AuthenticationResponse does
+// include isStripeConnected/stripeAccountId, but the current auth callback
+// page doesn't persist them into localStorage yet — falls back to
+// "not connected" until that's wired up.
+const getCachedUser = () => {
+  if (typeof window === "undefined") return null;
+  try {
+    return JSON.parse(localStorage.getItem("user") || "null");
+  } catch {
+    return null;
+  }
+};
 
 const initialProfile = {
   name: "Alex Nguyễn",
@@ -64,6 +112,54 @@ const RProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [expertiseInput, setExpertiseInput] = useState("");
 
+  // ----------------------------------------------------------------------
+  // Stripe
+  const [stripeConnected, setStripeConnected] = useState(false);
+  const [stripeAccountId, setStripeAccountId] = useState(null);
+  const [stripeConnecting, setStripeConnecting] = useState(false);
+  const [stripeError, setStripeError] = useState(null);
+
+  useEffect(() => {
+    const cached = getCachedUser();
+    if (cached) {
+      setStripeConnected(Boolean(cached.isStripeConnected));
+      setStripeAccountId(cached.stripeAccountId || null);
+    }
+  }, []);
+
+  const handleConnectStripe = async () => {
+    setStripeConnecting(true);
+    setStripeError(null);
+
+    const userId = getCurrentUserId();
+    if (!userId) {
+      setStripeError(
+        "Could not determine your account ID. Please log in again.",
+      );
+      setStripeConnecting(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/v1/stripe/${userId}/create-account-link`,
+        {
+          method: "POST",
+          headers: authHeaders(),
+        },
+      );
+      if (!res.ok) throw new Error(`Stripe request failed (${res.status})`);
+      const data = await res.json();
+      // Sends the interviewer off to Stripe's own onboarding flow. Stripe
+      // redirects back to feUrl + "/success" or "/refresh" once done.
+      window.location.href = data.url;
+    } catch (err) {
+      setStripeError(err.message || "Could not connect to Stripe.");
+      setStripeConnecting(false);
+    }
+  };
+
+  // ----------------------------------------------------------------------
   const startEditing = () => {
     setDraft(profile);
     setExpertiseInput("");
@@ -308,6 +404,59 @@ const RProfile = () => {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Stripe payouts card — separate from the editable profile
+              fields above, since connection state is managed by Stripe's
+              own onboarding flow + webhook, not typed in by hand. */}
+          <div className="rp-stripe-card">
+            <div className="rp-stripe-header">
+              <h2 className="rp-section-title">Payouts</h2>
+              <span
+                className={`rp-stripe-badge ${stripeConnected ? "connected" : "not-connected"}`}
+              >
+                {stripeConnected ? "Connected" : "Not connected"}
+              </span>
+            </div>
+
+            {stripeConnected ? (
+              <div className="rp-stripe-connected-body">
+                <p className="rp-stripe-desc">
+                  Your Stripe account is connected and ready to receive
+                  payouts for completed sessions.
+                </p>
+                {stripeAccountId && (
+                  <p className="rp-stripe-account-id">
+                    Account: <code>{stripeAccountId}</code>
+                  </p>
+                )}
+                <button
+                  type="button"
+                  className="rp-stripe-manage-btn"
+                  onClick={handleConnectStripe}
+                  disabled={stripeConnecting}
+                >
+                  {stripeConnecting ? "Redirecting…" : "Manage on Stripe"}
+                </button>
+              </div>
+            ) : (
+              <div className="rp-stripe-connect-body">
+                <p className="rp-stripe-desc">
+                  Connect a Stripe account to receive payouts for the
+                  interviews you host. This only takes a couple of minutes.
+                </p>
+                <button
+                  type="button"
+                  className="rp-stripe-connect-btn"
+                  onClick={handleConnectStripe}
+                  disabled={stripeConnecting}
+                >
+                  {stripeConnecting ? "Redirecting…" : "Connect with Stripe"}
+                </button>
+              </div>
+            )}
+
+            {stripeError && <p className="rp-stripe-error">{stripeError}</p>}
           </div>
 
           <div className="rp-milestones-block">

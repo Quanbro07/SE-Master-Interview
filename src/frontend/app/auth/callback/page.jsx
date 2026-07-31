@@ -3,21 +3,29 @@ import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import "./AuthCallbackPage.css";
 
-// TODO: confirm this matches wherever the backend is actually reachable
-// from the browser (same value used elsewhere).
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
-// TODO: confirm the real interviewer dashboard route once that page exists.
+// Chuẩn hóa đường dẫn Redirect cho các role
 const ROLE_REDIRECTS = {
   Interviewee: "/interview-booking",
+  INTERVIEWEE: "/interview-booking",
   Interviewer: "/interviewer/dashboard",
-  Admin: "/interview-booking", // TODO: confirm admin landing page
+  INTERVIEWER: "/interviewer/dashboard",
+  Admin: "/admin/users",
+  ADMIN: "/admin/users",
 };
 
-// Decodes the middle segment of a JWT for DISPLAY ONLY (prefilling the
-// email field). This does not verify the signature — the backend is the
-// only place that actually validates the temp token's authenticity.
+// SỬA LỖI 1: Hàm chuẩn hóa tên Role (Thay equalsIgnoreCase bằng toLowerCase)
+const normalizeRole = (roleStr) => {
+  if (!roleStr) return "Interviewee";
+  const cleanRole = roleStr.replace("ROLE_", "");
+  if (cleanRole.toLowerCase() === "interviewer") {
+    return "Interviewer";
+  }
+  return cleanRole;
+};
+
 const decodeJwtPayload = (token) => {
   try {
     const payload = token.split(".")[1];
@@ -34,12 +42,20 @@ const decodeJwtPayload = (token) => {
   }
 };
 
-// TODO: confirm storage strategy (localStorage vs httpOnly cookie) matches
-// how the rest of the app reads auth state / attaches Authorization headers
-// on subsequent API calls.
+// SỬA LỖI 2: Lưu Token an toàn vào LocalStorage cho tất cả các trang đọc được
 const storeAuthResponse = (data) => {
-  localStorage.setItem("accessToken", data.accessToken);
-  localStorage.setItem("refreshToken", data.refreshToken);
+  // Lấy token từ mọi field có thể có của Backend
+  const tokenValue = data.accessToken || data.token || data.jwt;
+
+  if (tokenValue) {
+    localStorage.setItem("accessToken", tokenValue);
+    localStorage.setItem("token", tokenValue); // Lưu thêm key dự phòng
+  }
+
+  if (data.refreshToken) {
+    localStorage.setItem("refreshToken", data.refreshToken);
+  }
+
   localStorage.setItem(
     "user",
     JSON.stringify({
@@ -47,12 +63,22 @@ const storeAuthResponse = (data) => {
       userName: data.userName,
       fullName: data.fullName,
       role: data.role,
+      isStripeConnected: data.isStripeConnected || false,
+      stripeAccountId: data.stripeAccountId || null,
     }),
+  );
+
+  console.log(
+    "✅ [AuthCallback] Đã lưu thành công Token vào LocalStorage:",
+    tokenValue,
   );
 };
 
 const redirectForRole = (router, role) => {
-  const target = ROLE_REDIRECTS[role] || "/interview-booking";
+  const target =
+    ROLE_REDIRECTS[role] ||
+    ROLE_REDIRECTS[normalizeRole(role)] ||
+    "/interview-booking";
   router.replace(target);
 };
 
@@ -72,7 +98,7 @@ const AuthCallbackInner = () => {
     fullName: "",
     linkedinUrl: "",
     githubUrl: "",
-    role: "Interviewee",
+    role: "Interviewer",
   });
   const [displayEmail, setDisplayEmail] = useState("");
 
@@ -80,15 +106,24 @@ const AuthCallbackInner = () => {
     setLoading(true);
     setError(null);
     try {
+      const cleanToken = token ? token.trim() : "";
       const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: cleanToken.startsWith("Bearer ")
+            ? cleanToken
+            : `Bearer ${cleanToken}`,
+        },
       });
+
       if (!res.ok) throw new Error(`Login failed (${res.status})`);
       const data = await res.json();
+
+      // Lưu auth data & token
       storeAuthResponse(data);
       redirectForRole(router, data.role);
     } catch (err) {
+      console.error("❌ Login error:", err);
       setError(err.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
@@ -129,17 +164,29 @@ const AuthCallbackInner = () => {
     setError(null);
 
     try {
-      // RegisterRequest has no `email` field — backend derives email from
-      // the temp token's `sub` claim, so it isn't sent here.
+      const cleanToken = token ? token.trim() : "";
+      const authHeader = cleanToken.startsWith("Bearer ")
+        ? cleanToken
+        : `Bearer ${cleanToken}`;
+
       const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: authHeader,
         },
         body: JSON.stringify(form),
       });
-      if (!res.ok) throw new Error(`Registration failed (${res.status})`);
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error(
+            "Registration session expired or invalid token (401). Please try logging in again.",
+          );
+        }
+        throw new Error(`Registration failed (${res.status})`);
+      }
+
       const data = await res.json();
       storeAuthResponse(data);
       redirectForRole(router, data.role);
@@ -265,7 +312,6 @@ const AuthCallbackInner = () => {
   return null;
 };
 
-// useSearchParams requires a Suspense boundary in the app router.
 const AuthCallbackPage = () => (
   <Suspense fallback={<div className="auth-callback-root" />}>
     <AuthCallbackInner />
