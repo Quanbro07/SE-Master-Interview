@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -42,6 +43,7 @@ public class ExpertiseService {
     public void sendExpertisePosition(Long userId, String position,
                                 InterviewerExpertiseLevel level,
                                 Integer experienceYear,
+                                BigDecimal hourlyFee,
                                 MultipartFile file) {
 
         Position po = positionRepository.findByPositionNameIgnoreCase(position)
@@ -84,6 +86,7 @@ public class ExpertiseService {
                 .position(po)
                 .level(level)
                 .experienceYear(experienceYear)
+                .hourlyFee(hourlyFee)
                 .cvUrl(cvUrl)
                 .build()
                 ;
@@ -114,6 +117,7 @@ public class ExpertiseService {
                 // Lấy thông tin từ chính InterviewerExpertise
                 .level(entity.getLevel())
                 .experienceYear(entity.getExperienceYear())
+                .hourlyFee(entity.getHourlyFee())
                 .cvUrl(entity.getCvUrl())
 
                 // Lấy thông tin từ Interviewer

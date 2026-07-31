@@ -22,18 +22,16 @@ public class Payment {
     @Column(name = "payment_id", nullable = false, updatable = false)
     private Long paymentId;
 
-    @Column(name = "stripe_payment_intent_id", nullable = false, updatable = false, length = 255)
-    private String stripePaymentIntentId;
-
-    @Column(name = "stripe_charge_id", nullable = false, updatable = false, length = 255)
+    @Column(name = "stripe_charge_id", length = 255)
     private String stripeChargeId;
 
     @Positive
     @Column(name = "amount", nullable = false, updatable = false)
     private BigDecimal amount;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "currency", nullable = false, updatable = false)
-    private String currency;
+    private PaymentCurrency currency;
 
     @Column(name = "status", nullable = false, updatable = false)
     @Enumerated(EnumType.STRING)

@@ -27,7 +27,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -64,7 +67,7 @@ public class BookingService {
         return response;
     }
 
-
+    @Transactional
     public BookingResponse createBooking(Long intervieweeId, BookingRequest request) {
         LocalDateTime startTime = request.startDate();
         LocalDateTime endTime = request.endDate();
@@ -85,16 +88,16 @@ public class BookingService {
 
         // Query lấy dữ liệu
 
-        Position position = positionRepository.findByPositionNameIgnoreCase(request.positionName())
-                .orElseThrow(() -> new NotFoundException("Position not found"));
+        InterviewerExpertise interviewerExpertise = interviewerExpertiseRepository
+                .findByInterviewerIdAndPositionNameFetchUserAndPosition(request.interviewerId(), request.positionName())
+                .orElseThrow(() -> new NotFoundException("Expertise not found"));
 
-        Interviewer interviewer = interviewerRepository.findByInterviewerIdFetchUser(request.interviewerId())
-                .orElseThrow(() -> new NotFoundException("Interviewer not found"));
+        Interviewer interviewer = interviewerExpertise.getInterviewer();
 
         Interviewee interviewee = intervieweeRepository.findByIntervieweeIdFetchUser(intervieweeId)
                 .orElseThrow(() -> new NotFoundException("Interviewee not found"));
 
-        // Build Wrapper để add blocket Schedule cho Interviewer
+        // Build Wrapper để add blocked Schedule cho Interviewer
         AddBlockedScheduleRequest blockedScheduleRequest = AddBlockedScheduleRequest.builder()
                 .startTime(startTime)
                 .endTime(endTime)
@@ -104,11 +107,23 @@ public class BookingService {
 
         scheduleService.addBlockedSchedule(intervieweeId, blockedScheduleRequest);
 
+        // Tính toán total amount
+        long minutes = Duration.between(request.startDate(), request.endDate()).toMinutes();
+
+        // Quy đổi ra giờ (có lưu thập phân, làm tròn 2 chữ số)
+        // Ví dụ: 90 phút -> 1.50 giờ
+        BigDecimal hours = BigDecimal.valueOf(minutes)
+                .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
+
+        // 3. Nhân với hourly fee
+        BigDecimal totalAmount = interviewerExpertise.getHourlyFee().multiply(hours);
+
         Booking newBooking = Booking.builder()
                 .interviewer(interviewer)
                 .booker(interviewee)
                 .startTime(startTime)
                 .endTime(endTime)
+                .totalAmount(totalAmount)
                 .build();
 
         bookingRepository.save(newBooking);
@@ -206,6 +221,7 @@ public class BookingService {
                 .githubUrl(user.getGithubUrl())
                 .level(expertise.getLevel())
                 .experienceYear(expertise.getExperienceYear())
+                .hourlyFee(expertise.getHourlyFee())
                 .build();
     }
 

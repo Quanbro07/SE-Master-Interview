@@ -28,4 +28,17 @@ public interface InterviewerExpertiseRepository extends JpaRepository<Interviewe
             @Param("positionName") String positionPositionName, Pageable pageable);
 
     Optional<InterviewerExpertise> findById(InterviewerExpertiseId id);
+
+    @Query("""
+           SELECT ie
+            FROM InterviewerExpertise ie
+            JOIN FETCH ie.interviewer iei
+            JOIN FETCH iei.user
+            JOIN FETCH ie.position iep
+            WHERE iei.interviewerId = :interviewerId
+            AND LOWER(iep.positionName) = LOWER(:positionName)
+        """)
+    Optional<InterviewerExpertise> findByInterviewerIdAndPositionNameFetchUserAndPosition(
+            @Param("interviewerId") Long interviewerId,
+            @Param("positionName") String positionName);
 }

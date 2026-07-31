@@ -8,6 +8,7 @@ import com.test.backend.dto.booking.FilterInterviewerPositionResponse;
 import com.test.backend.entity.booking.BookingStatus;
 import com.test.backend.entity.user.CustomUserDetail;
 import com.test.backend.service.BookingService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;

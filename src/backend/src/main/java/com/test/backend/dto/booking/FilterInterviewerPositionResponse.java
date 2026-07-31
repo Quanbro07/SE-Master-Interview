@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.test.backend.entity.interviewerExpertise.InterviewerExpertiseLevel;
 import lombok.Builder;
 
+import java.math.BigDecimal;
+
 @Builder
 public record FilterInterviewerPositionResponse(
     @JsonProperty("interviewer_id")
@@ -26,5 +28,8 @@ public record FilterInterviewerPositionResponse(
     InterviewerExpertiseLevel level,
 
     @JsonProperty("experience_year")
-    Integer experienceYear
+    Integer experienceYear,
+
+    @JsonProperty("hourly_fee")
+    BigDecimal hourlyFee
 ) {}

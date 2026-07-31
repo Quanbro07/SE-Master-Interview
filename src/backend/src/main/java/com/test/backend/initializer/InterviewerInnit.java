@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -75,8 +76,10 @@ public class InterviewerInnit {
                 userRepository.save(newUser);
 
                 Interviewer newInterviewer = Interviewer.builder()
+                        .stripeAccountId("acct_1TwyL2JJyijhpJey")
                         .overallRating(4.0)
                         .totalReviews(5)
+                        .isStripeConnected(Boolean.TRUE)
                         .build();
 
                 newInterviewer.setUser(newUser);
@@ -88,6 +91,17 @@ public class InterviewerInnit {
 
                 System.out.println(positions.size());
 
+                if(positions.isEmpty()) {
+                    for(String positionName: positionList) {
+                        Position newPosition = Position.builder()
+                                .positionName(positionName)
+                                .build();
+
+                        positions.add(newPosition);
+                    }
+                }
+
+
                 List<InterviewerExpertise> interviewerExpertises = new ArrayList<>();
 
                 for(Position position : positions) {
@@ -96,6 +110,7 @@ public class InterviewerInnit {
                             .position(position)
                             .level(InterviewerExpertiseLevel.FRESHER)
                             .experienceYear(1)
+                            .hourlyFee(BigDecimal.valueOf(5))
                             .isCertified(Boolean.TRUE)
                             .build();
 

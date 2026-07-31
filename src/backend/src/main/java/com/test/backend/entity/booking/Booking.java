@@ -2,6 +2,7 @@ package com.test.backend.entity.booking;
 
 import com.test.backend.entity.bookingReview.BookingReview;
 import com.test.backend.entity.interviewResult.InterviewResult;
+import com.test.backend.entity.payment.Payment;
 import com.test.backend.entity.user.interviewee.Interviewee;
 import com.test.backend.entity.user.interviewer.Interviewer;
 import com.test.backend.entity.position.Position;
@@ -9,6 +10,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -54,6 +56,12 @@ public class Booking {
     @Enumerated(EnumType.STRING)
     private BookingStatus status = BookingStatus.PENDING;
 
+    @Column(name = "total_amount", precision = 10, scale = 2, nullable = false, updatable = false)
+    private BigDecimal totalAmount;
+
+    @Column(name = "payment_intent")
+    private String paymentIntentId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -63,7 +71,7 @@ public class Booking {
     private LocalDateTime updatedAt;
 
     // Relation
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id", nullable = false, updatable = false)
     private InterviewResult interviewResult;
 
@@ -82,6 +90,9 @@ public class Booking {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booker_id", nullable = false, updatable = false)
     private Interviewee booker;
+
+    @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY)
+    private List<Payment> paymentList;
 
     @PrePersist
     @PreUpdate
