@@ -139,16 +139,7 @@ services:
     networks:
       - app-network
   
-  redis:
-    image: redis:alpine
-    container_name: redis-server
-    ports:
-    - "6379:6379"
-    volumes:
-      - redis-data:/data
-    networks:
-      - app-network
-    restart: unless-stopped
+
 volumes:
   db_data:
     name: master-interview_db_data

@@ -71,8 +71,12 @@ mail:
   username: ${MAIL_USERNAME}
   password: ${MAIL_PASSWORD}
 
-
-
+# Zoom
+zoom:
+  account_id: ${ZOOM_ACCOUNT_ID}
+  client_id: ${ZOOM_CLIENT_ID}
+  client_secret: ${ZOOM_CLIENT_SECRET}
+  webhook_secret: ${ZOOM_WEBHOOK_SECRET_TOKEN}
 
 logging:
   level:
