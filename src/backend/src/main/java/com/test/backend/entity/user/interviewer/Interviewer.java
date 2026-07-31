@@ -4,6 +4,9 @@ import com.test.backend.entity.booking.Booking;
 import com.test.backend.entity.user.User;
 import com.test.backend.entity.interviewerExpertise.InterviewerExpertise;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Positive;
 import lombok.*;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -35,9 +38,20 @@ public class Interviewer {
     @Column(name = "stripe_id")
     private String stripeAccountId;
 
+    @Builder.Default
+    @DecimalMin(value = "0.0", message = "Rating nhỏ nhất là 0")
+    @DecimalMax(value = "5.0", message = "Rating lớn nhất là 5")
+    @Column(name = "overall_rating")
+    private Double overallRating = 0.0;
+
+    @Builder.Default
+    @Column(name = "total_reviews")
+    private Integer totalReviews = 0;
+
     @Column(name = "updated_at")
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
 
     @Builder.Default
     @OneToMany(mappedBy = "interviewer", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
@@ -45,6 +59,10 @@ public class Interviewer {
 
     @OneToMany(mappedBy = "interviewer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<InterviewerExpertise> expertiseList = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "interviewer", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<Booking> bookingList = new ArrayList<>();
 
     // Helper
 

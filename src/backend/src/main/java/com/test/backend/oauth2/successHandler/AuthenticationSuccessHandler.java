@@ -33,7 +33,6 @@ public class AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccess
 
         CustomOAuth2User oAuth2User = (CustomOAuth2User) authentication.getPrincipal();
 
-        System.out.println("Tới Success Handler");
 
         String targetUrl;
         String regToken;
@@ -61,7 +60,6 @@ public class AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccess
             targetUrl = redirectUrl + regToken + "&purpose=AUTHENTICATION";
         }
 
-        System.out.println(regToken);
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }

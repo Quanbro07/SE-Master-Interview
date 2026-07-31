@@ -1,9 +1,13 @@
 package com.test.backend.service;
 
 import com.nimbusds.common.contenttype.ContentType;
+import com.nimbusds.openid.connect.sdk.UserInfoRequest;
+import com.nimbusds.openid.connect.sdk.claims.UserInfo;
 import com.test.backend.config.AvatarBucketConfig;
 import com.test.backend.config.CVBucketConfig;
 import com.test.backend.dto.authentication.RegisterRequest;
+import com.test.backend.dto.user.UserUpdateRequest;
+import com.test.backend.dto.user.UserUpdateResponse;
 import com.test.backend.entity.interviewerExpertise.InterviewerExpertise;
 import com.test.backend.entity.interviewerExpertise.InterviewerExpertiseLevel;
 import com.test.backend.entity.position.Position;
@@ -35,7 +39,7 @@ public class UserService {
 
     private final AvatarBucketConfig avatarBucketConfig;
 
-    public void changeAvatar(User user, MultipartFile avatar) {
+    public String changeAvatar(User user, MultipartFile avatar) {
         if(avatar == null || avatar.isEmpty()) {
             throw new EmptyInputException("Avatar is empty");
         }
@@ -77,6 +81,8 @@ public class UserService {
         user.setAvatar(avatarUrl);
 
         userRepository.save(user);
+
+        return user.getAvatar();
     }
 
     // Helper Funciton
@@ -93,5 +99,24 @@ public class UserService {
     }
 
 
+    public UserUpdateResponse updateUserInfo(User user, UserUpdateRequest request) {
+        user.setUserName(request.userName());
+        user.setFullName(request.fullName());
+        user.setGithubUrl(request.githubUrl());
+        user.setLinkedinUrl(request.linkedinUrl());
 
+        userRepository.save(user);
+
+        return this.buildUserUpdateResponse(user);
+    }
+
+    // Helper
+    private UserUpdateResponse buildUserUpdateResponse(User user) {
+        return UserUpdateResponse.builder()
+                .userName(user.getUserName())
+                .fullName(user.getFullName())
+                .githubUrl(user.getGithubUrl())
+                .linkedinUrl(user.getLinkedinUrl())
+                .build();
+    }
 }

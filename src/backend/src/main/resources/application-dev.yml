@@ -6,8 +6,8 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/master_interview
-    username: postgres
+    url: jdbc:postgresql://localhost:5332/master_interview
+    username: quan
     password: quanbro7
     driver-class-name: org.postgresql.Driver
 
@@ -21,6 +21,12 @@ spring:
       hibernate:
         format_sql: true
 
+  # Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: quanbro7
 
 init:
   isDev: true
@@ -31,7 +37,9 @@ internal:
   cv-assessment:
     endpoint: /assess-cv
 
+# Fe
 fe:
   url: http://localhost:3000
   stripe_refresh: /refresh
   stripe_success: /success
+

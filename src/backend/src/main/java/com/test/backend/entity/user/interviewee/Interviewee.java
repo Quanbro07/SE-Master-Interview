@@ -40,8 +40,7 @@ public class Interviewee {
     private LocalDateTime updatedAt;
 
     @Builder.Default
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "interviewee_id", nullable = false)
+    @OneToMany(mappedBy = "interviewee", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CVAssessment> cvAssessmentList = new ArrayList<>();
 
     @Builder.Default
@@ -51,4 +50,12 @@ public class Interviewee {
     @Builder.Default
     @OneToMany(mappedBy = "interviewee", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<AiInterviewSession> aiInterviewSessionList = new ArrayList<>();
+
+    public void addCVAssessment(CVAssessment cvAssessment) {
+        if(this.cvAssessmentList == null) {
+            this.cvAssessmentList = new ArrayList<>();
+        }
+        this.cvAssessmentList.add(cvAssessment);
+        cvAssessment.setInterviewee(this);
+    }
 }

@@ -1,20 +1,20 @@
 package com.test.backend.service;
 
 import com.test.backend.config.CVBucketConfig;
-import com.test.backend.dto.cvAssessmentDTO.CVAssessmentResponse;
-import com.test.backend.dto.cvAssessmentDTO.CVSectionFeedbackResponse;
+import com.test.backend.dto.cvAssessment.CVAssessmentResponse;
+import com.test.backend.dto.cvAssessment.CVSectionFeedbackResponse;
 import com.test.backend.entity.cvAssessment.CVAssessment;
 import com.test.backend.entity.cvSectionFeedback.CVSectionFeedback;
 import com.test.backend.entity.position.Position;
 import com.test.backend.entity.user.interviewee.Interviewee;
 import com.test.backend.repository.CVAssessmentRepository;
-import com.test.backend.repository.CVSectionFeedbackRepository;
 import com.test.backend.repository.IntervieweeRepository;
 import io.minio.errors.MinioException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 
@@ -32,6 +32,7 @@ public class CVAsyncHandlerService {
     private final CVAssessmentRepository cvAssessmentRepository;
 
     @Async
+    @Transactional
     public void saveCVAssessmentAndUploadFileAsync(
             Interviewee interviewee,
             Position position,
@@ -46,15 +47,14 @@ public class CVAsyncHandlerService {
 
             cvAssessment.addCVSectionFeedBack(cvSectionFeedback);
 
-            interviewee.getCvAssessmentList().add(cvAssessment);
-
         }
 
         cvAssessment.setPosition(position);
 
-        intervieweeRepository.save(interviewee);
+        interviewee.addCVAssessment(cvAssessment);
 
-        String target = interviewee.getIntervieweeId().toString()+ "_" + cvAssessment.getAssessmentId().toString();
+
+        String target = interviewee.getIntervieweeId().toString() + "_" + java.util.UUID.randomUUID().toString();
 
         String cvUrl;
 
@@ -72,7 +72,9 @@ public class CVAsyncHandlerService {
 
         cvAssessment.setCvUrl(cvUrl);
 
-        cvAssessmentRepository.save(cvAssessment);
+
+        intervieweeRepository.save(interviewee);
+
     }
 
 
