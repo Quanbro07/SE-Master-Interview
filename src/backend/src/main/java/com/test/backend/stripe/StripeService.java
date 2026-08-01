@@ -10,6 +10,7 @@ import com.stripe.param.PaymentIntentCreateParams;
 import com.test.backend.dto.payment.PaymentDTO;
 import com.test.backend.dto.stripe.PaymentIntentResponse;
 import com.test.backend.entity.booking.Booking;
+import com.test.backend.entity.booking.BookingStatus;
 import com.test.backend.entity.payment.PaymentCurrency;
 import com.test.backend.entity.payment.PaymentStatus;
 import com.test.backend.entity.user.interviewee.Interviewee;
@@ -122,6 +123,9 @@ public class StripeService {
         Booking booking = bookingRepository.findByBookingIdFetchInterviewerAndBooker(bookingId)
                 .orElseThrow(() -> new NotFoundException("Booking Not Found"));
 
+        if(!BookingStatus.ACCEPTED.equals(booking.getStatus())) {
+            throw new ForbiddenOperationException("Cannot create Intent if the Booking is not Accepted");
+        }
 
         Interviewer interviewer = booking.getInterviewer();
 

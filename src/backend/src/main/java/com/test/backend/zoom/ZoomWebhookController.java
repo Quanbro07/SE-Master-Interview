@@ -31,71 +31,79 @@ public class ZoomWebhookController {
 
     private final ObjectMapper objectMapper;
 
-    private BookingService bookingService;
+    private final BookingService bookingService;
 
     @PostMapping
-    public ResponseEntity<?> handleZoomWebhook(@RequestBody JsonNode payload) {
+    public ResponseEntity<?> handleZoomWebhook(@RequestBody String rawPayload) {
 
-        String event = payload.path("event").asText("");
+        try {
+            // Dùng ObjectMapper để chủ động chuyển String thành JsonNode
+            JsonNode payload = objectMapper.readTree(rawPayload);
 
-        // 2. Xử lý Challenge-Response Check (Khi bấm nút Validate trên Zoom)
-        switch(event) {
-            // Validate
-            case "endpoint.url_validation": {
-                String plainToken = payload.path("payload").path("plainToken").asText();
+            String event = payload.path("event").asText("");
 
-                try {
-                    // Thuật toán mã hóa HMAC SHA-256 theo yêu cầu của Zoom
-                    Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
-                    SecretKeySpec secret_key = new SecretKeySpec(ZOOM_WEBHOOK_SECRET.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-                    sha256_HMAC.init(secret_key);
+            // 2. Xử lý Challenge-Response Check (Khi bấm nút Validate trên Zoom)
+            switch (event) {
+                // Validate
+                case "endpoint.url_validation": {
+                    String plainToken = payload.path("payload").path("plainToken").asText();
 
-                    byte[] hash = sha256_HMAC.doFinal(plainToken.getBytes(StandardCharsets.UTF_8));
-                    String encryptedToken = bytesToHex(hash);
+                    try {
+                        // Thuật toán mã hóa HMAC SHA-256 theo yêu cầu của Zoom
+                        Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
+                        SecretKeySpec secret_key = new SecretKeySpec(ZOOM_WEBHOOK_SECRET.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+                        sha256_HMAC.init(secret_key);
 
-                    // Trả về JSON chứa mã đã mã hóa
-                    return ResponseEntity.ok(Map.of(
-                            "plainToken", plainToken,
-                            "encryptedToken", encryptedToken
-                    ));
+                        byte[] hash = sha256_HMAC.doFinal(plainToken.getBytes(StandardCharsets.UTF_8));
+                        String encryptedToken = bytesToHex(hash);
 
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    return ResponseEntity.status(500).build();
+                        // Trả về JSON chứa mã đã mã hóa
+                        return ResponseEntity.ok(Map.of(
+                                "plainToken", plainToken,
+                                "encryptedToken", encryptedToken
+                        ));
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return ResponseEntity.status(500).build();
+                    }
+                }
+
+                // Zoom Start
+                case "meeting.started": {
+                    // Lấy ID cực kì ngắn gọn và chống Null
+                    String zoomMeetingId = payload.path("payload").path("object").path("id").asText();
+                    log.info("Meeting {} STARTED!", zoomMeetingId);
+
+                    bookingService.updateBookingStatusByZoomId(zoomMeetingId, BookingStatus.IN_PROGRESS);
+
+                    break;
+                }
+
+                // Zoom End
+                case "meeting.ended": {
+                    String zoomMeetingId = payload.path("payload").path("object").path("id").asText();
+                    log.info("Meeting {} ENDED!", zoomMeetingId);
+
+                    bookingService.updateBookingStatusByZoomId(zoomMeetingId, BookingStatus.AWAIT_REVIEW);
+                    break;
+                }
+
+                // Thêm default để xử lý các event không hợp lệ hoặc không quan tâm
+                default: {
+                    System.out.println("UnCategorized Event Received!: " + event);
+                    break;
                 }
             }
 
-            // Zoom Start
-            case "meeting.started": {
-                // Lấy ID cực kì ngắn gọn và chống Null
-                String zoomMeetingId = payload.path("payload").path("object").path("id").asText();
-                log.info("Meeting {} STARTED!", zoomMeetingId);
-
-                bookingService.updateBookingStatusByZoomId(zoomMeetingId, BookingStatus.IN_PROGRESS);
-
-                break;
-            }
-
-            // Zoom End
-            case "meeting.ended": {
-                String zoomMeetingId = payload.path("payload").path("object").path("id").asText();
-                log.info("Meeting {} ENDED!", zoomMeetingId);
-
-                bookingService.updateBookingStatusByZoomId(zoomMeetingId, BookingStatus.AWAIT_REVIEW);
-                break;
-            }
-
-            // Thêm default để xử lý các event không hợp lệ hoặc không quan tâm
-            default: {
-                System.out.println("UnCategorized Event Received!: " + event);
-                break;
-            }
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            // Bắt Exception chung để bao trọn mọi lỗi (Parse JSON, Thuật toán MAC...)
+            log.error("Error processing Zoom webhook: ", e);
+            return ResponseEntity.status(500).build();
         }
 
 
-
-
-        return ResponseEntity.ok().build();
     }
 
     // Hàm phụ trợ chuyển đổi Byte Array sang chuỗi Hex (Hexadecimal)

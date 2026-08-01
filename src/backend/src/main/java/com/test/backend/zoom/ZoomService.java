@@ -1,17 +1,21 @@
 package com.test.backend.zoom;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.test.backend.dto.zoom.ZoomMeetingDTO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import tools.jackson.databind.JsonNode;
+
 
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class ZoomService {
@@ -34,6 +38,8 @@ public class ZoomService {
 
     private final RestTemplate restTemplate;
 
+    private final ObjectMapper objectMapper;
+
     // 1. Hàm lấy Access Token (Server-to-Server)
     private String getAccessToken() {
         String url = zoomAccessUrl + accountId;
@@ -48,10 +54,22 @@ public class ZoomService {
 
         HttpEntity<String> request = new HttpEntity<>(headers);
 
-        ResponseEntity<JsonNode> response = restTemplate.postForEntity(url, request, JsonNode.class);
+        try {
+            // HỨNG BẰNG STRING CHỐNG LỖI CONVERT
+            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
+            String rawBody = response.getBody();
+            if (rawBody == null) throw new RuntimeException("Zoom Token API returned empty body");
 
-        assert response.getBody() != null;
-        return response.getBody().path("access_token").asString();
+            // TỰ PARSE BẰNG OBJECT MAPPER
+            JsonNode responseBody = objectMapper.readTree(rawBody);
+
+            // DÙNG asText() THAY VÌ asString()
+            return responseBody.path("access_token").asText();
+
+        } catch (Exception e) {
+            log.error("Failed to get Zoom Access Token", e);
+            throw new RuntimeException("Could not authenticate with Zoom", e);
+        }
     }
 
     // 2. Hàm tạo phòng họp
@@ -85,21 +103,32 @@ public class ZoomService {
         body.put("settings", settings);
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-        ResponseEntity<JsonNode> response = restTemplate.postForEntity(url, request, JsonNode.class);
 
-        JsonNode responseBody = response.getBody();
+        try {
+            // HỨNG BẰNG STRING CHỐNG LỖI CONVERT
+            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
+            String rawBody = response.getBody();
+            if (rawBody == null) throw new RuntimeException("Zoom Create Meeting API returned empty body");
 
-        assert responseBody != null;
-        String meetingId = responseBody.path("id").asString();
-        String joinUrl = responseBody.path("join_url").asString();
-        String startUrl = responseBody.path("start_url").asString();
+            // TỰ PARSE BẰNG OBJECT MAPPER
+            JsonNode responseBody = objectMapper.readTree(rawBody);
 
-        return ZoomMeetingDTO.builder()
-                .zoomMeetingId(meetingId)
-                .joinUrl(joinUrl)
-                .startUrl(startUrl)
-                .meetingPassword(password)
-                .build();
+            // DÙNG asText() THAY VÌ asString()
+            String meetingId = responseBody.path("id").asText();
+            String joinUrl = responseBody.path("join_url").asText();
+            String startUrl = responseBody.path("start_url").asText();
+
+            return ZoomMeetingDTO.builder()
+                    .zoomMeetingId(meetingId)
+                    .joinUrl(joinUrl)
+                    .startUrl(startUrl)
+                    .meetingPassword(password)
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Failed to create Zoom Meeting", e);
+            throw new RuntimeException("Could not create Zoom meeting", e);
+        }
     }
 
     public String getFreshStartUrl(String meetingId) {
@@ -113,16 +142,27 @@ public class ZoomService {
         HttpEntity<Void> request = new HttpEntity<>(headers);
 
         // Dùng restTemplate.exchange cho method GET
-        ResponseEntity<JsonNode> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                request,
-                JsonNode.class
-        );
+        try {
+            // 1. Nhận response về dưới dạng String nguyên thủy để tránh lỗi ép kiểu của Spring
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    request,
+                    String.class
+            );
+            String rawBody = response.getBody();
+            if (rawBody == null) {
+                throw new RuntimeException("Zoom API returned empty body");
+            }
+            JsonNode responseBody = objectMapper.readTree(rawBody);
 
-        JsonNode responseBody = response.getBody();
-        assert responseBody != null;
 
-        return responseBody.path("start_url").asString();
+            return responseBody.path("start_url").asText();
+        }
+        catch (Exception e) {
+            // Bắt lỗi an toàn nếu có trục trặc về mạng hoặc parse JSON
+            log.error("Failed to get fresh start URL from Zoom for meeting: {}", meetingId, e);
+            throw new RuntimeException("Could not fetch Zoom start_url", e);
+        }
     }
 }
