@@ -31,5 +31,12 @@ public record FilterInterviewerPositionResponse(
     Integer experienceYear,
 
     @JsonProperty("hourly_fee")
-    BigDecimal hourlyFee
+    BigDecimal hourlyFee,
+
+    @JsonProperty("overall_rating")
+    Double overallRating,
+
+    @JsonProperty("total_review")
+    Integer totalReview
+
 ) {}

@@ -5,10 +5,13 @@ import com.test.backend.dto.booking.BookingStatusResponse;
 import com.test.backend.dto.booking.ConfirmBookingRequest;
 import com.test.backend.dto.booking.bookingResponse.BookingResponse;
 import com.test.backend.dto.booking.FilterInterviewerPositionResponse;
+import com.test.backend.dto.interview.InterviewResponse;
+import com.test.backend.dto.interview.InterviewResultRequest;
+import com.test.backend.dto.interview.InterviewerReviewResponse;
+import com.test.backend.dto.interview.ReviewInterviewerRequest;
 import com.test.backend.entity.booking.BookingStatus;
 import com.test.backend.entity.user.CustomUserDetail;
 import com.test.backend.service.BookingService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -33,6 +36,20 @@ public class BookingController {
             @RequestParam(defaultValue = "10") int size) {
 
         Page<FilterInterviewerPositionResponse>response = bookingService.filterInterviewerByPosition(position, page, size);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("interviewer/{interviewerId}/review")
+    public ResponseEntity<Page<InterviewerReviewResponse>> getInterviewerReview(
+            @RequestParam("page") int page,
+            @RequestParam("size") int size,
+            @AuthenticationPrincipal CustomUserDetail userDetail) {
+
+        Long interviewerId = userDetail.getUser().getUserId();
+
+        Page<InterviewerReviewResponse> response = bookingService
+                .getInterviewerReview(interviewerId, page, size);
 
         return ResponseEntity.ok(response);
     }
@@ -90,6 +107,7 @@ public class BookingController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasRole('Interviewer')")
     @GetMapping("/{bookingId}/start-url")
     public ResponseEntity<String> getMeetingStartUrl(
             @PathVariable Long bookingId,
@@ -102,4 +120,32 @@ public class BookingController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/complete")
+    public ResponseEntity<InterviewResponse> completeInterview(
+            @RequestBody InterviewResultRequest request,
+            @AuthenticationPrincipal CustomUserDetail userDetail) {
+
+        Long interviewerId = userDetail.getUser().getUserId();
+
+        bookingService.completeInterview(interviewerId, request);
+
+        // Trả về 200 OK kèm data
+        InterviewResponse response = new InterviewResponse(
+                "Đã lưu kết quả phỏng vấn. Hệ thống đang xử lý thanh toán.",
+                "PROCESSING"
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    public ResponseEntity<Void> reviewInterviewer(
+            @RequestBody ReviewInterviewerRequest request,
+            @AuthenticationPrincipal CustomUserDetail userDetail) {
+
+        Long bookerId = userDetail.getUser().getUserId();
+
+        bookingService.reviewBooking(bookerId, request);
+
+        return ResponseEntity.ok().build();
+    }
 }

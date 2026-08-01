@@ -3,7 +3,11 @@ package com.test.backend.zoom;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.test.backend.entity.booking.BookingStatus;
+import com.test.backend.repository.BookingRepository;
+import com.test.backend.service.BookingService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,6 +20,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+@Slf4j
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("api/v1/zoom/webhook")
@@ -25,6 +30,8 @@ public class ZoomWebhookController {
     private String ZOOM_WEBHOOK_SECRET;
 
     private final ObjectMapper objectMapper;
+
+    private BookingService bookingService;
 
     @PostMapping
     public ResponseEntity<?> handleZoomWebhook(@RequestBody JsonNode payload) {
@@ -62,9 +69,9 @@ public class ZoomWebhookController {
             case "meeting.started": {
                 // Lấy ID cực kì ngắn gọn và chống Null
                 String zoomMeetingId = payload.path("payload").path("object").path("id").asText();
+                log.info("Meeting {} STARTED!", zoomMeetingId);
 
-                // TODO: Gọi Service tìm Booking theo zoomMeetingId và update status = IN_PROGRESS
-                System.out.println("Meeting " + zoomMeetingId + " STARTED!");
+                bookingService.updateBookingStatusByZoomId(zoomMeetingId, BookingStatus.IN_PROGRESS);
 
                 break;
             }
@@ -72,9 +79,9 @@ public class ZoomWebhookController {
             // Zoom End
             case "meeting.ended": {
                 String zoomMeetingId = payload.path("payload").path("object").path("id").asText();
+                log.info("Meeting {} ENDED!", zoomMeetingId);
 
-                // TODO: Gọi Service tìm Booking theo zoomMeetingId và update status = COMPLETED
-                System.out.println("Meeting " + zoomMeetingId + " ENDED!");
+                bookingService.updateBookingStatusByZoomId(zoomMeetingId, BookingStatus.AWAIT_REVIEW);
                 break;
             }
 

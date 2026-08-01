@@ -66,6 +66,27 @@ public class StripeEventService {
         }
     }
 
+    public void handlePaymentAuthorized(PaymentIntent intentAuthorized) {
+        String intentId = intentAuthorized.getId();
+        log.info("Payment Authorized (Funds Held) for Intent ID: {}", intentId);
+
+        Booking booking = bookingRepository.findByPaymentIntentId(intentId)
+                .orElseThrow(() -> new NotFoundException("Error: Cannot Find Booking for Intent ID: " + intentId));
+
+        // Bước này khách đã chốt lịch, update trạng thái booking
+        booking.setStatus(BookingStatus.PAID);
+
+        // Tạo Payment để ghi nhận tiền đang bị "treo"
+        Payment payment = Payment.builder()
+                .booking(booking)
+                .amount(booking.getTotalAmount())
+                .currency(PaymentCurrency.USD)
+                .status(PaymentStatus.AUTHORIZED) // Trạng thái: Đã giữ tiền
+                .build();
+
+        bookingRepository.save(booking);
+        paymentRepository.save(payment);
+    }
 
     public void handlePaymentIntentSuccess(PaymentIntent intentSuccess) {
         String intentId = intentSuccess.getId();
@@ -84,7 +105,7 @@ public class StripeEventService {
         }
 
         // set status cho booking
-        booking.setStatus(BookingStatus.PAID);
+        booking.setStatus(BookingStatus.COMPLETED);
 
         // Lấy receiptUrl
         String receiptUrl = null;
@@ -143,13 +164,10 @@ public class StripeEventService {
     }
 
     public void handlePaymentRefund(String intentId) {
-        // TODO: Sau khi refund, bạn nhớ cập nhật trạng thái bảng Payment và Booking tương ứng
         Booking booking = bookingRepository.findByPaymentIntentId(intentId)
                 .orElseThrow(() -> new NotFoundException("Error: Cannot Find Booking for Intent ID: " + intentId));
 
-
-
-        //
+        // Refund 50%
         BigDecimal refundPercentage = BigDecimal.valueOf(0.5);
 
         BigDecimal refundInUsd = booking.getTotalAmount().multiply(refundPercentage);
@@ -185,4 +203,6 @@ public class StripeEventService {
             throw new RuntimeException("Lỗi hoàn tiền: " + e.getMessage());
         }
     }
+
+
 }

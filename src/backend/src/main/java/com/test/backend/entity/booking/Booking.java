@@ -52,7 +52,7 @@ public class Booking {
     private String meetingPassword;
 
     @Builder.Default
-    @Column(name = "status", nullable = false, updatable = false)
+    @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     private BookingStatus status = BookingStatus.PENDING;
 
@@ -71,13 +71,12 @@ public class Booking {
     private LocalDateTime updatedAt;
 
     // Relation
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_id", nullable = false, updatable = false)
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JoinColumn(name = "interview_result_id", referencedColumnName = "result_id")
     private InterviewResult interviewResult;
 
-    @Builder.Default
-    @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY)
-    private List<BookingReview> bookingReviewList = new ArrayList<>();
+    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL)
+    private BookingReview bookingReview;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "position_id")

@@ -2,6 +2,7 @@ package com.test.backend.repository;
 
 import com.test.backend.entity.booking.Booking;
 import com.test.backend.entity.booking.BookingStatus;
+import org.hibernate.query.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -60,4 +61,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     Optional<Booking> findByPaymentIntentId(String paymentIntentId);
 
     Optional<Booking> findByBookingId(Long bookingId);
+
+    @Query("""
+        SELECT b
+        FROM Booking b
+        JOIN FETCH b.booker
+        WHERE b.bookingId = :bookingId
+        """)
+    Optional<Booking> findByBookingIdFetchBooker(@Param("bookingId") Long bookingId);
+
+    Optional<Booking> findByMeetingId(String meetingId);
 }

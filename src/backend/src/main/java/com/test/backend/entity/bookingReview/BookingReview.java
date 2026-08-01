@@ -31,7 +31,7 @@ public class BookingReview {
     private LocalDateTime createdAt;
 
     // Relation
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id", nullable = false, updatable = false)
     private Booking booking;
 }

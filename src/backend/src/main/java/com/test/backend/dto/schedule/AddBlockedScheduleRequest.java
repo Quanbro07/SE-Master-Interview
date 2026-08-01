@@ -1,4 +1,4 @@
-package com.test.backend.dto.schedule.blockedSchedule;
+package com.test.backend.dto.schedule;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.test.backend.entity.blockedSchedule.BlockedSchedulePurpose;

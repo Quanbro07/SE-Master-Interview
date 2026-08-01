@@ -58,17 +58,26 @@ public class StripeWebhookController {
         switch (event.getType()) {
 
             case "account.updated":
+                log.info("ACCOUNT UPDATE STRIPE WEBHOOK CALLED!");
                 Account account = (Account) dataObjectDeserializer.getObject().get();
                 stripeEventService.handleAccountUpdated(account);
                 break;
 
-            case "payment_intent.succeeded":
+            case "payment_intent.amount_capturable_updated":
+                log.info("PAYMENT INTENT AUTHORIZED (FUNDS HELD) STRIPE WEBHOOK CALLED!");
+                PaymentIntent intentAuthorized = (PaymentIntent) dataObjectDeserializer.getObject().get();
+                // Gọi service cập nhật trạng thái Booking thành "Đã giữ tiền"
+                stripeEventService.handlePaymentAuthorized(intentAuthorized);
+                break;
 
+            case "payment_intent.succeeded":
+                log.info("PAYMENT INTENT SUCCESS STRIPE WEBHOOK CALLED!");
                 PaymentIntent intentSuccess = (PaymentIntent) dataObjectDeserializer.getObject().get();
                 stripeEventService.handlePaymentIntentSuccess(intentSuccess);
                 break;
 
             case "payment_intent.payment_failed":
+                log.info("PAYMENT INTENT FAILED STRIPE WEBHOOK CALLED!");
                 PaymentIntent intentFailed = (PaymentIntent) dataObjectDeserializer.getObject().get();
                 stripeEventService.handlePaymentFailed(intentFailed);
                 break;

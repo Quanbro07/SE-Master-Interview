@@ -2,7 +2,7 @@ package com.test.backend.entity.payment;
 
 public enum PaymentStatus {
     PENDING,
-    PROCESSING,
+    AUTHORIZED,
     SUCCESS,
     FAILED,
     CANCELLED,
