@@ -82,3 +82,6 @@ lerna-debug.log*
 .env
 .env.local
 .env.*.local
+
+# === Database volume ===
+*.sh
