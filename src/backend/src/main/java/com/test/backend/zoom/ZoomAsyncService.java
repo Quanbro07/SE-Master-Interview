@@ -20,10 +20,8 @@ public class ZoomAsyncService {
     private final BookingRepository bookingRepository;
 
     @Async
-    public void generateMeetLink(Long bookingId, ConfirmBookingRequest request, Long durationMins) {
+    public void generateMeetLink(Booking booking, ConfirmBookingRequest request, Long durationMins) {
 
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new NotFoundException("Booking not found"));
 
         try {
 
@@ -40,7 +38,7 @@ public class ZoomAsyncService {
             bookingRepository.save(booking);
         }
         catch (Exception e) {
-            log.error("Failed to generate Google Meet for booking: " + bookingId, e);
+            log.error("Failed to generate Google Meet for booking: " + booking.getBookingId(), e);
             return;
         }
     }

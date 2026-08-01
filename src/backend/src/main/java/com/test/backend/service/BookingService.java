@@ -172,7 +172,7 @@ public class BookingService {
         Long duration = Duration.between(booking.getStartTime(), booking.getEndTime()).toMinutes();
 
         // Async tạo link meeting
-        zoomAsyncService.generateMeetLink(bookingId, request, duration);
+        zoomAsyncService.generateMeetLink(booking, request, duration);
 
         return BookingStatusResponse.builder()
                 .bookingId(bookingId)
