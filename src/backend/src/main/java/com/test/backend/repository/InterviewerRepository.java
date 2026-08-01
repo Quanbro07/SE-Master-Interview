@@ -27,5 +27,4 @@ public interface InterviewerRepository extends JpaRepository<Interviewer, Long> 
     Optional<Interviewer> findByInterviewerIdFetchUser(
             @Param("interviewerId") Long interviewId);
 
-    Long user(User user);
 }

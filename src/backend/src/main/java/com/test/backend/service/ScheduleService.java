@@ -3,7 +3,7 @@ package com.test.backend.service;
 import com.test.backend.dto.schedule.AvailableScheduleDTO;
 import com.test.backend.dto.schedule.ScheduleDTO;
 import com.test.backend.dto.schedule.ScheduleTimeDTO;
-import com.test.backend.dto.schedule.blockedSchedule.AddBlockedScheduleRequest;
+import com.test.backend.dto.schedule.AddBlockedScheduleRequest;
 import com.test.backend.entity.availableSchedule.AvailableSchedule;
 import com.test.backend.entity.blockedSchedule.BlockedSchedule;
 import com.test.backend.entity.blockedSchedule.BlockedSchedulePurpose;
@@ -15,9 +15,7 @@ import com.test.backend.repository.AvailableScheduleRepository;
 import com.test.backend.repository.BlockedScheduleRepository;
 import com.test.backend.repository.InterviewerRepository;
 import com.test.backend.service.jwt.JwtService;
-import io.jsonwebtoken.Claims;
 import jakarta.transaction.Transactional;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

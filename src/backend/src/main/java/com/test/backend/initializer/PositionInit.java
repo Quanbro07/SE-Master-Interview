@@ -45,11 +45,13 @@ public class PositionInit {
             List<Position> positions = new ArrayList<>();
 
             for(String position: positionList) {
-                Position newPosition = Position.builder()
-                        .positionName(position)
-                        .build();
+                if (!positionRepository.existsByPositionNameIgnoreCase(position)) {
+                    Position newPosition = Position.builder()
+                            .positionName(position)
+                            .build();
 
-                positions.add(newPosition);
+                    positions.add(newPosition);
+                }
             }
 
             positionRepository.saveAll(positions);

@@ -1,7 +1,7 @@
 package com.test.backend.controller;
 
 import com.test.backend.dto.schedule.AvailableScheduleDTO;
-import com.test.backend.dto.schedule.blockedSchedule.AddBlockedScheduleRequest;
+import com.test.backend.dto.schedule.AddBlockedScheduleRequest;
 import com.test.backend.entity.user.CustomUserDetail;
 import com.test.backend.service.ScheduleService;
 import jakarta.validation.Valid;
@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 

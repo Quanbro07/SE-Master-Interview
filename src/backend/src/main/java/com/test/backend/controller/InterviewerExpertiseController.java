@@ -12,6 +12,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
+
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("api/v1/expertise")
@@ -26,11 +28,12 @@ public class InterviewerExpertiseController {
             @RequestParam("position") String position,
             @RequestParam(value = "level", defaultValue = "INTERN") InterviewerExpertiseLevel level,
             @RequestParam(value = "experience_year", defaultValue = "1") Integer experienceYear,
+            @RequestParam(value = "hourly_fee", defaultValue = "5.0") BigDecimal hourlyFee,
             @AuthenticationPrincipal CustomUserDetail userDetail) {
 
         Long userId = userDetail.getUser().getUserId();
 
-        expertiseService.sendExpertisePosition(userId, position, level, experienceYear, file);
+        expertiseService.sendExpertisePosition(userId, position, level, experienceYear,hourlyFee, file);
         return ResponseEntity.ok("DONE");
     }
 

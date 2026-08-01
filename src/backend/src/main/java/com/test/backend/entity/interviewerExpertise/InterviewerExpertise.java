@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Builder
@@ -36,6 +37,9 @@ public class InterviewerExpertise {
 
     @Column(name = "experience_year")
     private Integer experienceYear;
+
+    @Column(name = "hourly_fee", precision = 5, scale = 2)
+    private BigDecimal hourlyFee;
 
     @Builder.Default
     @Column(name = "isCertified")

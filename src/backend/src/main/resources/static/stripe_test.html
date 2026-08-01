@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stripe Payment Test</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f9;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 400px;
+        }
+        h2 {
+            text-align: center;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #6772E5;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #5469d4;
+        }
+        #payment-element {
+            margin-top: 20px;
+        }
+        #error-message {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Test Stripe Payment</h2>
+
+    <!-- Bước 1: Gọi API Backend để lấy Client Secret -->
+    <input type="text" id="userId" placeholder="Nhập User ID (Booking's Booker ID)">
+    <input type="text" id="bookingId" placeholder="Nhập Booking ID">
+    <button id="fetch-intent-btn">1. Lấy Client Secret từ Backend</button>
+
+    <!-- Bước 2: Hiển thị form nhập thẻ của Stripe -->
+    <div id="payment-element"></div>
+
+    <button id="submit-btn" style="display: none; margin-top: 20px;">2. Thanh Toán</button>
+
+    <div id="error-message"></div>
+</div>
+
+<script>
+    // BƯỚC QUAN TRỌNG: Điền Publishable Key của bạn vào đây (Lấy trên Dashboard Stripe)
+    const stripe = Stripe("pk_test_51TjVlBJgJLPmlDt7xWK27l0viRZ4BKqExlAkxKGvnjQ2haeLprJETBNMTGCrzcchlGokUrspQUXwJOst5FYR7oox008y7MVjCc");
+
+    let elements;
+    let clientSecret;
+
+    // Lắng nghe sự kiện click nút Lấy Client Secret
+    document.getElementById('fetch-intent-btn').addEventListener('click', async () => {
+        const userId = document.getElementById('userId').value;
+        const bookingId = document.getElementById('bookingId').value;
+
+        if (!userId || !bookingId) {
+            alert("Vui lòng nhập User ID và Booking ID");
+            return;
+        }
+
+        try {
+            // Thay đổi domain và port nếu Backend của bạn chạy ở cổng khác
+            const response = await fetch(`http://localhost:8080/api/v1/stripe/${bookingId}/create-intent`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // BƯỚC QUAN TRỌNG: Cần mở comment và thêm token nếu Backend yêu cầu @PreAuthorize
+                    Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkb3dubG9hZHZwbjYxMjAwNkBnbWFpbC5jb20iLCJpYXQiOjE3ODU0ODgzMzIsImV4cCI6MTc4NjA5MzEzMn0.02zf3glRsXGjiPHivtrR-Jq91e0j04hHgqUPF1MZuYc'
+                },
+                // Gửi kèm userId nếu logic Controller của bạn đang mong đợi
+                body: JSON.stringify({ userId: userId })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Lỗi khi gọi API Backend");
+            }
+
+            const data = await response.json();
+            clientSecret = data.client_secret;
+
+            alert("Lấy Client Secret thành công!");
+
+            // Cấu hình Elements với Client Secret
+            const appearance = { theme: 'stripe' };
+            elements = stripe.elements({ clientSecret, appearance });
+
+            // Mount Payment Element lên giao diện
+            const paymentElement = elements.create('payment');
+            paymentElement.mount('#payment-element');
+
+            // Hiển thị nút Thanh Toán
+            document.getElementById('submit-btn').style.display = 'block';
+
+        } catch (error) {
+            document.getElementById('error-message').textContent = error.message;
+        }
+    });
+
+    // Lắng nghe sự kiện click nút Thanh Toán
+    document.getElementById('submit-btn').addEventListener('click', async () => {
+        const submitBtn = document.getElementById('submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Đang xử lý...';
+
+        try {
+            const { error, paymentIntent } = await stripe.confirmPayment({
+                elements,
+                confirmParams: {
+                    // Cấu hình redirect tạm thời để pass qua bước validation
+                    return_url: 'http://localhost:8080/success.html',
+                },
+                redirect: 'if_required' // Thiết lập này giúp code không bị redirect sang trang khác
+            });
+
+            if (error) {
+                document.getElementById('error-message').textContent = error.message;
+            } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+                alert('Thanh toán thành công!');
+            } else if (paymentIntent && paymentIntent.status === 'requires_capture') {
+                alert('Thanh toán thành công! Trạng thái: requires_capture');
+            } else {
+                alert('Trạng thái giao dịch: ' + paymentIntent.status);
+            }
+        } catch (error) {
+            document.getElementById('error-message').textContent = "Đã xảy ra lỗi không xác định";
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '2. Thanh Toán';
+        }
+    });
+</script>
+
+</body>
+</html>

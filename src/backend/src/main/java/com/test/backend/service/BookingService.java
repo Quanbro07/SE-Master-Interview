@@ -1,5 +1,7 @@
 package com.test.backend.service;
 
+import com.stripe.exception.StripeException;
+import com.stripe.model.PaymentIntent;
 import com.test.backend.dto.booking.BookingRequest;
 import com.test.backend.dto.booking.BookingStatusResponse;
 import com.test.backend.dto.booking.ConfirmBookingRequest;
@@ -7,31 +9,42 @@ import com.test.backend.dto.booking.bookingResponse.BookerResponseDTO;
 import com.test.backend.dto.booking.bookingResponse.BookingResponse;
 import com.test.backend.dto.booking.FilterInterviewerPositionResponse;
 import com.test.backend.dto.booking.bookingResponse.InterviewerResponseDTO;
-import com.test.backend.dto.schedule.blockedSchedule.AddBlockedScheduleRequest;
+import com.test.backend.dto.interview.InterviewResultRequest;
+import com.test.backend.dto.interview.InterviewerReviewResponse;
+import com.test.backend.dto.interview.ReviewInterviewerRequest;
+import com.test.backend.dto.schedule.AddBlockedScheduleRequest;
 import com.test.backend.entity.blockedSchedule.BlockedSchedulePurpose;
 import com.test.backend.entity.booking.Booking;
 import com.test.backend.entity.booking.BookingStatus;
+import com.test.backend.entity.bookingReview.BookingReview;
+import com.test.backend.entity.interviewResult.InterviewResult;
 import com.test.backend.entity.interviewerExpertise.InterviewerExpertise;
-import com.test.backend.entity.position.Position;
 import com.test.backend.entity.user.User;
 import com.test.backend.entity.user.interviewee.Interviewee;
 import com.test.backend.entity.user.interviewer.Interviewer;
 import com.test.backend.exception.customException.ForbiddenOperationException;
 import com.test.backend.exception.customException.NotFoundException;
 import com.test.backend.exception.customException.ScheduleConflictException;
+import com.test.backend.exception.customException.StripeIntegrationException;
 import com.test.backend.repository.*;
 import com.test.backend.zoom.ZoomAsyncService;
 import com.test.backend.zoom.ZoomService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class BookingService {
@@ -51,6 +64,7 @@ public class BookingService {
     private final ZoomAsyncService zoomAsyncService;
 
     private final ZoomService zoomService;
+    private final BookingReviewRepository bookingReviewRepository;
 
     public Page<FilterInterviewerPositionResponse> filterInterviewerByPosition(String position, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
@@ -64,7 +78,7 @@ public class BookingService {
         return response;
     }
 
-
+    @Transactional
     public BookingResponse createBooking(Long intervieweeId, BookingRequest request) {
         LocalDateTime startTime = request.startDate();
         LocalDateTime endTime = request.endDate();
@@ -85,16 +99,16 @@ public class BookingService {
 
         // Query lấy dữ liệu
 
-        Position position = positionRepository.findByPositionNameIgnoreCase(request.positionName())
-                .orElseThrow(() -> new NotFoundException("Position not found"));
+        InterviewerExpertise interviewerExpertise = interviewerExpertiseRepository
+                .findByInterviewerIdAndPositionNameFetchUserAndPosition(request.interviewerId(), request.positionName())
+                .orElseThrow(() -> new NotFoundException("Expertise not found"));
 
-        Interviewer interviewer = interviewerRepository.findByInterviewerIdFetchUser(request.interviewerId())
-                .orElseThrow(() -> new NotFoundException("Interviewer not found"));
+        Interviewer interviewer = interviewerExpertise.getInterviewer();
 
         Interviewee interviewee = intervieweeRepository.findByIntervieweeIdFetchUser(intervieweeId)
                 .orElseThrow(() -> new NotFoundException("Interviewee not found"));
 
-        // Build Wrapper để add blocket Schedule cho Interviewer
+        // Build Wrapper để add blocked Schedule cho Interviewer
         AddBlockedScheduleRequest blockedScheduleRequest = AddBlockedScheduleRequest.builder()
                 .startTime(startTime)
                 .endTime(endTime)
@@ -104,11 +118,23 @@ public class BookingService {
 
         scheduleService.addBlockedSchedule(intervieweeId, blockedScheduleRequest);
 
+        // Tính toán total amount
+        long minutes = Duration.between(request.startDate(), request.endDate()).toMinutes();
+
+        // Quy đổi ra giờ (có lưu thập phân, làm tròn 2 chữ số)
+        // Ví dụ: 90 phút -> 1.50 giờ
+        BigDecimal hours = BigDecimal.valueOf(minutes)
+                .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
+
+        // 3. Nhân với hourly fee
+        BigDecimal totalAmount = interviewerExpertise.getHourlyFee().multiply(hours);
+
         Booking newBooking = Booking.builder()
                 .interviewer(interviewer)
                 .booker(interviewee)
                 .startTime(startTime)
                 .endTime(endTime)
+                .totalAmount(totalAmount)
                 .build();
 
         bookingRepository.save(newBooking);
@@ -146,7 +172,7 @@ public class BookingService {
         Long duration = Duration.between(booking.getStartTime(), booking.getEndTime()).toMinutes();
 
         // Async tạo link meeting
-        zoomAsyncService.generateMeetLink(bookingId, request, duration);
+        zoomAsyncService.generateMeetLink(booking, request, duration);
 
         return BookingStatusResponse.builder()
                 .bookingId(bookingId)
@@ -190,9 +216,98 @@ public class BookingService {
 
     }
 
+    // Hoàn tất buổi interview
+    public void completeInterview(Long interviewerId, InterviewResultRequest request) {
+        Booking booking = bookingRepository
+                .findByBookingIdAndInterviewer_InterviewerId(request.bookingId(), interviewerId)
+                .orElseThrow(() -> new NotFoundException("Booking not found"));
 
+        if(!BookingStatus.AWAIT_REVIEW.equals(booking.getStatus())) {
+            throw new ForbiddenOperationException("Meeting still int Progress. Cannot complete before ending Zoom Meeting");
+        }
+
+        InterviewResult interviewResult = InterviewResult.builder()
+                .technicalScore(request.technicalScore())
+                .communicationScore(request.communicationScore())
+                .preparationLevel(request.preparationLevel())
+                .overallComment(request.overallComment())
+                .build();
+
+        booking.setInterviewResult(interviewResult);
+        bookingRepository.save(booking);
+
+        // Capture Payment
+        try {
+            PaymentIntent intent = PaymentIntent.retrieve(booking.getPaymentIntentId());
+
+            intent.capture();
+        } catch (StripeException e) {
+            log.info("Error Capture Payment!", e);
+            throw new StripeIntegrationException("Error withdraw money" + e.getMessage());
+        }
+
+    }
+
+    public void reviewBooking(Long bookerId, ReviewInterviewerRequest request) {
+        Booking booking = bookingRepository.findByBookingIdFetchInterviewerAndBooker(request.bookingId())
+                .orElseThrow(() -> new NotFoundException("Booking not FOUND"));
+
+        BookingStatus status = booking.getStatus();
+
+        if(status != BookingStatus.AWAIT_REVIEW && status != BookingStatus.COMPLETED) {
+            throw new ForbiddenOperationException("YOu cannot review before the meeting is done");
+        }
+
+        if (booking.getBookingReview() != null) {
+            throw new ForbiddenOperationException("You have already reviewed this booking!");
+        }
+
+        if(!bookerId.equals(booking.getBooker().getIntervieweeId())) {
+            throw new ForbiddenOperationException("You cannot review this booking");
+        }
+
+        BookingReview review = BookingReview.builder()
+                .rating(request.rate())
+                .comment(request.comment())
+                .build();
+
+        Interviewer interviewer = booking.getInterviewer();
+
+        Double oldRating = interviewer.getOverallRating();
+        Integer totalRating = interviewer.getTotalReviews();
+
+        Double newRating = (oldRating * totalRating + request.rate()) / (totalRating + 1);
+
+        interviewer.setOverallRating(newRating);
+        interviewer.setTotalReviews(totalRating + 1);
+
+        interviewerRepository.save(interviewer);
+
+        booking.setBookingReview(review);
+        review.setBooking(booking);
+
+        bookingRepository.save(booking);
+    }
+
+    public Page<InterviewerReviewResponse> getInterviewerReview(Long interviewerId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        Page<BookingReview> bookingReviews = bookingReviewRepository
+                .findByInterviewerIdFetchBooker(interviewerId, pageable);
+
+        return bookingReviews.map(this::convertToReviewResponse);
+    }
 
     // Helper Function
+    public void updateBookingStatusByZoomId(String zoomId, BookingStatus status) {
+        Booking booking = bookingRepository.findByMeetingId(zoomId)
+                .orElseThrow(()->new NotFoundException("Booking not FOUND"));
+
+        booking.setStatus(status);
+
+        bookingRepository.save(booking);
+    }
+
     private FilterInterviewerPositionResponse coverToFilterInterviewerPositionResponse(InterviewerExpertise expertise) {
         Interviewer interviewer = expertise.getInterviewer();
         User user = interviewer.getUser();
@@ -206,6 +321,9 @@ public class BookingService {
                 .githubUrl(user.getGithubUrl())
                 .level(expertise.getLevel())
                 .experienceYear(expertise.getExperienceYear())
+                .hourlyFee(expertise.getHourlyFee())
+                .overallRating(interviewer.getOverallRating())
+                .totalReview(interviewer.getTotalReviews())
                 .build();
     }
 
@@ -261,6 +379,18 @@ public class BookingService {
         return responseBuilder.build();
     }
 
+    private InterviewerReviewResponse convertToReviewResponse(BookingReview review) {
 
+        User bookerUser = review.getBooking().getBooker().getUser();
+
+        return InterviewerReviewResponse.builder()
+                .reviewId(review.getReviewId())
+                .reviewerName(bookerUser.getFullName()) // Hoặc getUserName() tùy logic của bạn
+                .reviewerAvatar(bookerUser.getAvatar()) // Tùy chọn
+                .rating(review.getRating())
+                .comment(review.getComment())
+                .createdAt(review.getCreatedAt())
+                .build();
+    }
 
 }
