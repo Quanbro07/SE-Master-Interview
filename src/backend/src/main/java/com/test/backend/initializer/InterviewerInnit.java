@@ -8,6 +8,7 @@
     import com.test.backend.entity.user.Role;
     import com.test.backend.entity.user.User;
     import com.test.backend.entity.user.interviewer.Interviewer;
+    import com.test.backend.exception.customException.NotFoundException;
     import com.test.backend.repository.InterviewerExpertiseRepository;
     import com.test.backend.repository.InterviewerRepository;
     import com.test.backend.repository.PositionRepository;
@@ -45,10 +46,9 @@
         private boolean isDev;
 
         private final List<String> positionList = List.of(
-                "Java Developer",
-                "Frontend Developer",
-                "Backend Developer",
-                "Data Engineer"
+                "quality assurance",
+                "software engineer",
+                "cloud computing"
         );
 
 
@@ -57,6 +57,7 @@
             return args -> {
 
                 boolean isUserExists = userRepository.existsByEmail("quanbro7612006@gmail.com");
+                Interviewer currentInterviewer;
 
                 if(!isUserExists) {
                     SocialAccount socialAccount = SocialAccount.builder()
@@ -85,28 +86,33 @@
                     newInterviewer.setUser(newUser);
 
                     interviewerRepository.save(newInterviewer);
+                    currentInterviewer = newInterviewer;
+                }
+                else {
+                    currentInterviewer = interviewerRepository.findByUserEmailFetchUser("quanbro7612006@gmail.com")
+                            .orElseThrow(()-> new NotFoundException("Interviewer Not found"));
+                }
 
+                List<Position> positions = positionRepository.findAllByPositionNameInIgnoreCase(positionList);
 
-                    List<Position> positions = positionRepository.findAllByPositionNameIn(positionList);
+                System.out.println(positions.size());
 
-                    System.out.println(positions.size());
-
-                    if(positions.isEmpty()) {
-                        for(String positionName: positionList) {
-                            Position newPosition = Position.builder()
-                                    .positionName(positionName)
-                                    .build();
-
-                            positions.add(newPosition);
-                        }
-                    }
-
-
+                if(!positions.isEmpty()) {
                     List<InterviewerExpertise> interviewerExpertises = new ArrayList<>();
 
+
                     for(Position position : positions) {
-                        InterviewerExpertise expertise = InterviewerExpertise.builder()
-                                .interviewer(newInterviewer)
+                        if(interviewerExpertiseRepository
+                                .existsByInterviewer_InterviewerIdAndPosition_PositionId(
+                                        currentInterviewer.getInterviewerId(),
+                                        position.getPositionId()
+                                )
+                        ) {
+                            continue;
+                        }
+
+                            InterviewerExpertise expertise = InterviewerExpertise.builder()
+                                .interviewer(currentInterviewer)
                                 .position(position)
                                 .level(InterviewerExpertiseLevel.FRESHER)
                                 .experienceYear(1)
@@ -118,7 +124,7 @@
                     }
 
                     interviewerExpertiseRepository.saveAll(interviewerExpertises);
-
+                    System.out.println("DONE INSERT EXPERTISE: " + interviewerExpertises.size());
                 }
 
                 User interviewer = userRepository.findByEmail("quanbro7612006@gmail.com")
@@ -129,6 +135,7 @@
                 String accessToken = jwtService.generateToken(new HashMap<>(), email, TokenType.ACCESS);
                 String refreshToken = jwtService.generateToken(new HashMap<>(), email, TokenType.REFRESH);
 
+                System.out.println("=== INTERVIEWER TOKENS ===");
                 System.out.println("Interviewer Access Token: " + accessToken);
                 System.out.println("Interviewer Refresh Token: " + refreshToken);
 

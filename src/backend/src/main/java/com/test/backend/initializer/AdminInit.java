@@ -32,7 +32,6 @@ public class AdminInit {
     CommandLineRunner initAdmin(UserRepository userRepository) {
         return args -> {
             // Tạo 1 admin
-            boolean isAdminExists;
             Optional<User> admin = userRepository.findByEmail("ngocquan612006@gmail.com");
             if(admin.isPresent()) {
                 User adminUser = admin.get();
@@ -40,14 +39,9 @@ public class AdminInit {
                     adminUser.setRole(Role.Admin);
                 }
                 userRepository.save(adminUser);
-                return;
             }
             else {
-                isAdminExists = false;
-            }
-
-            // Chưa có admin tạo
-            if(!isAdminExists) {
+                // Chưa có admin tạo
                 SocialAccount socialAccount = SocialAccount.builder()
                         .provider(SocialAccountProvider.GOOGLE)
                         .providerId("113635588445946844380")
@@ -65,6 +59,7 @@ public class AdminInit {
                 userRepository.save(newAdmin);
             }
 
+
             User adminMain = userRepository.findByEmail("ngocquan612006@gmail.com")
                     .orElseThrow(() -> new RuntimeException("Admin not exists"));
 
@@ -73,6 +68,7 @@ public class AdminInit {
             String accessToken = jwtService.generateToken(new HashMap<>(), email, TokenType.ACCESS);
             String refreshToken = jwtService.generateToken(new HashMap<>(), email, TokenType.REFRESH);
 
+            System.out.println("=== ADMIN TOKENS ===");
             System.out.println("Admin Access Token: " + accessToken);
             System.out.println("Admin Refresh Token: " + refreshToken);
         }

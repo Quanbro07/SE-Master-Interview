@@ -41,4 +41,6 @@ public interface InterviewerExpertiseRepository extends JpaRepository<Interviewe
     Optional<InterviewerExpertise> findByInterviewerIdAndPositionNameFetchUserAndPosition(
             @Param("interviewerId") Long interviewerId,
             @Param("positionName") String positionName);
+
+    boolean existsByInterviewer_InterviewerIdAndPosition_PositionId(Long interviewerId, Long positionId);
 }

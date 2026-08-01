@@ -27,4 +27,13 @@ public interface InterviewerRepository extends JpaRepository<Interviewer, Long> 
     Optional<Interviewer> findByInterviewerIdFetchUser(
             @Param("interviewerId") Long interviewId);
 
+
+    @Query("""
+        SELECT i
+        FROM Interviewer i
+        JOIN FETCH i.user u
+        WHERE u.email = :email
+        """)
+    Optional<Interviewer> findByUserEmailFetchUser(
+            @Param("email") String email);
 }
