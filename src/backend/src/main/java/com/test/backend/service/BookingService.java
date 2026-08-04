@@ -165,6 +165,10 @@ public class BookingService {
         Booking booking = bookingRepository.findByBookingIdAndInterviewer_InterviewerId(bookingId, userId)
                 .orElseThrow(() -> new NotFoundException("Booking not found"));
 
+        if(!BookingStatus.PENDING.equals(booking.getStatus())) {
+            throw new ForbiddenOperationException("Confirm can only use fore Pending Booking");
+        }
+
         // Set Trạng thái Accepted
         booking.setStatus(BookingStatus.ACCEPTED);
         bookingRepository.save(booking);
@@ -184,6 +188,10 @@ public class BookingService {
     public BookingStatusResponse rejectBooking(Long userId, Long bookingId) {
         Booking booking = bookingRepository.findByBookingIdAndInterviewer_InterviewerId(bookingId, userId)
                 .orElseThrow(() -> new NotFoundException("Booking not found"));
+
+        if(!BookingStatus.PENDING.equals(booking.getStatus())) {
+            throw new ForbiddenOperationException("Reject can only use fore Pending Booking");
+        }
 
         booking.setStatus(BookingStatus.REJECTED);
         bookingRepository.save(booking);

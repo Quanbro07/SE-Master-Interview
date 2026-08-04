@@ -26,7 +26,8 @@ public class PositionInit {
     @Bean
     CommandLineRunner initPosition() {
         return args -> {
-            if(!isDev) {
+            if (!isDev || positionRepository.count() > 0) {
+                System.out.println("Positions already exist or not in Dev mode. Skipping Position init.");
                 return;
             }
 
@@ -55,6 +56,7 @@ public class PositionInit {
             }
 
             positionRepository.saveAll(positions);
+            System.out.println("Initialized default positions.");
         };
     }
 }

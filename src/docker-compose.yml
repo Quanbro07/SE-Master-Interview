@@ -156,7 +156,6 @@ services:
 volumes:
   db_data:
     name: master-interview_db_data
-    external: true
   minio_data:
   redis-data:
 

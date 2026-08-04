@@ -42,10 +42,10 @@ public class Booking {
     @Column(name = "meeting_id")
     private String meetingId;
 
-    @Column(name = "join_url")
+    @Column(name = "join_url", length = 2048)
     private String joinUrl;
 
-    @Column(name = "start_url")
+    @Column(name = "start_url", length = 2048)
     private String startUrl;
 
     @Column(name = "meeting_password")

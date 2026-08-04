@@ -13,6 +13,8 @@ public interface PositionRepository extends JpaRepository<Position, Long> {
 
     List<Position> findAllByPositionNameIn(List<String> positionNameList);
 
+    List<Position> findAllByPositionNameInIgnoreCase(List<String> positionNames);
+
     Optional<Position> findByPositionNameIgnoreCase(String positionName);
 
     Boolean existsByPositionNameIgnoreCase(String positionName);

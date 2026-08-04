@@ -15,7 +15,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Component
 @Order(1)
-public class QuestionInit {
+public class CategoryInit {
 
     private final CategoryRepository categoryRepository;
 
@@ -27,7 +27,8 @@ public class QuestionInit {
     @Bean
     CommandLineRunner initCategory() {
         return args -> {
-            if(!isDev) {
+            if (!isDev || categoryRepository.count() > 0) {
+                System.out.println("Positions already exist or not in Dev mode. Skipping Question/Category init.");
                 return;
             }
 
@@ -49,7 +50,7 @@ public class QuestionInit {
 
                 categories.add(c);
             }
-
+            categoryRepository.saveAll(categories);
 
         };
 

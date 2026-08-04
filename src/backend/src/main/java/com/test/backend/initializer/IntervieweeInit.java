@@ -78,6 +78,7 @@ public class IntervieweeInit {
             String accessToken = jwtService.generateToken(new HashMap<>(), email, TokenType.ACCESS);
             String refreshToken = jwtService.generateToken(new HashMap<>(), email, TokenType.REFRESH);
 
+            System.out.println("=== INTERVIEWEE TOKENS ===");
             System.out.println("Interviewee Access Token: " + accessToken);
             System.out.println("Interviewee Refresh Token: " + refreshToken);
         };
