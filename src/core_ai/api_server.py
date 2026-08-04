@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from core_ai.agents.interview_agent import generate_follow_up_question
 
 # Load biến môi trường chứa GOOGLE_API_KEY
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
@@ -17,6 +18,11 @@ app = FastAPI(title="AI CV Assessment API")
 class CvAssessmentRequest(BaseModel):
     job_description: str
     cv_file_path: str
+
+class FollowUpRequest(BaseModel):
+    position: str
+    main_question: str
+    user_answer: str
 
 @app.post("/api/ai/cv-assessment")
 async def api_cv_assessment(req: CvAssessmentRequest):
@@ -49,5 +55,19 @@ async def api_cv_assessment(req: CvAssessmentRequest):
         
         return final_response
         
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    
+@app.post("/api/ai/interview/generate-follow-up")
+async def api_generate_follow_up(req: FollowUpRequest):
+    try:
+        # Gọi hàm AI Agent vừa viết
+        result = generate_follow_up_question(
+            position=req.position,
+            main_question=req.main_question,
+            user_answer=req.user_answer
+        )
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
