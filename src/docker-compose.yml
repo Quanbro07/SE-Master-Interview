@@ -119,6 +119,9 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+
+      # GEMINI
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     ports:
       - "8080:8080"
     networks:

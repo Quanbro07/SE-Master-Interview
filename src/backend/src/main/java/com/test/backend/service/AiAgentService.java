@@ -13,6 +13,7 @@ import java.util.List;
 public class AiAgentService {
 
     private final ChatClient chatClient;
+
     private final AgentToolService agentToolService;
 
     public String generateAnswer(String prompt, List<MessageModel> context) {
