@@ -133,3 +133,47 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.auth-interviewer-fieldset {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-interviewer-fieldset legend {
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.auth-interviewer-note {
+  margin: 0 0 4px;
+  color: #a1a1aa;
+  font-size: 12px;
+}
+
+.auth-complete-profile-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.auth-skip-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e5e7eb;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.auth-skip-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

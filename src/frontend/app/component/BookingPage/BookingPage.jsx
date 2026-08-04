@@ -271,37 +271,40 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
       return;
     }
 
-    // 🔍 Tìm token dưới mọi tên key phổ biến
-    let token =
+    // 1. Lấy token từ LocalStorage
+    let rawToken =
       localStorage.getItem("accessToken") ||
       localStorage.getItem("token") ||
       localStorage.getItem("jwt") ||
       localStorage.getItem("auth_token");
 
-    // Nếu lưu dưới dạng object 'user' trong localStorage
-    if (!token) {
+    if (!rawToken) {
       try {
         const userObj = JSON.parse(localStorage.getItem("user") || "{}");
-        token = userObj.token || userObj.accessToken || userObj.jwt;
-      } catch (e) {
-        console.error(e);
+        rawToken = userObj.token || userObj.accessToken || userObj.jwt;
+      } catch (err) {
+        console.error(err);
       }
     }
 
-    console.log("👉 Token tìm thấy:", token);
-
-    if (!token || token === "undefined" || token === "null") {
+    if (!rawToken || rawToken === "undefined" || rawToken === "null") {
       setSubmitError(
         "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn. Vui lòng đăng nhập lại!",
       );
-      // Chuyển hướng tới trang Login sau 2s nếu cần
       setTimeout(() => {
-        window.location.href = "/login"; // Sửa đường dẫn login của bạn ở đây
+        window.location.href = "/login";
       }, 2000);
       return;
     }
 
-    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+    // 2. Tẩy sạch chữ Bearer thừa và khoảng trắng
+    const cleanToken = rawToken.trim().replace(/^Bearer\s+/i, "");
+
+    // 3. Tạo Header CHUẨN duy nhất 1 chữ Bearer
+    const authHeader = `Bearer ${cleanToken}`;
+
+    console.log("👉 Token tìm thấy:", cleanToken);
+    console.log("👉 Authorization Header chuẩn gửi đi:", authHeader);
 
     setSubmitError(null);
     setSubmitting(true);
@@ -314,7 +317,7 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
       const uploadRes = await fetch(`${API_BASE}/api/v1/uploads/cv`, {
         method: "POST",
         headers: {
-          Authorization: authHeader,
+          Authorization: authHeader, // 👈 Đã dùng Header chuẩn
         },
         body: cvFormData,
       });
@@ -387,7 +390,6 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
       setSubmitting(false);
     }
   };
-
   const handlePaymentSuccess = (paymentIntent) => {
     if (onConfirm) onConfirm({ booking: createdBooking, paymentIntent });
   };
@@ -518,7 +520,7 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
                     onClick={handleSubmitBooking}
                     disabled={submitting}
                   >
-                    {submitting ? "PROCESSING..." : "PROCEED TO PAYMENT"}
+                    {submitting ? "PROCESSING..." : "TO PAYMENT"}
                   </button>
                   <button
                     className="popup-btn btn-cancel"

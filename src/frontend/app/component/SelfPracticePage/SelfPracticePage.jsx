@@ -3,15 +3,19 @@ import { useEffect, useRef, useState } from "react";
 import NavigationBar from "../NavigationBar/NavigationBar";
 import "./SelfPracticePage.css";
 import "../MockInterviewPage/MockInterviewPage.css"; // reuse mock-* card styles
-import {
-  getFallbackQuestions,
-  getFallbackPositionSuggestions,
-} from "../SharedQuestionData/sampleQuestions";
+import { getFallbackQuestions } from "../SharedQuestionData/sampleQuestions";
 
-// TODO: confirm this matches wherever the backend is actually reachable
-// from the browser (same value used elsewhere).
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+
+// Danh sách vị trí cố định theo yêu cầu của bạn
+const STATIC_POSITIONS = [
+  { id: 1, name: "BACK-END DEVELOPER" },
+  { id: 2, name: "FRONT-END DEVELOPER" },
+  { id: 3, name: "DATA ENGINEER" },
+  { id: 4, name: "FULL-STACK DEVELOPER" },
+  { id: 5, name: "DEVOPS ENGINEER" },
+];
 
 const DIFFICULTY_OPTIONS = [
   { value: "MIXED", label: "Mixed (any difficulty)" },
@@ -23,14 +27,11 @@ const DIFFICULTY_OPTIONS = [
 const NUM_QUESTIONS_OPTIONS = [5, 10, 15, 20];
 
 const SelfPracticePage = () => {
-  // Position autocomplete
-  const [positionQuery, setPositionQuery] = useState("");
-  const [positionSuggestions, setPositionSuggestions] = useState([]);
-  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  // Positions state
+  const [positions, setPositions] = useState(STATIC_POSITIONS);
   const [selectedPosition, setSelectedPosition] = useState("");
-  const positionWrapperRef = useRef(null);
 
-  const [selectedDifficulty, setSelectedDifficulty] = useState("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState("MIXED");
   const [numQuestions, setNumQuestions] = useState(10);
 
   const [loading, setLoading] = useState(false);
@@ -47,60 +48,34 @@ const SelfPracticePage = () => {
   const recorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
-  // Reveals suggestionAnswer for the current question in place; resets
-  // whenever the user moves to a different question.
   const [showAnswer, setShowAnswer] = useState(false);
 
-  // Debounced autocomplete search against /api/v1/position/search?q=...,
-  // falling back to local sample positions when the backend returns
-  // nothing (no data yet) or fails.
+  // Sync positions from Backend API /api/v1/position/get-all if available
   useEffect(() => {
-    if (!positionQuery.trim()) {
-      setPositionSuggestions([]);
-      return;
-    }
-    const timeoutId = setTimeout(async () => {
+    const fetchPositions = async () => {
       try {
-        const res = await fetch(
-          `${API_BASE}/api/v1/position/search?q=${encodeURIComponent(positionQuery)}`,
-        );
+        const res = await fetch(`${API_BASE}/api/v1/position/get-all`);
         if (res.ok) {
           const data = await res.json();
-          if (data.length > 0) {
-            setPositionSuggestions(data);
-            return;
+          if (Array.isArray(data) && data.length > 0) {
+            // Map string array from backend to {id, name} format
+            const mapped = data.map((posName, index) => ({
+              id: index + 1,
+              name: posName,
+            }));
+            setPositions(mapped);
           }
         }
-        setPositionSuggestions(getFallbackPositionSuggestions(positionQuery));
-      } catch {
-        setPositionSuggestions(getFallbackPositionSuggestions(positionQuery));
-      }
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [positionQuery]);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (
-        positionWrapperRef.current &&
-        !positionWrapperRef.current.contains(e.target)
-      ) {
-        setSuggestionsOpen(false);
+      } catch (err) {
+        console.warn("Using static positions due to API error:", err);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    fetchPositions();
   }, []);
 
-  const handlePositionInputChange = (e) => {
-    setPositionQuery(e.target.value);
-    setSuggestionsOpen(true);
-    setSelectedPosition("");
-  };
+  const fetchQuestions = async (positionName, difficulty, count) => {
+    if (!positionName) return;
 
-  const startSession = async (position) => {
-    setSelectedPosition(position);
-    setSuggestionsOpen(false);
     setLoading(true);
     setLoadError(null);
     setUsingSampleData(false);
@@ -113,45 +88,66 @@ const SelfPracticePage = () => {
 
     try {
       const params = new URLSearchParams({
-        position,
-        numQuestions: String(numQuestions),
+        position: positionName,
+        numQuestions: String(count),
       });
-      if (selectedDifficulty && selectedDifficulty !== "MIXED") {
-        params.set("difficulty", selectedDifficulty);
+      if (difficulty && difficulty !== "MIXED") {
+        params.set("difficulty", difficulty);
       }
+
+      // Backend API: /api/v1/question/get-question
       const res = await fetch(
-        `${API_BASE}/api/v1/question/question?${params.toString()}`,
+        `${API_BASE}/api/v1/question/get-question?${params.toString()}`,
       );
+
       if (res.ok) {
         const data = await res.json();
-        if (data.length > 0) {
+        if (data && data.length > 0) {
           setPool(data);
           setLoading(false);
           return;
         }
       }
-      // No backend data yet — use local samples instead of showing empty.
-      setPool(getFallbackQuestions(position, selectedDifficulty, numQuestions));
+
+      // Fallback local data if backend returns empty
+      setPool(getFallbackQuestions(positionName, difficulty, count));
       setUsingSampleData(true);
-    } catch {
-      setPool(getFallbackQuestions(position, selectedDifficulty, numQuestions));
+    } catch (err) {
+      setPool(getFallbackQuestions(positionName, difficulty, count));
       setUsingSampleData(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSelectPosition = (name) => {
-    setPositionQuery(name);
-    startSession(name);
+  const handlePositionChange = (e) => {
+    const posName = e.target.value;
+    setSelectedPosition(posName);
+    if (posName) {
+      fetchQuestions(posName, selectedDifficulty, numQuestions);
+    }
+  };
+
+  const handleDifficultyChange = (e) => {
+    const diff = e.target.value;
+    setSelectedDifficulty(diff);
+    if (selectedPosition) {
+      fetchQuestions(selectedPosition, diff, numQuestions);
+    }
+  };
+
+  const handleNumQuestionsChange = (e) => {
+    const count = Number(e.target.value);
+    setNumQuestions(count);
+    if (selectedPosition) {
+      fetchQuestions(selectedPosition, selectedDifficulty, count);
+    }
   };
 
   const currentQuestion = pool[poolIndex] || null;
   const hasMoreInPool = poolIndex < pool.length - 1;
   const showCard = selectedPosition && !loading && currentQuestion;
 
-  // TODO: integration point for a real adaptive endpoint, if/when one is
-  // added for self-practice too. Currently just walks the pre-fetched pool.
   const nextQuestion = () => {
     if (!hasMoreInPool) return;
     setPoolIndex((prev) => prev + 1);
@@ -227,45 +223,27 @@ const SelfPracticePage = () => {
           <h1 className="selfpractice-title">-----SELF PRACTICE-----</h1>
 
           <div className="self-field-select-wrap">
-            <div className="self-position-search" ref={positionWrapperRef}>
-              <input
-                type="text"
-                className="self-field-select self-position-input"
-                placeholder="Type a position (e.g. Backend Developer)"
-                value={positionQuery}
-                onChange={handlePositionInputChange}
-                onFocus={() => positionQuery.trim() && setSuggestionsOpen(true)}
-              />
-              {suggestionsOpen && positionQuery.trim() && (
-                <div className="self-position-dropdown">
-                  {positionSuggestions.length > 0 ? (
-                    positionSuggestions.map((name) => (
-                      <button
-                        type="button"
-                        key={name}
-                        className="self-position-dropdown-item"
-                        onClick={() => handleSelectPosition(name)}
-                      >
-                        {name}
-                      </button>
-                    ))
-                  ) : (
-                    <div className="self-position-dropdown-empty">
-                      No positions match &quot;{positionQuery}&quot;.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            {/* Chuyển ô Input autocomplete thành Dropdown Selection */}
+            <select
+              className="self-field-select self-position-select"
+              value={selectedPosition}
+              onChange={handlePositionChange}
+            >
+              <option value="" disabled>
+                -- Select Position --
+              </option>
+              {positions.map((pos) => (
+                <option key={pos.id} value={pos.name}>
+                  {pos.name}
+                </option>
+              ))}
+            </select>
 
             <select
               className="self-field-select self-difficulty-select"
               value={selectedDifficulty}
-              onChange={(e) => setSelectedDifficulty(e.target.value)}
+              onChange={handleDifficultyChange}
             >
-              <option value="" disabled>
-                Select difficulty
-              </option>
               {DIFFICULTY_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
@@ -276,7 +254,7 @@ const SelfPracticePage = () => {
             <select
               className="self-field-select self-count-select"
               value={numQuestions}
-              onChange={(e) => setNumQuestions(Number(e.target.value))}
+              onChange={handleNumQuestionsChange}
             >
               {NUM_QUESTIONS_OPTIONS.map((n) => (
                 <option key={n} value={n}>
@@ -352,7 +330,8 @@ const SelfPracticePage = () => {
                   <div className="self-answer-reveal">
                     <p className="self-answer-reveal-label">Answer</p>
                     <p className="self-answer-reveal-text">
-                      {currentQuestion.suggestionAnswer}
+                      {currentQuestion.suggestionAnswer ||
+                        "No suggested answer available."}
                     </p>
                   </div>
                 )}

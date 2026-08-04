@@ -100,10 +100,19 @@ public class UserService {
 
 
     public UserUpdateResponse updateUserInfo(User user, UserUpdateRequest request) {
-        user.setUserName(request.userName());
-        user.setFullName(request.fullName());
-        user.setGithubUrl(request.githubUrl());
-        user.setLinkedinUrl(request.linkedinUrl());
+        // Only update fields that are explicitly provided (not null)
+        if (request.userName() != null) {
+            user.setUserName(request.userName());
+        }
+        if (request.fullName() != null) {
+            user.setFullName(request.fullName());
+        }
+        if (request.githubUrl() != null) {
+            user.setGithubUrl(request.githubUrl());
+        }
+        if (request.linkedinUrl() != null) {
+            user.setLinkedinUrl(request.linkedinUrl());
+        }
 
         userRepository.save(user);
 

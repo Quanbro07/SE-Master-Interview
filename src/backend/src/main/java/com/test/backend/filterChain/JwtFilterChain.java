@@ -3,11 +3,8 @@ package com.test.backend.filterChain;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.test.backend.entity.user.CustomUserDetail;
 import com.test.backend.exception.ErrorResponse;
-import com.test.backend.exception.customException.BlacklistTokenException;
-import com.test.backend.exception.customException.InvalidTokenException;
 import com.test.backend.service.authentication.BlackListTokenService;
 import com.test.backend.service.jwt.JwtService;
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
@@ -25,13 +22,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 @Configuration
@@ -58,11 +52,22 @@ public class JwtFilterChain extends OncePerRequestFilter {
 
         if(authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
-
             return;
         }
 
-        jwtToken = authHeader.substring(7);
+        // 1. LÀM SẠCH TOKEN: Loại bỏ dấu ngoặc kép " và khoảng trắng thừa do Frontend gửi lên
+        jwtToken = authHeader.substring(7).replace("\"", "").trim();
+
+        if (jwtToken.isEmpty()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // 2. Bỏ qua kiểm tra Filter nếu request gọi vào API Refresh Token (Được xử lý tại AuthController)
+        if (request.getRequestURI().contains("/api/v1/auth/refresh-token")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         if(blacklistTokenService.isTokenBlacklisted(jwtToken)) {
             handleExceptionResponse(response, "Token expired - Login again", HttpServletResponse.SC_UNAUTHORIZED);
@@ -74,7 +79,6 @@ public class JwtFilterChain extends OncePerRequestFilter {
             String tokenType = jwtService.extractClaims(jwtToken, claims -> claims.get("type", String.class));
 
             if("PRE_AUTH".equals(tokenType)) {
-
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -86,7 +90,6 @@ public class JwtFilterChain extends OncePerRequestFilter {
                 CustomUserDetail userDetail = (CustomUserDetail) userDetailsService.loadUserByUsername(userEmail);
 
                 if (jwtService.isTokenValid(userDetail, jwtToken)) {
-
 
                     UsernamePasswordAuthenticationToken authenToken =
                             new UsernamePasswordAuthenticationToken(
@@ -105,12 +108,11 @@ public class JwtFilterChain extends OncePerRequestFilter {
             }
 
         } catch (ExpiredJwtException e) {
-            // HỨNG LỖI TOKEN HẾT HẠN Ở ĐÂY
+            log.warn("JWT Expired for request [{}]: {}", request.getRequestURI(), e.getMessage());
             handleExceptionResponse(response, "Token Expired", HttpServletResponse.SC_UNAUTHORIZED);
             return;
         } catch (SignatureException | MalformedJwtException | UnsupportedJwtException | IllegalArgumentException e) {
-            log.error("JWT validation failed: {}", e.getMessage(), e);
-            // Hứng các lỗi JWT khác như sai chữ ký, token bị can thiệp...
+            log.error("JWT validation failed for [{}]: {}", request.getRequestURI(), e.getMessage());
             handleExceptionResponse(response, "Token không hợp lệ!", HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
@@ -123,7 +125,6 @@ public class JwtFilterChain extends OncePerRequestFilter {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
 
-        // Tạo body JSON (bạn có thể thay bằng ErrorResponse DTO của bạn)
         ErrorResponse errorDetails = new ErrorResponse(
                 LocalDateTime.now().toString(),
                 statusCode,
@@ -131,10 +132,7 @@ public class JwtFilterChain extends OncePerRequestFilter {
                 message
         );
 
-        // Dùng ObjectMapper để convert Map sang chuỗi JSON và ghi vào response
         ObjectMapper mapper = new ObjectMapper();
         response.getWriter().write(mapper.writeValueAsString(errorDetails));
-
-        // Lưu ý: Không gọi filterChain.doFilter() ở đây để chặn đứng request lại
     }
 }

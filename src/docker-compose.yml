@@ -39,7 +39,7 @@ services:
     command: server /data --console-address ":9001"
     networks:
       - app-network
-  
+
   # Redis
   redis:
     image: redis:alpine
@@ -54,7 +54,7 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-    
+
   backend:
     build:
       context: ./backend
@@ -68,7 +68,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      #Profile
+      # Profile
       - SPRING_PROFILES_ACTIVE=prod
 
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
@@ -98,23 +98,23 @@ services:
       # Internal
       - INTERNAL_URL=http://host.docker.internal:8000
       - INTERNAL_CV_ASSESSMENT_ENDPOINT=/api/ai/cv-assessment
-      
-      #Stripe
+
+      # Stripe
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_PUBLISH_KEY=${STRIPE_PUBLISH_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-      
+
       # Mail
       - MAIL_USERNAME=${MAIL_USERNAME}
       - MAIL_PASSWORD=${MAIL_PASSWORD}
-      
+
       # Zoom
       - ZOOM_ACCOUNT_ID=${ZOOM_ACCOUNT_ID}
       - ZOOM_CLIENT_ID=${ZOOM_CLIENT_ID}
       - ZOOM_CLIENT_SECRET=${ZOOM_CLIENT_SECRET}
-      - ZOOM_WEBHOOK_SECRET_TOKEN={ZOOM_WEBHOOK_SECRET_TOKEN}
-      
-      # redis
+      - ZOOM_WEBHOOK_SECRET_TOKEN=${ZOOM_WEBHOOK_SECRET_TOKEN}
+
+      # Redis
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
@@ -124,6 +124,7 @@ services:
       - app-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
   ngrok:
     image: ngrok/ngrok:alpine
     container_name: ngrok
@@ -131,13 +132,26 @@ services:
       - "4040:4040"
     environment:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
-    # Trỏ thẳng ngrok vào tên service backend và port của nó bên trong mạng lưới Docker
-    command: "http --domain=${NGROK_STATIC_DOMAIN} backend:8080" 
+    command: "http --domain=${NGROK_STATIC_DOMAIN} backend:8080"
     depends_on:
       - backend
     networks:
       - app-network
-  
+
+  # Đã di chuyển frontend vào đúng vị trí bên trong 'services:'
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: master-interview-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+    depends_on:
+      - backend
+    networks:
+      - app-network
 
 volumes:
   db_data:

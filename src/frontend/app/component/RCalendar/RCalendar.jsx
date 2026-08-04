@@ -74,6 +74,7 @@ const RCalendar = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedSlots, setSelectedSlots] = useState(new Set()); // specific-date mode
   const [repeatSlots, setRepeatSlots] = useState(new Set()); // repeat-weekly mode
+  const [blockedSlots, setBlockedSlots] = useState(new Set()); // blocked time slots
 
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [scheduleError, setScheduleError] = useState(null);
@@ -95,12 +96,58 @@ const RCalendar = () => {
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const monthLabel = format(weekDays[6], "MMMM yyyy");
 
+  // Load blocked schedules for the visible week
+  const loadBlockedSchedules = async (dateInWeek, days) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/schedule/get?dateInWeek=${dateInWeek}`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) return; // Silently fail if blocked schedule fetch doesn't work
+      
+      const data = await res.json();
+      // Data should include blocked schedules; parse them to mark slots
+      const nextBlockedSlots = new Set();
+      
+      // Check if backend returns blocked_schedules (implementation-dependent)
+      if (data.blockedSchedules && Array.isArray(data.blockedSchedules)) {
+        data.blockedSchedules.forEach((block) => {
+          const blockStart = new Date(block.startTime);
+          const blockEnd = new Date(block.endTime);
+          
+          days.forEach((day) => {
+            for (let hour = HOURS[0]; hour <= HOURS[HOURS.length - 1]; hour++) {
+              const slotStart = new Date(day);
+              slotStart.setHours(hour, 0, 0, 0);
+              const slotEnd = new Date(slotStart);
+              slotEnd.setHours(hour + 1, 0, 0, 0);
+              
+              // Check if this hour overlaps with blocked period
+              if (slotStart < blockEnd && slotEnd > blockStart) {
+                nextBlockedSlots.add(`${format(day, "yyyy-MM-dd")}-${hour}`);
+              }
+            }
+          });
+        });
+      }
+      
+      setBlockedSlots(nextBlockedSlots);
+    } catch (err) {
+      // Silently fail - blocked schedule is secondary
+      console.warn("Could not load blocked schedules:", err.message);
+    }
+  };
+
   const goPrevWeek = () => setWeekStart((prev) => subWeeks(prev, 1));
   const goNextWeek = () => setWeekStart((prev) => addWeeks(prev, 1));
 
   const isSlotSelected = (date, hour, weekdayIndex) => {
     if (repeatWeekly) return repeatSlots.has(repeatKey(weekdayIndex, hour));
     return selectedSlots.has(dateKey(date, hour));
+  };
+
+  const isSlotBlocked = (date, hour) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    return blockedSlots.has(`${dateStr}-${hour}`);
   };
 
   const setSlot = (date, hour, weekdayIndex, value) => {
@@ -189,12 +236,28 @@ const RCalendar = () => {
       setScheduleError(null);
       try {
         const dateInWeek = format(weekDays[0], "yyyy-MM-dd");
+        
+        // Try to load from cache first
+        let cachedSchedule = null;
+        const cachedData = localStorage.getItem("interviewerSchedule");
+        if (cachedData) {
+          try {
+            cachedSchedule = JSON.parse(cachedData);
+          } catch (e) {
+            console.warn("Could not parse cached schedule");
+          }
+        }
+
+        // Fetch fresh data from backend
         const res = await fetch(
           `${API_BASE}/api/v1/schedule/get?dateInWeek=${dateInWeek}`,
           { headers: authHeaders() },
         );
         if (!res.ok) throw new Error(`Failed to load schedule (${res.status})`);
         const data = await res.json();
+
+        // Update cache
+        localStorage.setItem("interviewerSchedule", JSON.stringify(data));
 
         const nextRepeatSlots = new Set();
         (data.schedules || []).forEach((daySchedule) => {
@@ -210,6 +273,9 @@ const RCalendar = () => {
           });
         });
         setRepeatSlots(nextRepeatSlots);
+
+        // Fetch blocked schedules for this week
+        await loadBlockedSchedules(dateInWeek, weekDays);
       } catch (err) {
         setScheduleError(err.message || "Could not load your schedule.");
       } finally {
@@ -399,11 +465,12 @@ const RCalendar = () => {
                   <div className="grid-time-label">{hour}:00</div>
                   {weekDays.map((date, weekdayIndex) => {
                     const selected = isSlotSelected(date, hour, weekdayIndex);
+                    const blocked = isSlotBlocked(date, hour);
                     return (
                       <button
                         key={weekdayIndex}
                         type="button"
-                        className={`slot-cell ${selected ? "is-selected" : ""} ${!isEditing ? "is-locked" : ""}`}
+                        className={`slot-cell ${selected ? "is-selected" : ""} ${blocked ? "is-blocked" : ""} ${!isEditing ? "is-locked" : ""}`}
                         onMouseDown={() =>
                           handleMouseDown(date, hour, weekdayIndex)
                         }
@@ -411,7 +478,8 @@ const RCalendar = () => {
                           handleMouseEnter(date, hour, weekdayIndex)
                         }
                         aria-pressed={selected}
-                        aria-label={`${WEEKDAY_LABELS[weekdayIndex]} ${format(date, "MMM d")} ${hour}:00`}
+                        aria-label={`${WEEKDAY_LABELS[weekdayIndex]} ${format(date, "MMM d")} ${hour}:00${blocked ? " (blocked)" : ""}`}
+                        disabled={blocked} // Prevent editing blocked slots
                       />
                     );
                   })}

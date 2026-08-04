@@ -1,41 +1,72 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import RNavigationBar from "../RNavigationBar/RNavigationBar";
 import "./RDashboard.css";
 
-const initialRequests = [
-  {
-    id: "r1",
-    date: "20/06/2026",
-    time: "19:30",
-    interviewee: "Ms Hạnh Cafe",
-    about: "Java Developer",
-    status: "in-progress", // "in-progress" | "done" | "no-show"
-    feedback: "",
-    money: "$5",
-  },
-  {
-    id: "r2",
-    date: "21/06/2026",
-    time: "20:30",
-    interviewee: "Mr 田中さん",
-    about: "Java Developer",
-    status: "in-progress",
-    feedback: "",
-    money: "$5",
-  },
-  {
-    id: "r3",
-    date: "21/06/2026",
-    time: "20:30",
-    interviewee: "Mr Alex Nguyễn",
-    about: "Java Developer",
-    status: "in-progress",
-    feedback: "",
-    money: "$5",
-  },
-];
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+
+const getAccessToken = () => {
+  if (typeof window === "undefined") return "";
+  return (
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("token") ||
+    localStorage.getItem("jwt") ||
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("access_token") ||
+    ""
+  );
+};
+
+const authHeaders = () => {
+  const token = getAccessToken();
+  if (!token) return {};
+  return {
+    Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
+  };
+};
+
+// Map backend booking status to frontend status
+const mapBookingStatus = (status) => {
+  switch (status) {
+    case "CONFIRMED":
+      return "in-progress";
+    case "COMPLETED":
+      return "done";
+    case "REJECTED":
+      return "no-show"; // Or hide rejected rows
+    default:
+      return "in-progress";
+  }
+};
+
+// Convert backend booking object to frontend structure
+const convertBookingToDashboardRow = (booking) => {
+  if (!booking) return null;
+
+  const startTime = new Date(booking.start_time);
+  const dateStr = startTime.toLocaleDateString("en-GB"); // DD/MM/YYYY
+  const timeStr = startTime.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return {
+    id: `booking-${booking.booking_id}`,
+    bookingId: booking.booking_id,
+    date: dateStr,
+    time: timeStr,
+    interviewee: booking.booker?.full_name || "Unknown Candidate",
+    about: booking.booker?.position || "Mock Interview",
+    status: mapBookingStatus(booking.booking_status),
+    feedback: "", // Will be filled from state/drafts
+    money: "$5", // Standard fee or from backend if available
+    meetingUrl: booking.meeting_url,
+    meetingStartUrl: booking.meeting_url, // Or fetch start url
+    rawBooking: booking,
+  };
+};
 
 const STATUS_LABEL = {
   "in-progress": "In Progress",
@@ -51,10 +82,62 @@ const toTimestamp = (dateStr, timeStr) => {
 };
 
 const RDashboard = () => {
-  const [requests, setRequests] = useState(initialRequests);
+  const [requests, setRequests] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [feedbackDrafts, setFeedbackDrafts] = useState({});
   const [toast, setToast] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch confirmed/ongoing/completed bookings from backend
+  const loadBookings = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Fetch all bookings for interviewer (CONFIRMED & COMPLETED)
+      const res = await fetch(`${API_BASE}/api/v1/booking/all-bookings`, {
+        headers: authHeaders(),
+      });
+
+      if (!res.ok) throw new Error(`Failed to load dashboard data (${res.status})`);
+      const bookings = await res.json();
+
+      // Filter out PENDING bookings (those belong in Booking Requests view)
+      const dashboardBookings = (Array.isArray(bookings) ? bookings : [])
+        .filter((b) => b.booking_status !== "PENDING")
+        .map((b) => convertBookingToDashboardRow(b))
+        .filter((r) => r !== null);
+
+      setRequests(dashboardBookings);
+
+      // Cache bookings locally
+      localStorage.setItem("interviewerBookings", JSON.stringify(bookings));
+    } catch (err) {
+      console.error("Error loading dashboard bookings:", err);
+      setError(err.message || "Could not load interview sessions.");
+
+      // Fallback to cache if available
+      try {
+        const cached = localStorage.getItem("interviewerBookings");
+        if (cached) {
+          const bookings = JSON.parse(cached);
+          const dashboardBookings = bookings
+            .filter((b) => b.booking_status !== "PENDING")
+            .map((b) => convertBookingToDashboardRow(b))
+            .filter((r) => r !== null);
+          setRequests(dashboardBookings);
+        }
+      } catch (e) {
+        console.warn("Could not load from cache:", e);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBookings();
+  }, [loadBookings]);
 
   const toggleExpand = (id) => {
     setExpandedId((prev) => {
@@ -74,21 +157,52 @@ const RDashboard = () => {
     setFeedbackDrafts((prev) => ({ ...prev, [id]: value }));
   };
 
-  const finalizeStatus = (id, finalStatus) => {
+  const finalizeStatus = async (id, finalStatus) => {
+    const target = requests.find((r) => r.id === id);
+    const feedbackText = feedbackDrafts[id] ?? target?.feedback ?? "";
+
+    // Update local state immediately for responsive UI
     setRequests((prev) =>
       prev.map((r) =>
         r.id === id
           ? {
               ...r,
               status: finalStatus,
-              feedback: feedbackDrafts[id] ?? r.feedback,
+              feedback: feedbackText,
             }
           : r,
       ),
     );
     setExpandedId(null);
+
+    // Call backend API to mark interview as completed
+    if (target && target.bookingId) {
+      try {
+        const payload = {
+          bookingId: target.bookingId,
+          notes: feedbackText,
+          status: finalStatus === "done" ? "COMPLETED" : "NO_SHOW",
+        };
+
+        const res = await fetch(`${API_BASE}/api/v1/booking/complete`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeaders(),
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          console.warn(`Backend completion endpoint returned ${res.status}`);
+        }
+      } catch (err) {
+        console.error("Failed to sync completed status to backend:", err);
+      }
+    }
+
     setToast({
-      name: requests.find((r) => r.id === id)?.interviewee,
+      name: target?.interviewee,
       status: finalStatus,
     });
     setTimeout(() => setToast(null), 2200);

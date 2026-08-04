@@ -6,7 +6,6 @@ import "./AuthCallbackPage.css";
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
-// Chuẩn hóa đường dẫn Redirect cho các role
 const ROLE_REDIRECTS = {
   Interviewee: "/interview-booking",
   INTERVIEWEE: "/interview-booking",
@@ -16,13 +15,10 @@ const ROLE_REDIRECTS = {
   ADMIN: "/admin/users",
 };
 
-// SỬA LỖI 1: Hàm chuẩn hóa tên Role (Thay equalsIgnoreCase bằng toLowerCase)
 const normalizeRole = (roleStr) => {
   if (!roleStr) return "Interviewee";
   const cleanRole = roleStr.replace("ROLE_", "");
-  if (cleanRole.toLowerCase() === "interviewer") {
-    return "Interviewer";
-  }
+  if (cleanRole.toLowerCase() === "interviewer") return "Interviewer";
   return cleanRole;
 };
 
@@ -42,18 +38,68 @@ const decodeJwtPayload = (token) => {
   }
 };
 
-// SỬA LỖI 2: Lưu Token an toàn vào LocalStorage cho tất cả các trang đọc được
-const storeAuthResponse = (data) => {
-  // Lấy token từ mọi field có thể có của Backend
-  const tokenValue = data.accessToken || data.token || data.jwt;
+// 1. CHỈ TÌM ACCESS TOKEN (Không lấy nhầm Refresh Token)
+const extractAccessToken = (data = {}) => {
+  const candidates = [
+    data.accessToken,
+    data.access_token,
+    data.token,
+    data.jwt,
+    data.authToken,
+    data.authorization,
+  ];
 
-  if (tokenValue) {
-    localStorage.setItem("accessToken", tokenValue);
-    localStorage.setItem("token", tokenValue); // Lưu thêm key dự phòng
+  const token = candidates.find(
+    (value) => typeof value === "string" && value.trim(),
+  );
+
+  return token
+    ? String(token)
+        .replace(/^"(.*)"$/, "$1")
+        .trim()
+    : "";
+};
+
+// 2. CHỈ TÌM REFRESH TOKEN
+const extractRefreshToken = (data = {}) => {
+  const candidates = [
+    data.refreshToken,
+    data.refresh_token,
+    data.refreshTokenValue,
+  ];
+
+  const token = candidates.find(
+    (value) => typeof value === "string" && value.trim(),
+  );
+
+  return token
+    ? String(token)
+        .replace(/^"(.*)"$/, "$1")
+        .trim()
+    : "";
+};
+
+// 3. LƯU TOKEN RÕ RÀNG, CHÍNH XÁC VÀO LOCALSTORAGE
+const storeAuthResponse = (data = {}) => {
+  const accessToken = extractAccessToken(data);
+  const refreshToken = extractRefreshToken(data);
+
+  if (accessToken) {
+    // Lưu Access Token thống nhất vào các key chuẩn
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("token", accessToken);
+    localStorage.setItem("jwt", accessToken);
+    localStorage.setItem("authToken", accessToken);
+    localStorage.setItem("access_token", accessToken);
   }
 
-  if (data.refreshToken) {
-    localStorage.setItem("refreshToken", data.refreshToken);
+  if (refreshToken) {
+    // CHỈ lưu đúng Refresh Token vào key refreshToken
+    localStorage.setItem("refreshToken", refreshToken);
+    localStorage.setItem("refresh_token", refreshToken);
+  } else {
+    // Nếu response đăng nhập không trả lại refreshToken mới, giữ nguyên hoặc không đè Access Token lên!
+    console.warn("No refreshToken provided in auth response");
   }
 
   localStorage.setItem(
@@ -67,20 +113,95 @@ const storeAuthResponse = (data) => {
       stripeAccountId: data.stripeAccountId || null,
     }),
   );
+};
 
-  console.log(
-    "✅ [AuthCallback] Đã lưu thành công Token vào LocalStorage:",
-    tokenValue,
+// 4. LẤY ACCESS TOKEN SẠCH ĐỂ GỬI REQUEST
+const getStoredAccessToken = () => {
+  if (typeof window === "undefined") return "";
+
+  const savedToken =
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("token") ||
+    localStorage.getItem("jwt") ||
+    localStorage.getItem("access_token") ||
+    "";
+
+  return String(savedToken)
+    .replace(/^"(.*)"$/, "$1")
+    .trim();
+};
+
+const authHeaders = (token) => {
+  const normalizedToken = String(token || getStoredAccessToken()).trim();
+
+  if (!normalizedToken) {
+    return {};
+  }
+
+  return {
+    Authorization: normalizedToken.startsWith("Bearer ")
+      ? normalizedToken
+      : `Bearer ${normalizedToken}`,
+  };
+};
+
+const isInterviewerProfileIncomplete = (profile) => {
+  if (!profile) return true;
+  return (
+    !profile.title?.trim() || !profile.company?.trim() || !profile.bio?.trim()
   );
 };
 
-const redirectForRole = (router, role) => {
-  const target =
-    ROLE_REDIRECTS[role] ||
-    ROLE_REDIRECTS[normalizeRole(role)] ||
-    "/interview-booking";
-  router.replace(target);
-};
+const InterviewerDetailsFields = ({ values, onChange }) => (
+  <fieldset className="auth-interviewer-fieldset">
+    <legend>Interviewer details</legend>
+    <p className="auth-interviewer-note">
+      This information will be shown to candidates browsing mentors.
+    </p>
+
+    <label>
+      Job title
+      <input
+        type="text"
+        value={values.title}
+        onChange={onChange("title")}
+        placeholder="e.g. Senior Backend Developer"
+        required
+      />
+    </label>
+
+    <label>
+      Company
+      <input
+        type="text"
+        value={values.company}
+        onChange={onChange("company")}
+        placeholder="e.g. FPT Software"
+        required
+      />
+    </label>
+
+    <label>
+      Years of experience
+      <input
+        type="number"
+        min={0}
+        value={values.yearsExperience}
+        onChange={onChange("yearsExperience")}
+      />
+    </label>
+
+    <label>
+      About you
+      <textarea
+        rows={4}
+        value={values.bio}
+        onChange={onChange("bio")}
+        placeholder="Tell candidates a bit about your background and interview style."
+      />
+    </label>
+  </fieldset>
+);
 
 const AuthCallbackInner = () => {
   const router = useRouter();
@@ -90,8 +211,10 @@ const AuthCallbackInner = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showRegisterForm, setShowRegisterForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const [mode, setMode] = useState(null);
+  const [displayEmail, setDisplayEmail] = useState("");
 
   const [form, setForm] = useState({
     userName: "",
@@ -99,8 +222,76 @@ const AuthCallbackInner = () => {
     linkedinUrl: "",
     githubUrl: "",
     role: "Interviewer",
+    title: "",
+    company: "",
+    yearsExperience: "",
+    bio: "",
   });
-  const [displayEmail, setDisplayEmail] = useState("");
+
+  const [sessionAccessToken, setSessionAccessToken] = useState(null);
+
+  const handleFieldChange = (field) => (e) => {
+    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  };
+
+  const redirectForRole = (role) => {
+    const target =
+      ROLE_REDIRECTS[role] ||
+      ROLE_REDIRECTS[normalizeRole(role)] ||
+      "/interview-booking";
+    router.replace(target);
+  };
+
+  const loadAndCacheSchedule = useCallback(async (token) => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/schedule/get`, {
+        headers: authHeaders(token),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem("interviewerSchedule", JSON.stringify(data));
+      }
+    } catch (err) {
+      console.warn("Could not load schedule:", err.message);
+    }
+  }, []);
+
+  const loadAndCacheBookingData = useCallback(async (token) => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/booking/all-bookings`, {
+        headers: authHeaders(token),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem("interviewerBookings", JSON.stringify(data));
+      }
+    } catch (err) {
+      console.warn("Could not load booking data:", err.message);
+    }
+  }, []);
+
+  const checkInterviewerProfileAndProceed = useCallback(
+    async (accessToken, role) => {
+      const effectiveToken = accessToken || getStoredAccessToken();
+
+      if (effectiveToken) {
+        setSessionAccessToken(effectiveToken);
+        if (
+          role === "Interviewer" ||
+          role === "INTERVIEWER" ||
+          normalizeRole(role) === "Interviewer"
+        ) {
+          await loadAndCacheSchedule(effectiveToken);
+          await loadAndCacheBookingData(effectiveToken);
+        }
+      }
+
+      redirectForRole(role);
+    },
+    [loadAndCacheSchedule, loadAndCacheBookingData],
+  );
 
   const handleLogin = useCallback(async () => {
     setLoading(true);
@@ -110,25 +301,23 @@ const AuthCallbackInner = () => {
       const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
         method: "POST",
         headers: {
-          Authorization: cleanToken.startsWith("Bearer ")
-            ? cleanToken
-            : `Bearer ${cleanToken}`,
+          Accept: "application/json",
+          ...authHeaders(cleanToken),
         },
+        credentials: "include",
       });
-
       if (!res.ok) throw new Error(`Login failed (${res.status})`);
       const data = await res.json();
 
-      // Lưu auth data & token
       storeAuthResponse(data);
-      redirectForRole(router, data.role);
+      const accessToken = extractAccessToken(data);
+      await checkInterviewerProfileAndProceed(accessToken, data.role);
     } catch (err) {
-      console.error("❌ Login error:", err);
+      console.error("Login error:", err);
       setError(err.message || "Login failed. Please try again.");
-    } finally {
       setLoading(false);
     }
-  }, [token, router]);
+  }, [token, checkInterviewerProfileAndProceed]);
 
   useEffect(() => {
     if (!token || !purpose) {
@@ -145,7 +334,7 @@ const AuthCallbackInner = () => {
     if (purpose === "REGISTRATION") {
       const claims = decodeJwtPayload(token);
       setDisplayEmail(claims?.sub || "");
-      setShowRegisterForm(true);
+      setMode("register");
       setLoading(false);
       return;
     }
@@ -154,10 +343,6 @@ const AuthCallbackInner = () => {
     setLoading(false);
   }, [token, purpose, handleLogin]);
 
-  const handleFieldChange = (field) => (e) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
-  };
-
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -165,17 +350,32 @@ const AuthCallbackInner = () => {
 
     try {
       const cleanToken = token ? token.trim() : "";
-      const authHeader = cleanToken.startsWith("Bearer ")
-        ? cleanToken
-        : `Bearer ${cleanToken}`;
+
+      const payload = {
+        userName: form.userName,
+        fullName: form.fullName,
+        linkedinUrl: form.linkedinUrl,
+        githubUrl: form.githubUrl,
+        role: form.role,
+        ...(form.role === "Interviewer" && {
+          title: form.title,
+          company: form.company,
+          yearsExperience: form.yearsExperience
+            ? Number(form.yearsExperience)
+            : null,
+          bio: form.bio,
+        }),
+      };
 
       const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: authHeader,
+          Accept: "application/json",
+          ...authHeaders(cleanToken),
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
+        credentials: "include",
       });
 
       if (!res.ok) {
@@ -189,12 +389,56 @@ const AuthCallbackInner = () => {
 
       const data = await res.json();
       storeAuthResponse(data);
-      redirectForRole(router, data.role);
+      const accessToken = extractAccessToken(data);
+      if (accessToken) {
+        setSessionAccessToken(accessToken);
+      }
+      redirectForRole(data.role);
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCompleteProfileSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const payload = {
+        title: form.title,
+        company: form.company,
+        years_experience: form.yearsExperience
+          ? Number(form.yearsExperience)
+          : null,
+        bio: form.bio,
+      };
+
+      const res = await fetch(`${API_BASE}/api/v1/user/update-user-info`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...authHeaders(sessionAccessToken),
+        },
+        body: JSON.stringify(payload),
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error(`Failed to save profile (${res.status})`);
+
+      redirectForRole("Interviewer");
+    } catch (err) {
+      setError(err.message || "Could not save your profile. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const skipProfileCompletion = () => {
+    redirectForRole("Interviewer");
   };
 
   if (loading) {
@@ -208,7 +452,7 @@ const AuthCallbackInner = () => {
     );
   }
 
-  if (error && !showRegisterForm) {
+  if (error && mode === null) {
     return (
       <div className="auth-callback-root">
         <div className="auth-callback-error-box">
@@ -221,7 +465,7 @@ const AuthCallbackInner = () => {
     );
   }
 
-  if (showRegisterForm) {
+  if (mode === "register") {
     return (
       <div className="auth-callback-root">
         <form className="auth-register-form" onSubmit={handleRegisterSubmit}>
@@ -299,11 +543,56 @@ const AuthCallbackInner = () => {
             </label>
           </fieldset>
 
+          {form.role === "Interviewer" && (
+            <InterviewerDetailsFields
+              values={form}
+              onChange={handleFieldChange}
+            />
+          )}
+
           {error && <p className="auth-register-error">{error}</p>}
 
           <button type="submit" disabled={submitting}>
             {submitting ? "Creating account..." : "Complete sign up"}
           </button>
+        </form>
+      </div>
+    );
+  }
+
+  if (mode === "complete-profile") {
+    return (
+      <div className="auth-callback-root">
+        <form
+          className="auth-register-form"
+          onSubmit={handleCompleteProfileSubmit}
+        >
+          <h2>Finish setting up your profile</h2>
+          <p className="auth-register-subtitle">
+            A few details are missing — candidates will see this on your mentor
+            profile.
+          </p>
+
+          <InterviewerDetailsFields
+            values={form}
+            onChange={handleFieldChange}
+          />
+
+          {error && <p className="auth-register-error">{error}</p>}
+
+          <div className="auth-complete-profile-actions">
+            <button
+              type="button"
+              className="auth-skip-btn"
+              onClick={skipProfileCompletion}
+              disabled={submitting}
+            >
+              Skip for now
+            </button>
+            <button type="submit" disabled={submitting}>
+              {submitting ? "Saving..." : "Save and continue"}
+            </button>
+          </div>
         </form>
       </div>
     );
