@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import "./AuthCallbackPage.css";
 
@@ -23,6 +23,10 @@ const normalizeRole = (roleStr) => {
 };
 
 const decodeJwtPayload = (token) => {
+  // Fix: Thêm check an toàn để tránh crash app nếu token không hợp lệ (không chứa dấu chấm)
+  if (!token || typeof token !== "string" || !token.includes(".")) {
+    return null;
+  }
   try {
     const payload = token.split(".")[1];
     const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
@@ -38,7 +42,6 @@ const decodeJwtPayload = (token) => {
   }
 };
 
-// 1. DỌN DẸP SẠCH BỘ NHỚ KHI LOGOUT HOẶC ĐỔI USER
 const clearAllAuthData = () => {
   if (typeof window === "undefined") return;
   const authKeys = [
@@ -56,7 +59,6 @@ const clearAllAuthData = () => {
   authKeys.forEach((key) => localStorage.removeItem(key));
 };
 
-// 2. LẤY ACCESS TOKEN (Hỗ trợ cả camelCase và snake_case access_token từ RefreshTokenResponse)
 const extractAccessToken = (data = {}) => {
   if (!data) return "";
   const candidate =
@@ -68,7 +70,6 @@ const extractAccessToken = (data = {}) => {
     : "";
 };
 
-// 3. LẤY REFRESH TOKEN (Khớp với AuthenticationResponse: refreshToken)
 const extractRefreshToken = (data = {}) => {
   if (!data) return "";
   const candidate = data.refreshToken || data.refresh_token;
@@ -79,7 +80,6 @@ const extractRefreshToken = (data = {}) => {
     : "";
 };
 
-// 4. LƯU THÔNG TIN ĐĂNG NHẬP (Lấy đúng trường từ AuthenticationResponse)
 const storeAuthResponse = (data = {}) => {
   clearAllAuthData();
 
@@ -98,7 +98,6 @@ const storeAuthResponse = (data = {}) => {
     localStorage.setItem("refresh_token", refreshToken);
   }
 
-  // Khớp với @JsonProperty trong AuthenticationResponse
   localStorage.setItem(
     "user",
     JSON.stringify({
@@ -196,8 +195,14 @@ const InterviewerDetailsFields = ({ values, onChange }) => (
 const AuthCallbackInner = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token");
-  const purpose = searchParams.get("purpose");
+  const tokenFromUrl = searchParams.get("regToken") || searchParams.get("token");
+    const purpose = searchParams.has("regToken") 
+      ? "REGISTRATION" 
+      : searchParams.get("purpose");
+
+  const token = tokenFromUrl;
+
+  const isProcessingRef = useRef(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -218,19 +223,21 @@ const AuthCallbackInner = () => {
     bio: "",
   });
 
-  const [sessionAccessToken, setSessionAccessToken] = useState(null);
-
   const handleFieldChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
-  const redirectForRole = (role) => {
-    const target =
-      ROLE_REDIRECTS[role] ||
-      ROLE_REDIRECTS[normalizeRole(role)] ||
-      "/interview-booking";
-    router.replace(target);
-  };
+  // Fix: Bọc useCallback để tránh infinite loop khi dùng trong hook khác
+  const redirectForRole = useCallback(
+    (role) => {
+      const target =
+        ROLE_REDIRECTS[role] ||
+        ROLE_REDIRECTS[normalizeRole(role)] ||
+        "/interview-booking";
+      router.replace(target);
+    },
+    [router]
+  );
 
   const loadAndCacheSchedule = useCallback(async (token) => {
     if (!token) return;
@@ -267,7 +274,6 @@ const AuthCallbackInner = () => {
       const effectiveToken = accessToken || getStoredAccessToken();
 
       if (effectiveToken) {
-        setSessionAccessToken(effectiveToken);
         if (
           role === "Interviewer" ||
           role === "INTERVIEWER" ||
@@ -280,7 +286,7 @@ const AuthCallbackInner = () => {
 
       redirectForRole(role);
     },
-    [loadAndCacheSchedule, loadAndCacheBookingData],
+    [loadAndCacheSchedule, loadAndCacheBookingData, redirectForRole]
   );
 
   const handleLogin = useCallback(async () => {
@@ -306,14 +312,13 @@ const AuthCallbackInner = () => {
         if (res.status === 401) {
           clearAllAuthData();
           throw new Error(
-            "Session expired or invalid token (401). Please try logging in again.",
+            "Session expired or invalid token (401). Please try logging in again."
           );
         }
         throw new Error(`Login failed (${res.status})`);
       }
 
       const data = await res.json();
-
       storeAuthResponse(data);
       const accessToken = extractAccessToken(data);
       await checkInterviewerProfileAndProceed(accessToken, data.role);
@@ -330,6 +335,10 @@ const AuthCallbackInner = () => {
       setLoading(false);
       return;
     }
+
+    // Ngăn chặn chạy 2 lần trong Strict Mode
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
 
     if (purpose === "AUTHENTICATION") {
       handleLogin();
@@ -357,8 +366,8 @@ const AuthCallbackInner = () => {
     try {
       const cleanToken = token ? token.trim() : "";
 
-      // KHỚP CHÍNH XÁC VỚI @JsonProperty CỦA RegisterRequest
       const payload = {
+        email: displayEmail, // Thêm email để an toàn với DB
         user_name: form.userName,
         full_name: form.fullName,
         linkedin_url: form.linkedinUrl,
@@ -367,8 +376,9 @@ const AuthCallbackInner = () => {
         ...(form.role === "Interviewer" && {
           title: form.title,
           company: form.company,
+          // Fix: Đảm bảo parse int an toàn, tránh bị NaN
           yearsExperience: form.yearsExperience
-            ? Number(form.yearsExperience)
+            ? parseInt(form.yearsExperience, 10) || 0
             : null,
           bio: form.bio,
         }),
@@ -389,7 +399,7 @@ const AuthCallbackInner = () => {
         if (res.status === 401) {
           clearAllAuthData();
           throw new Error(
-            "Registration session expired or invalid token (401). Please try logging in again.",
+            "Registration session expired or invalid token (401). Please try logging in again."
           );
         }
         throw new Error(`Registration failed (${res.status})`);
@@ -397,10 +407,6 @@ const AuthCallbackInner = () => {
 
       const data = await res.json();
       storeAuthResponse(data);
-      const accessToken = extractAccessToken(data);
-      if (accessToken) {
-        setSessionAccessToken(accessToken);
-      }
       redirectForRole(data.role);
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
@@ -418,8 +424,9 @@ const AuthCallbackInner = () => {
       const payload = {
         title: form.title,
         company: form.company,
+        // Fix: Đảm bảo parse int an toàn
         years_experience: form.yearsExperience
-          ? Number(form.yearsExperience)
+          ? parseInt(form.yearsExperience, 10) || 0
           : null,
         bio: form.bio,
       };
@@ -429,7 +436,8 @@ const AuthCallbackInner = () => {
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          ...authHeaders(sessionAccessToken),
+          // Fix: Gọi hàm lấy token trực tiếp thay vì phụ thuộc vào state (tránh mất token khi reload trang)
+          ...authHeaders(getStoredAccessToken()),
         },
         body: JSON.stringify(payload),
         credentials: "include",
