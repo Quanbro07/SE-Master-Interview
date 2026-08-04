@@ -1,16 +1,14 @@
 "use client";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import NavigationBar from "../NavigationBar/NavigationBar";
 import "./CVAssessmentPage.css";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
-// Helper lấy Access Token ưu tiên key chuẩn
+// Helper lấy Access Token
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
-
-  // Ưu tiên theo thứ tự tên key chuẩn thường dùng
   const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
   let token = "";
   for (const key of keys) {
@@ -20,7 +18,6 @@ const getAccessToken = () => {
       break;
     }
   }
-
   if (!token) return "";
   return token.replace(/^"(.*)"$/, "$1").trim();
 };
@@ -37,12 +34,11 @@ const getRefreshToken = () => {
       break;
     }
   }
-
   if (!token) return "";
   return token.replace(/^"(.*)"$/, "$1").trim();
 };
 
-// Cập nhật lại tất cả token key trong LocalStorage để giữ đồng bộ
+// Cập nhật lại tất cả token key trong LocalStorage
 const updateStoredTokens = (newAccessToken, newRefreshToken) => {
   if (newAccessToken) {
     localStorage.setItem("accessToken", newAccessToken);
@@ -54,12 +50,11 @@ const updateStoredTokens = (newAccessToken, newRefreshToken) => {
   }
 };
 
-// Hàm Refresh Token (Sửa lại hỗ trợ cả gửi Body JSON lẫn Header)
+// Hàm Refresh Token
 const refreshAccessToken = async () => {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
 
-  // Xử lý làm sạch token
   const cleanRefreshToken = refreshToken
     .replace(/^Bearer\s+/i, "")
     .replace(/"/g, "")
@@ -72,11 +67,10 @@ const refreshAccessToken = async () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${cleanRefreshToken}`,
       },
-      body: JSON.stringify({ refreshToken: cleanRefreshToken }), // Gửi kèm Body đề phòng AuthController yêu cầu Body
+      body: JSON.stringify({ refreshToken: cleanRefreshToken }),
     });
 
     if (!res.ok) {
-      // Nếu Refresh Token cũng bị 401 -> Xóa cờ đăng nhập và bắt User Login lại
       localStorage.clear();
       return null;
     }
@@ -95,6 +89,7 @@ const refreshAccessToken = async () => {
   }
   return null;
 };
+
 // Labels cho section names từ backend
 const SECTION_LABELS = {
   EXPERIENCE: "Experience",
@@ -113,7 +108,84 @@ const CVAssessmentPage = () => {
   const [error, setError] = useState(null);
   const inputRef = useRef(null);
 
+  // States hỗ trợ Autocomplete Position
   const [position, setPosition] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Lấy toàn bộ vị trí khi mount component hoặc dùng search query
+  useEffect(() => {
+    fetchPositions("");
+  }, []);
+
+  // Đóng dropdown khi click bên ngoài khung search
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Gọi API Backend lấy danh sách gợi ý Position
+  // Gọi API Backend lấy danh sách gợi ý Position (Đã thêm Authorization Header)
+  const fetchPositions = async (query) => {
+    try {
+      const token = getAccessToken();
+      const cleanToken = token ? token.replace(/^Bearer\s+/i, "") : "";
+
+      const endpoint = query.trim()
+        ? `${API_BASE}/api/v1/position/search?q=${encodeURIComponent(query)}`
+        : `${API_BASE}/api/v1/position/get-all`;
+
+      const res = await fetch(endpoint, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {}),
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestions(data || []);
+      } else {
+        console.warn(`Position fetch failed with status: ${res.status}`);
+        setSuggestions([]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch positions:", err);
+      setSuggestions([]);
+    }
+  };
+
+  // Xử lý khi gõ vào ô Input Position với Debounce nhẹ
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (showDropdown) {
+        fetchPositions(position);
+      }
+    }, 300); // Đợi 300ms sau khi ngừng gõ mới gọi API
+
+    return () => clearTimeout(timer);
+  }, [position, showDropdown]);
+
+  // Xử lý khi gõ vào ô Input Position
+  const handlePositionChange = (e) => {
+    const value = e.target.value;
+    setPosition(value);
+    setShowDropdown(true);
+    fetchPositions(value);
+  };
+
+  // Xử lý khi click chọn 1 Option từ danh sách thả xuống
+  const handleSelectPosition = (selectedPos) => {
+    setPosition(selectedPos);
+    setShowDropdown(false);
+  };
 
   const onPick = (e) => {
     const f = e.target.files && e.target.files[0];
@@ -132,8 +204,8 @@ const CVAssessmentPage = () => {
       setError("Please select a CV file.");
       return;
     }
-    if (!position) {
-      setError("Please select a position before submitting your CV.");
+    if (!position.trim()) {
+      setError("Please select or enter a position before submitting your CV.");
       return;
     }
 
@@ -154,7 +226,6 @@ const CVAssessmentPage = () => {
         formData.append("file", file);
         formData.append("position", position);
 
-        // Làm sạch chuỗi token trước khi ghép vào header Bearer
         const cleanToken = authToken.replace(/^Bearer\s+/i, "");
         const bearerHeader = `Bearer ${cleanToken}`;
 
@@ -169,7 +240,6 @@ const CVAssessmentPage = () => {
 
       let res = await sendRequest(token);
 
-      // Xử lý khi bị 401 Unauthorized
       if (res.status === 401) {
         console.warn(
           "Token expired or invalid (401). Attempting token refresh...",
@@ -177,7 +247,6 @@ const CVAssessmentPage = () => {
         const newToken = await refreshAccessToken();
 
         if (newToken) {
-          // Gửi lại request với token mới tạo thành công
           res = await sendRequest(newToken);
         } else {
           throw new Error(
@@ -209,19 +278,85 @@ const CVAssessmentPage = () => {
         <section className="cv-inner">
           <h1 className="cvassessment-title">-----CV ASSESSMENT-----</h1>
 
-          <div className="cv-position-picker">
-            <select
-              id="position-select"
+          {/* Autocomplete Input Search */}
+          <div
+            className="cv-position-picker"
+            ref={dropdownRef}
+            style={{
+              position: "relative",
+              width: "100%",
+              maxWidth: "400px",
+              margin: "0 auto 20px",
+            }}
+          >
+            <input
+              type="text"
+              className="position-input"
+              placeholder="Type or select a position..."
               value={position}
-              onChange={(e) => setPosition(e.target.value)}
-            >
-              <option value="">Select a position…</option>
-              <option value="Backend Developer">Backend Developer</option>
-              <option value="Frontend Developer">Frontend Developer</option>
-              <option value="Data Engineer">Data Engineer</option>
-              <option value="Full-Stack Developer">Full-Stack Developer</option>
-              <option value="DevOps Engineer">DevOps Engineer</option>
-            </select>
+              onChange={handlePositionChange}
+              onFocus={() => setShowDropdown(true)}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                borderRadius: "8px",
+                border: "1px solid #444",
+                backgroundColor: "#1e1e2d",
+                color: "#fff",
+                fontSize: "14px",
+                outline: "none",
+              }}
+            />
+
+            {/* Dropdown Options hiện bên dưới */}
+            {showDropdown && suggestions.length > 0 && (
+              <ul
+                className="position-dropdown"
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  backgroundColor: "#1e1e2d",
+                  border: "1px solid #333",
+                  borderRadius: "8px",
+                  marginTop: "6px",
+                  maxHeight: "200px",
+                  overflowY: "auto",
+                  zIndex: 1000,
+                  listStyle: "none",
+                  padding: "0",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+                }}
+              >
+                {suggestions.map((item, index) => (
+                  <li
+                    key={index}
+                    onClick={() => handleSelectPosition(item)}
+                    style={{
+                      padding: "10px 16px",
+                      cursor: "pointer",
+                      color: "#eee",
+                      borderBottom:
+                        index !== suggestions.length - 1
+                          ? "1px solid #2a2a3d"
+                          : "none",
+                      textAlign: "left",
+                      fontSize: "14px",
+                      transition: "background-color 0.2s",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = "#2b2b3d")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = "transparent")
+                    }
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="cv-dropzone">

@@ -38,84 +38,81 @@ const decodeJwtPayload = (token) => {
   }
 };
 
-// 1. CHỈ TÌM ACCESS TOKEN (Không lấy nhầm Refresh Token)
+// 1. DỌN DẸP SẠCH BỘ NHỚ KHI LOGOUT HOẶC ĐỔI USER
+const clearAllAuthData = () => {
+  if (typeof window === "undefined") return;
+  const authKeys = [
+    "accessToken",
+    "token",
+    "jwt",
+    "authToken",
+    "access_token",
+    "refreshToken",
+    "refresh_token",
+    "user",
+    "interviewerSchedule",
+    "interviewerBookings",
+  ];
+  authKeys.forEach((key) => localStorage.removeItem(key));
+};
+
+// 2. LẤY ACCESS TOKEN (Hỗ trợ cả camelCase và snake_case access_token từ RefreshTokenResponse)
 const extractAccessToken = (data = {}) => {
-  const candidates = [
-    data.accessToken,
-    data.access_token,
-    data.token,
-    data.jwt,
-    data.authToken,
-    data.authorization,
-  ];
-
-  const token = candidates.find(
-    (value) => typeof value === "string" && value.trim(),
-  );
-
-  return token
-    ? String(token)
+  if (!data) return "";
+  const candidate =
+    data.accessToken || data.access_token || data.token || data.jwt;
+  return candidate
+    ? String(candidate)
         .replace(/^"(.*)"$/, "$1")
         .trim()
     : "";
 };
 
-// 2. CHỈ TÌM REFRESH TOKEN
+// 3. LẤY REFRESH TOKEN (Khớp với AuthenticationResponse: refreshToken)
 const extractRefreshToken = (data = {}) => {
-  const candidates = [
-    data.refreshToken,
-    data.refresh_token,
-    data.refreshTokenValue,
-  ];
-
-  const token = candidates.find(
-    (value) => typeof value === "string" && value.trim(),
-  );
-
-  return token
-    ? String(token)
+  if (!data) return "";
+  const candidate = data.refreshToken || data.refresh_token;
+  return candidate
+    ? String(candidate)
         .replace(/^"(.*)"$/, "$1")
         .trim()
     : "";
 };
 
-// 3. LƯU TOKEN RÕ RÀNG, CHÍNH XÁC VÀO LOCALSTORAGE
+// 4. LƯU THÔNG TIN ĐĂNG NHẬP (Lấy đúng trường từ AuthenticationResponse)
 const storeAuthResponse = (data = {}) => {
+  clearAllAuthData();
+
   const accessToken = extractAccessToken(data);
   const refreshToken = extractRefreshToken(data);
 
   if (accessToken) {
-    // Lưu Access Token thống nhất vào các key chuẩn
     localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("token", accessToken);
     localStorage.setItem("jwt", accessToken);
-    localStorage.setItem("authToken", accessToken);
     localStorage.setItem("access_token", accessToken);
   }
 
   if (refreshToken) {
-    // CHỈ lưu đúng Refresh Token vào key refreshToken
     localStorage.setItem("refreshToken", refreshToken);
     localStorage.setItem("refresh_token", refreshToken);
-  } else {
-    // Nếu response đăng nhập không trả lại refreshToken mới, giữ nguyên hoặc không đè Access Token lên!
-    console.warn("No refreshToken provided in auth response");
   }
 
+  // Khớp với @JsonProperty trong AuthenticationResponse
   localStorage.setItem(
     "user",
     JSON.stringify({
       email: data.email,
-      userName: data.userName,
-      fullName: data.fullName,
+      userName: data.user_name || data.userName,
+      fullName: data.full_name || data.fullName,
       role: data.role,
-      isStripeConnected: data.isStripeConnected || false,
-      stripeAccountId: data.stripeAccountId || null,
+      isStripeConnected:
+        data.is_stripe_connected ?? data.isStripeConnected ?? false,
+      stripeAccountId: data.stripe_id || data.stripeAccountId || null,
     }),
   );
 };
 
-// 4. LẤY ACCESS TOKEN SẠCH ĐỂ GỬI REQUEST
 const getStoredAccessToken = () => {
   if (typeof window === "undefined") return "";
 
@@ -143,13 +140,6 @@ const authHeaders = (token) => {
       ? normalizedToken
       : `Bearer ${normalizedToken}`,
   };
-};
-
-const isInterviewerProfileIncomplete = (profile) => {
-  if (!profile) return true;
-  return (
-    !profile.title?.trim() || !profile.company?.trim() || !profile.bio?.trim()
-  );
 };
 
 const InterviewerDetailsFields = ({ values, onChange }) => (
@@ -298,6 +288,11 @@ const AuthCallbackInner = () => {
     setError(null);
     try {
       const cleanToken = token ? token.trim() : "";
+
+      if (!cleanToken) {
+        throw new Error("Invalid or missing authentication token.");
+      }
+
       const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
         method: "POST",
         headers: {
@@ -306,7 +301,17 @@ const AuthCallbackInner = () => {
         },
         credentials: "include",
       });
-      if (!res.ok) throw new Error(`Login failed (${res.status})`);
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          clearAllAuthData();
+          throw new Error(
+            "Session expired or invalid token (401). Please try logging in again.",
+          );
+        }
+        throw new Error(`Login failed (${res.status})`);
+      }
+
       const data = await res.json();
 
       storeAuthResponse(data);
@@ -332,6 +337,7 @@ const AuthCallbackInner = () => {
     }
 
     if (purpose === "REGISTRATION") {
+      clearAllAuthData();
       const claims = decodeJwtPayload(token);
       setDisplayEmail(claims?.sub || "");
       setMode("register");
@@ -351,11 +357,12 @@ const AuthCallbackInner = () => {
     try {
       const cleanToken = token ? token.trim() : "";
 
+      // KHỚP CHÍNH XÁC VỚI @JsonProperty CỦA RegisterRequest
       const payload = {
-        userName: form.userName,
-        fullName: form.fullName,
-        linkedinUrl: form.linkedinUrl,
-        githubUrl: form.githubUrl,
+        user_name: form.userName,
+        full_name: form.fullName,
+        linkedin_url: form.linkedinUrl,
+        github_url: form.githubUrl,
         role: form.role,
         ...(form.role === "Interviewer" && {
           title: form.title,
@@ -380,6 +387,7 @@ const AuthCallbackInner = () => {
 
       if (!res.ok) {
         if (res.status === 401) {
+          clearAllAuthData();
           throw new Error(
             "Registration session expired or invalid token (401). Please try logging in again.",
           );
@@ -457,7 +465,12 @@ const AuthCallbackInner = () => {
       <div className="auth-callback-root">
         <div className="auth-callback-error-box">
           <p>{error}</p>
-          <button onClick={() => router.replace("/login")}>
+          <button
+            onClick={() => {
+              clearAllAuthData();
+              router.replace("/login");
+            }}
+          >
             Back to login
           </button>
         </div>
