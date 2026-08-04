@@ -123,8 +123,8 @@ services:
       - "8080:8080"
     networks:
       - app-network
-
-
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
   ngrok:
     image: ngrok/ngrok:alpine
     container_name: ngrok
@@ -139,16 +139,7 @@ services:
     networks:
       - app-network
   
-  redis:
-    image: redis:alpine
-    container_name: redis-server
-    ports:
-    - "6379:6379"
-    volumes:
-      - redis-data:/data
-    networks:
-      - app-network
-    restart: unless-stopped
+
 volumes:
   db_data:
     name: master-interview_db_data
