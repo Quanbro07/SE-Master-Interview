@@ -1,20 +1,24 @@
 package com.test.backend.dto.agent;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public record ChatRequest(
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ChatRequest {
+
         @NotBlank(message = "userId không được để trống")
-        String userId,
+        private String userId;
 
         /**
          * Nếu null/blank, service sẽ tự sinh 1 conversationId mới (UUID)
          * cho phiên chat đầu tiên của user.
          */
-        String conversationId,
+        private String conversationId;
 
-        @JsonProperty("prompt")
         @NotBlank(message = "prompt không được để trống")
-        String prompt
-) {
+        private String prompt;
 }
