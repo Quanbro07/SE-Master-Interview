@@ -1,0 +1,63 @@
+.user-header-container {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Khi ChatPanel mở rộng, cụm này tự co dãn hoặc căn lề phù hợp */
+.user-header-container.expanded {
+  right: 24px;
+}
+
+/* Style nút LOGOUT màu xanh tím giống Landing Page */
+.logout-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+  color: #ffffff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.logout-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+  filter: brightness(1.1);
+}
+
+.logout-btn:active {
+  transform: translateY(0);
+}
+
+.logout-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Đảm bảo khung Chatbot Trigger không đè chồng lên Logout */
+.user-header-container .chat-trigger-header {
+  position: relative;
+  top: 0;
+  right: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.chat-trigger-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
