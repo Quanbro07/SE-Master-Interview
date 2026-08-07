@@ -19,10 +19,36 @@ const BookingSection = ({
     const fetchInterviewers = async () => {
       setLoading(true);
       try {
+        let rawToken =
+          localStorage.getItem("accessToken") ||
+          localStorage.getItem("token") ||
+          localStorage.getItem("jwt") ||
+          localStorage.getItem("auth_token");
+
+        if (!rawToken) {
+          try {
+            const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+            rawToken = userObj.token || userObj.accessToken || userObj.jwt;
+          } catch (err) {
+            console.error(err);
+          }
+        }
+
+        // 2. Làm sạch token và gắn thêm chữ Bearer chuẩn
+        const cleanToken = rawToken ? rawToken.trim().replace(/^Bearer\s+/i, "") : "";
+        const authHeader = cleanToken ? `Bearer ${cleanToken}` : "";
+
+        // 3. Gọi fetch có đính kèm Header Authorization
         const res = await fetch(
           `${API_BASE}/api/v1/booking/filter-interviewer?position=${encodeURIComponent(
             positionQuery,
           )}&page=0&size=10`,
+          {
+            method: "GET",
+            headers: {
+              ...(authHeader ? { Authorization: authHeader } : {})
+            }
+          }
         );
 
         let listFromApi = [];

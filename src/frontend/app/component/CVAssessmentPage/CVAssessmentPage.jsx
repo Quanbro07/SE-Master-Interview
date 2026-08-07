@@ -131,7 +131,6 @@ const CVAssessmentPage = () => {
   }, []);
 
   // Gọi API Backend lấy danh sách gợi ý Position
-  // Gọi API Backend lấy danh sách gợi ý Position (Đã thêm Authorization Header)
   const fetchPositions = async (query) => {
     try {
       const token = getAccessToken();
@@ -212,6 +211,10 @@ const CVAssessmentPage = () => {
     setLoading(true);
     setError(null);
 
+    // --- FIX Ở ĐÂY ---
+    // Chuyển đổi định dạng chữ cho phù hợp với Backend (VD: "Backend Developer" -> "BACKEND_DEVELOPER")
+    const formattedPosition = position.trim().toUpperCase().replace(/\s+/g, "_");
+
     try {
       let token = getAccessToken();
 
@@ -224,7 +227,8 @@ const CVAssessmentPage = () => {
       const sendRequest = async (authToken) => {
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("position", position);
+        // Thay vì gửi `position` gốc, gửi `formattedPosition` đã được format
+        formData.append("position", formattedPosition);
 
         const cleanToken = authToken.replace(/^Bearer\s+/i, "");
         const bearerHeader = `Bearer ${cleanToken}`;
