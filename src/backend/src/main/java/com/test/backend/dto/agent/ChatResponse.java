@@ -21,8 +21,6 @@ public class ChatResponse {
         /** Tool MCP nào đã được gọi để phục vụ trả lời này (nếu có), phục vụ debug/UI hiển thị */
         private String toolUsed;
 
-        private Instant timestamp;
-
         private boolean success;
 
         private String errorMessage;

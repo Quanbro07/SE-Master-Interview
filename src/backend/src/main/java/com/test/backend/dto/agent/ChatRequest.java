@@ -9,10 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatRequest {
-
-        @NotBlank(message = "userId không được để trống")
-        private String userId;
-
         /**
          * Nếu null/blank, service sẽ tự sinh 1 conversationId mới (UUID)
          * cho phiên chat đầu tiên của user.

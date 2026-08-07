@@ -5,6 +5,7 @@ import com.test.backend.dto.question.QuestionResponse;
 import com.test.backend.entity.position.Position;
 import com.test.backend.entity.user.CustomUserDetail;
 import com.test.backend.repository.PositionRepository;
+import com.test.backend.service.PositionResolverService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -35,12 +36,8 @@ import java.util.List;
 public class AgentToolService {
     private final ObjectMapper objectMapper;
     private final BookingService bookingService;
-    private final CVAssessmentService cvAssessmentService;
-    private final EmailService emailService;
-    private final UserService userProfileService;
-    private final ScheduleService scheduleService;
     private final QuestionService questionService;
-    private final PositionRepository positionRepository;
+    private final PositionResolverService positionResolverService;
 
     private CustomUserDetail getCurrentUser() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -51,56 +48,45 @@ public class AgentToolService {
         return null;
     }
 
-    @Tool(description = "Tìm kiếm danh sách câu hỏi trong ngân hàng câu hỏi theo vi tri cong viec, so cau hoi, do kho")
+    @Tool(description = "Searches for questions based on a target job position or topic.")
     public String searchQuestions(
-            @ToolParam(description = "Vi tri cong viec can hoi, bat buoc co") String position,
+            @ToolParam(description = "The required job position, MUST not be null") String position,
             @ToolParam(description = "Number of questions, default 10", required = false) Integer questionNum,
             @ToolParam(description = "Difficulty: EASY, MEDIUM, HARD") FilterDifficulty difficulty) {
         try {
             log.info("[Tool:searchQuestions] position={}", position);
+            String resolvedPosition = positionResolverService.resolvePosition(position);
+            List<QuestionResponse> questions = questionService.getQuestions(resolvedPosition, difficulty, questionNum);
 
-            List<QuestionResponse> questions = questionService.getQuestions(position, difficulty, questionNum);
-
-            return objectMapper.writeValueAsString(questions);
-        } catch (Exception ex) {
-            log.error("[Tool:searchQuestions] Lỗi khi tìm kiếm position={}: {}", position, ex.getMessage(), ex);
-            return "Không thể tìm kiếm câu hỏi với position: " + position;
-        }
-    }
-    @Tool(description = "Lấy danh sách các vị trí chuyên môn/chức vụ sẵn có của các Người Phỏng Vấn (Interviewer) trong hệ thống. Dùng để biết hệ thống hiện có những chuyên gia thuộc lĩnh vực nào.")
-    public String getAvailableInterviewerPositions() {
-        try {
-            log.info("[Tool:getAvailableInterviewerPositions] Đang lấy danh sách vị trí của interviewer");
-
-            // Giả định bạn có PositionService hoặc UserService để lấy danh sách này
-            // Ví dụ: positionService.getInterviewerPositions() trả về List<PositionResponse> hoặc List<String>
-            List<String> positions = positionRepository.findAll().stream()
-                    .map(Position::getPositionName)
-                    .toList();
-
-            if (positions.isEmpty()) {
-                return "Hiện tại chưa có danh sách vị trí chuyên môn nào được cấu hình cho Người Phỏng Vấn.";
+            // SCENARIO 1: NO DATA FOUND -> Tell the LLM to STOP immediately
+            if (questions.isEmpty()) {
+                return "STATUS: EMPTY. No interview questions found for position '"
+                        + resolvedPosition + "'. STOP tool execution now and inform the user that no questions are available for this position.";
             }
 
-            // Chuyển thành JSON
-            return objectMapper.writeValueAsString(positions);
-
+            // SCENARIO 2: DATA FOUND -> Return clean JSON and tell the LLM to respond
+            try {
+                String jsonOutput = objectMapper.writeValueAsString(questions);
+                return "STATUS: SUCCESS. Questions found: " + jsonOutput
+                        + ". Summarize and display these questions to the user. Do NOT call any more tools.";
+            } catch (Exception e) {
+                return "STATUS: ERROR. Failed to parse question data.";
+            }
         } catch (Exception ex) {
-            log.error("[Tool:getAvailableInterviewerPositions] Lỗi khi lấy danh sách vị trí: {}", ex.getMessage(), ex);
-            return "Không thể lấy danh sách vị trí của Người Phỏng Vấn do lỗi hệ thống.";
+            log.error("[Tool:searchQuestions] Lỗi khi tìm kiếm position={}: {}", position, ex.getMessage(), ex);
+            return "There is no interview question for the required position: " + position + "'. Stop searching and inform the user that no data exists.";
         }
     }
 
-
-    @Tool(description = "Tìm kiếm danh sách lịch hẹn/booking khả dụng (available) bằng cách lọc các Người Phỏng Vấn (Interviewer) theo vị trí chuyên môn của họ. Kết quả có hỗ trợ phân trang.")
+    @Tool(description = "Find available booking by filtering interviewer job position. the result supports paging")
     public String getAvailableBookingsByPosition(
-            @ToolParam(description = "Tên vị trí chuyên môn của Người Phỏng Vấn cần lọc, lấy từ Tool getAvailableInterviewerPositions (Ví dụ: Java, React, Product Manager)")
+            @ToolParam(description = "The required job position")
             String position,
 
-            @ToolParam(description = "Số trang dữ liệu cần lấy, bắt đầu từ 0. Mặc định là 0 nếu không chỉ định", required = false)
+            @ToolParam(description = "Number of data page, start from 0. Default is 0", required = false)
             Integer page,
 
-            @ToolParam(description = "Số lượng bản ghi trên một trang. Mặc định là 10 nếu không chỉ định", required = false)
+            @ToolParam(description = "Number of booking on each page. Default number is 10", required = false)
             Integer size) {
         try {
             // Thiết lập giá trị mặc định an toàn nếu AI hoặc User không truyền tham số phân trang
@@ -109,11 +95,13 @@ public class AgentToolService {
 
             log.info("[Tool:getAvailableBookingsByPosition] position={}, page={}, size={}", position, pageParam, sizeParam);
 
+            String resolvedPosition = positionResolverService.resolvePosition(position);
+
             // Gọi trực tiếp xuống hàm nghiệp vụ của BookingService
-            var responsePage = bookingService.filterInterviewerByPosition(position, pageParam, sizeParam);
+            var responsePage = bookingService.filterInterviewerByPosition(resolvedPosition, pageParam, sizeParam);
 
             if (responsePage == null || !responsePage.hasContent()) {
-                return "Hiện tại không có lịch hẹn hoặc người phỏng vấn nào khả dụng cho vị trí: " + position;
+                return "There is no available booking for position: " + position + "'. Stop searching and inform the user that no data exists.";
             }
 
             // Chuyển đối tượng Page kết quả thành JSON String cho AI tự tổng hợp câu trả lời
@@ -121,7 +109,7 @@ public class AgentToolService {
 
         } catch (Exception ex) {
             log.error("[Tool:getAvailableBookingsByPosition] Lỗi khi lọc lịch hẹn theo position={}: {}", position, ex.getMessage(), ex);
-            return "Không thể tìm kiếm các lịch hẹn khả dụng vào lúc này do lỗi hệ thống.";
+            return "Unable to find available booking due to system error.";
         }
     }
 

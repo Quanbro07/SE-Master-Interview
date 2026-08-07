@@ -17,16 +17,14 @@ import java.util.UUID;
 public class AgentService {
 
     private final ChatHistoryService chatHistoryService;
-
-    // AiAgentService giờ đã tự tích hợp sẵn AgentToolService
     private final AiAgentService aiAgentService;
 
-    public ChatResponse processPrompt(ChatRequest request) {
+    public ChatResponse processPrompt(Long user_id, ChatRequest request) {
         String conversationId = StringUtils.hasText(request.getConversationId())
                 ? request.getConversationId()
                 : UUID.randomUUID().toString();
 
-        log.info("[AgentService] Xử lý prompt userId={}, conversationId={}", request.getUserId(), conversationId);
+        log.info("[AgentService] Xử lý prompt userId={}, conversationId={}", user_id, conversationId);
 
         // 1. Lấy lịch sử chat làm context
         List<MessageModel> history = chatHistoryService.getRecentHistory(conversationId);
@@ -34,7 +32,6 @@ public class AgentService {
         MessageModel userMessage = MessageModel.builder()
                 .role("user")
                 .content(request.getPrompt())
-                .timestamp(Instant.now())
                 .conversationId(conversationId)
                 .build();
 
@@ -53,7 +50,6 @@ public class AgentService {
         MessageModel aiMessage = MessageModel.builder()
                 .role("assistant")
                 .content(aiAnswer)
-                .timestamp(Instant.now())
                 .conversationId(conversationId)
                 .build();
 
@@ -64,7 +60,6 @@ public class AgentService {
         return ChatResponse.builder()
                 .conversationId(conversationId)
                 .answer(aiAnswer)
-                .timestamp(Instant.now())
                 .success(true)
                 .build();
     }

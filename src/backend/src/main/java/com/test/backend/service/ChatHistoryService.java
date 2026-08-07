@@ -80,17 +80,12 @@ public class ChatHistoryService {
     public void appendMessage(String conversationId, MessageModel message) {
         try {
             String key = buildKey(conversationId);
-            // SỬA: Ép kiểu ListOperations về dạng <String, String>
             ListOperations<String, String> listOps = redisTemplate.opsForList();
-
-            // SỬA: Chuyển Object thành chuỗi JSON trước khi đẩy vào Redis
             String jsonMessage = objectMapper.writeValueAsString(message);
             listOps.rightPush(key, jsonMessage);
 
-            // Cắt bớt các message cũ nhất nếu vượt giới hạn (giữ N message gần nhất)
             listOps.trim(key, -maxMessages, -1);
 
-            // Set/refresh TTL để tránh phình Redis với các conversation "chết"
             redisTemplate.expire(key, Duration.ofHours(ttlHours));
 
         } catch (Exception ex) {
