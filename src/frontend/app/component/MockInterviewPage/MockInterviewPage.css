@@ -22,12 +22,35 @@
 }
 
 .mockinterview-title {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px; /* Khoảng cách giữa chữ và đường viền */
   margin: 0 0 28px;
-  font-size: 28px;
-  letter-spacing: 0.06em;
-  font-weight: 900;
   color: #e4e4e7;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Tạo hình dáng 2 đường viền */
+.mockinterview-title::before,
+.mockinterview-title::after {
+  content: "";
+  height: 3px; 
+  width: 80px; 
+  border-radius: 2px;
+}
+
+/* Đường bên trái: Đậm màu tím ở sát chữ, mờ dần sang trái */
+.mockinterview-title::before {
+  background: linear-gradient(to left, #7c3aed, transparent);
+}
+
+/* Đường bên phải: Đậm màu tím ở sát chữ, mờ dần sang phải */
+.mockinterview-title::after {
+  background: linear-gradient(to right, #7c3aed, transparent);
 }
 /* --- Page title (matches r-calendar-title styling) --- */
 .mock-page-title-wrap h1,
