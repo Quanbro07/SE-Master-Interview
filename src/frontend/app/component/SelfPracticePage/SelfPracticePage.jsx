@@ -8,6 +8,20 @@ import { getFallbackQuestions } from "../SharedQuestionData/sampleQuestions";
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
+const getAccessToken = () => {
+  if (typeof window === "undefined") return "";
+  const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
+  let token = "";
+  for (const key of keys) {
+    const val = localStorage.getItem(key);
+    if (val) {
+      token = val;
+      break;
+    }
+  }
+  if (!token) return "";
+  return token.replace(/^"(.*)"$/, "$1").trim();
+};
 // Danh sách vị trí cố định theo yêu cầu của bạn
 const STATIC_POSITIONS = [
   { id: 1, name: "BACK-END DEVELOPER" },
@@ -51,10 +65,22 @@ const SelfPracticePage = () => {
   const [showAnswer, setShowAnswer] = useState(false);
 
   // Sync positions from Backend API /api/v1/position/get-all if available
-  useEffect(() => {
+useEffect(() => {
     const fetchPositions = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/position/get-all`);
+        // 1. Gọi hàm lấy token
+        const rawToken = getAccessToken();
+        const cleanToken = rawToken ? rawToken.replace(/^Bearer\s+/i, "") : "";
+        
+        // 2. Đính kèm vũ khí vào Request
+        const res = await fetch(`${API_BASE}/api/v1/position/get-all`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {})
+          }
+        });
+        
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
@@ -87,18 +113,45 @@ const SelfPracticePage = () => {
     setShowAnswer(false);
 
     try {
+      // 1. CHUẨN HÓA CHỮ ĐỂ TRÁNH LỖI ENUM 401 ẢO
+      const formattedPosition = positionName
+        .trim()
+        .toUpperCase()
+        .replace(/[-\s]+/g, "_")
+        .replace("BACK_END", "BACKEND")
+        .replace("FRONT_END", "FRONTEND");
+
       const params = new URLSearchParams({
-        position: positionName,
+        position: formattedPosition,
         numQuestions: String(count),
       });
+      
       if (difficulty && difficulty !== "MIXED") {
         params.set("difficulty", difficulty);
       }
 
-      // Backend API: /api/v1/question/get-question
+      // 2. LẤY VÀ LÀM SẠCH TOKEN
+      const rawToken = getAccessToken();
+      const cleanToken = rawToken ? rawToken.replace(/^Bearer\s+/i, "") : "";
+
+      // 3. GỌI API VỚI HEADER AUTHORIZATION
       const res = await fetch(
         `${API_BASE}/api/v1/question/get-question?${params.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {})
+          }
+        }
       );
+
+      // Nếu Token hết hạn thật sự
+      if (res.status === 401) {
+        setLoadError("Phiên đăng nhập đã hết hạn. Vui lòng đăng xuất và đăng nhập lại!");
+        setLoading(false);
+        return;
+      }
 
       if (res.ok) {
         const data = await res.json();
@@ -117,8 +170,7 @@ const SelfPracticePage = () => {
       setUsingSampleData(true);
     } finally {
       setLoading(false);
-    }
-  };
+    }  };
 
   const handlePositionChange = (e) => {
     const posName = e.target.value;

@@ -14,6 +14,22 @@ const API_BASE =
 
 const POOL_SIZE = 10;
 
+const getAccessToken = () => {
+  if (typeof window === "undefined") return "";
+  const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
+  let token = "";
+  for (const key of keys) {
+    const val = localStorage.getItem(key);
+    if (val) {
+      token = val;
+      break;
+    }
+  }
+  if (!token) return "";
+  // Xóa dấu ngoặc kép ở 2 đầu nếu có
+  return token.replace(/^"(.*)"$/, "$1").trim();
+};
+
 const MockInterviewPage = () => {
   // Position search (typed input + suggestions), same pattern as
   // Self-practice, replacing the old static <select>.
@@ -55,9 +71,16 @@ const MockInterviewPage = () => {
 
     const timeoutId = setTimeout(async () => {
       try {
+        // Móc token từ LocalStorage
+        let token = localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
+        const cleanToken = token.replace(/^Bearer\s+/i, "").replace(/"/g, "").trim();
+        const headers = cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {};
+
         const res = await fetch(
           `${API_BASE}/api/v1/position/search?q=${encodeURIComponent(positionQuery)}`,
+          { headers } // Đính kèm thẻ căn cước vào đây
         );
+        
         if (res.ok) {
           const data = await res.json();
           if (data.length > 0) {
@@ -108,13 +131,42 @@ const MockInterviewPage = () => {
     setMediaError("");
 
     try {
+      // 1. ĐỊNH DẠNG LẠI CHỮ TRƯỚC KHI GỬI (Vũ khí chống lỗi 401 ảo)
+      const formattedPosition = position
+        .trim()
+        .toUpperCase()
+        .replace(/[-\s]+/g, "_") // Đổi khoảng trắng & dấu gạch ngang thành dấu gạch dưới
+        .replace("BACK_END", "BACKEND") // Gom chữ lại cho đúng chuẩn Backend
+        .replace("FRONT_END", "FRONTEND");
+
       const params = new URLSearchParams({
-        position,
+        position: formattedPosition, // Truyền chữ đã format vào đây (vd: BACKEND_DEVELOPER)
         numQuestions: String(POOL_SIZE),
       });
+
+      // 2. Dùng hàm xịn để lấy token
+      const rawToken = getAccessToken();
+      const cleanToken = rawToken ? rawToken.replace(/^Bearer\s+/i, "") : "";
+      
       const res = await fetch(
-        `${API_BASE}/api/v1/question/question?${params.toString()}`,
+        `${API_BASE}/api/v1/question/get-question?${params.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            // 3. Gắn Header Token
+            ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {})
+          }
+        }
       );
+
+      // Nếu Token hết hạn thật sự
+      if (res.status === 401) {
+        setLoadError("Phiên đăng nhập đã hết hạn hoặc không có quyền (Vui lòng thử đăng nhập tài khoản Interviewee).");
+        setLoading(false);
+        return;
+      }
+
       if (res.ok) {
         const data = await res.json();
         if (data.length > 0) {
@@ -123,7 +175,7 @@ const MockInterviewPage = () => {
           return;
         }
       }
-      // No backend data yet — use local samples instead of showing empty.
+      
       setPool(getFallbackQuestions(position, null, POOL_SIZE));
       setUsingSampleData(true);
     } catch {
@@ -133,7 +185,6 @@ const MockInterviewPage = () => {
       setLoading(false);
     }
   };
-
   const handleSelectPosition = (name) => {
     setPositionQuery(name);
     startSession(name);
@@ -281,11 +332,6 @@ const MockInterviewPage = () => {
           </div>
 
           {loadError && <p className="mock-error">{loadError}</p>}
-          {usingSampleData && (
-            <p className="mock-sample-notice">
-              No live data yet — showing sample questions for preview.
-            </p>
-          )}
 
           <div className="mock-loader-area">
             {loading && (

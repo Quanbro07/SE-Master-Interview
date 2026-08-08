@@ -28,7 +28,7 @@ public class PositionController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("get-all")
+    @GetMapping("/get-all")
     public ResponseEntity<List<String>> getAllPositions() {
         List<String> response = positionRepository.findAll().stream()
                 .map(Position::getPositionName)
