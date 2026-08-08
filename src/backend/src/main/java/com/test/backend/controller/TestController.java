@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URLConnection;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -44,9 +45,10 @@ public class TestController {
 
         String targetName = UUID.randomUUID().toString() + "_" + originalFileName;
 
-        String url = fileService.uploadFile(cvBucket.getCVBucketName(), file.getBytes(), file.getContentType(), targetName);
+        String contentType = file.getContentType();
+
+        String url = fileService.uploadFile(cvBucket.getCVBucketName(), file.getBytes(), contentType, originalFileName, targetName);
 
         return ResponseEntity.ok(url);
     }
-
 }

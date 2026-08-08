@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -29,6 +30,7 @@ public class BookingController {
 
     private final BookingService bookingService;
 
+    // Lấy các interviewer theo position
     @GetMapping("/filter-interviewer")
     public ResponseEntity<Page<FilterInterviewerPositionResponse>> filterInterviewerByPosition(
             @RequestParam("position") String position,
@@ -40,6 +42,7 @@ public class BookingController {
         return ResponseEntity.ok(response);
     }
 
+    // Lấy các review của 1 interiviewer
     @GetMapping("interviewer/{interviewerId}/review")
     public ResponseEntity<Page<InterviewerReviewResponse>> getInterviewerReview(
             @RequestParam("page") int page,
@@ -54,7 +57,8 @@ public class BookingController {
         return ResponseEntity.ok(response);
     }
 
-//    @PreAuthorize("hasRole('Interviewee')")
+    // Booking Interviewer
+    @PreAuthorize("hasRole('Interviewee')")
     @PostMapping("/booking-interviewer")
     public ResponseEntity<BookingResponse> bookingInterviewer(
             @RequestBody BookingRequest request,
@@ -67,6 +71,7 @@ public class BookingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    // Xem danh sách booking
     @PreAuthorize("hasAnyRole('Interviewee', 'Interviewer')")
     @GetMapping("/all-bookings")
     public ResponseEntity<List<BookingResponse>> getAllBooking(
@@ -80,6 +85,7 @@ public class BookingController {
         return ResponseEntity.ok(response);
     }
 
+    // Interviewer confirm booking
     @PreAuthorize("hasRole('Interviewer')")
     @PostMapping("/{bookingId}/confirm")
     public ResponseEntity<BookingStatusResponse> confirmBooking(
@@ -94,6 +100,7 @@ public class BookingController {
         return ResponseEntity.ok(response);
     }
 
+    // Interviewer reject booking
     @PreAuthorize("hasRole('Interviewer')")
     @PostMapping("/{bookingId}/reject")
     public ResponseEntity<BookingStatusResponse> rejectBooking(
@@ -107,6 +114,21 @@ public class BookingController {
         return ResponseEntity.ok(response);
     }
 
+    // Upload CV cho booking
+    @PreAuthorize("hasRole('Interviewee')")
+    @PostMapping("/{bookingId}/upload-cv")
+    public ResponseEntity<Void> uploadCvBooking(
+            @PathVariable Long bookingId,
+            @RequestParam("file")MultipartFile file,
+            @AuthenticationPrincipal CustomUserDetail userDetail) {
+
+        Long intervieweeId = userDetail.getUser().getUserId();
+        bookingService.uploadCvBooking(bookingId, intervieweeId, file);
+
+        return ResponseEntity.ok().build();
+    }
+
+    // Tạo link vào cuộc họp
     @PreAuthorize("hasRole('Interviewer')")
     @GetMapping("/{bookingId}/start-url")
     public ResponseEntity<String> getMeetingStartUrl(

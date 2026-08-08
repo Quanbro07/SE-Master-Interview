@@ -59,6 +59,7 @@ public class ExpertiseService {
 
         byte[] fileData;
         String contentType = file.getContentType();
+        String originalFileName = file.getOriginalFilename();
         String target = "interviewer" + "_" + userId.toString() + "_" + position;
 
         String cvUrl;
@@ -72,7 +73,7 @@ public class ExpertiseService {
 
         try {
 
-            cvUrl = fileService.uploadFile(cvBucketConfig.getCVBucketName(), fileData, contentType, target);
+            cvUrl = fileService.uploadFile(cvBucketConfig.getCVBucketName(), fileData, contentType,originalFileName , target);
         } catch (MinioException | IOException e) {
             // 1. Ghi log đỏ (ERROR) kèm thông tin định danh và dấu vết lỗi (stacktrace)
             log.error("Error: Fail to Upload CV of ID [{}]. Detail: {}", target, e.getMessage(), e);

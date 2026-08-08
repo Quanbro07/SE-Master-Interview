@@ -2,6 +2,7 @@ package com.test.backend.service;
 
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
+import com.test.backend.config.CVBucketConfig;
 import com.test.backend.dto.booking.BookingRequest;
 import com.test.backend.dto.booking.BookingStatusResponse;
 import com.test.backend.dto.booking.ConfirmBookingRequest;
@@ -29,6 +30,7 @@ import com.test.backend.exception.customException.StripeIntegrationException;
 import com.test.backend.repository.*;
 import com.test.backend.zoom.ZoomAsyncService;
 import com.test.backend.zoom.ZoomService;
+import io.minio.errors.MinioException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -37,7 +39,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
@@ -64,7 +68,12 @@ public class BookingService {
     private final ZoomAsyncService zoomAsyncService;
 
     private final ZoomService zoomService;
+
     private final BookingReviewRepository bookingReviewRepository;
+
+    private final FileService fileService;
+
+    private final CVBucketConfig cvBucket;
 
     public Page<FilterInterviewerPositionResponse> filterInterviewerByPosition(String position, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
@@ -306,6 +315,37 @@ public class BookingService {
         return bookingReviews.map(this::convertToReviewResponse);
     }
 
+    public void uploadCvBooking(Long bookingId, Long intervieweeId, MultipartFile file) {
+        Booking booking = bookingRepository.findByBookingIdFetchBooker(bookingId)
+                .orElseThrow(() -> new NotFoundException("Booking is not found"));
+
+
+        if(!intervieweeId.equals(booking.getBooker().getIntervieweeId())) {
+            throw new ForbiddenOperationException("You cannot upload CV on someone else Booking");
+        }
+
+        String contentType = file.getContentType();
+        String originalFileName = file.getOriginalFilename();
+
+        String target = "bookingCV_" + bookingId;
+
+        byte[] fileData = null;
+
+        try {
+            fileData = file.getBytes();
+        } catch (IOException e) {
+            log.warn(e.getMessage());
+        }
+
+        try {
+            fileService.uploadFile(cvBucket.getCVBucketName(), fileData, contentType, originalFileName, target);
+
+        } catch (MinioException | IOException e) {
+            log.warn(e.getMessage());
+        }
+
+    }
+
     // Helper Function
     public void updateBookingStatusByZoomId(String zoomId, BookingStatus status) {
         Booking booking = bookingRepository.findByMeetingId(zoomId)
@@ -400,5 +440,6 @@ public class BookingService {
                 .createdAt(review.getCreatedAt())
                 .build();
     }
+
 
 }
