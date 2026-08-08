@@ -41,21 +41,32 @@ public class ExpertiseService {
     private final InterviewerExpertiseRepository interviewerExpertiseRepository;
 
     public void sendExpertisePosition(Long userId, String position,
-                                InterviewerExpertiseLevel level,
-                                Integer experienceYear,
-                                BigDecimal hourlyFee,
-                                MultipartFile file) {
+        InterviewerExpertiseLevel level,
+        Integer experienceYear,
+        BigDecimal hourlyFee,
+        MultipartFile file) {
 
         Position po = positionRepository.findByPositionNameIgnoreCase(position)
-                .orElseThrow(() -> new NotFoundException("Position not found"));
+        .orElseThrow(() -> new NotFoundException("Position not found"));
 
         Interviewer interviewer = interviewerRepository.findByInterviewerId(userId)
-                .orElseThrow(() -> new NotFoundException("Interviewer not found"));
+        .orElseThrow(() -> new NotFoundException("Interviewer not found"));
 
-        // Nếu chưa có tài khoản Stripe thì ko dc check
-        if(!interviewer.getIsStripeConnected()) {
-            throw new StripeIntegrationException("Stripe is not connected");
+        // --- CẢI TIẾN ĐIỀU KIỆN KIỂM TRA STRIPE ---
+        // 1. Kiểm tra interviewer đã thực hiện khởi tạo tài khoản Stripe chưa
+        boolean hasStripeAccountId = interviewer.getStripeAccountId() != null 
+        && !interviewer.getStripeAccountId().trim().isEmpty();
+
+        // 2. Cho phép đi tiếp nếu isStripeConnected = true HOẶC đã có stripeAccountId
+        if (!Boolean.TRUE.equals(interviewer.getIsStripeConnected()) && !hasStripeAccountId) {
+        throw new StripeIntegrationException("Vui lòng kết nối tài khoản Stripe trước khi đăng ký Chuyên môn.");
         }
+
+        // Ghi log cảnh báo nếu Webhook chưa kịp cập nhật trạng thái kết nối
+        if (!Boolean.TRUE.equals(interviewer.getIsStripeConnected())) {
+        log.warn("Interviewer ID [{}] đã gửi yêu cầu Expertise nhưng chưa hoàn tất đồng bộ Webhook Stripe (isStripeConnected=false).", userId);
+        }
+        // ------------------------------------------
 
         byte[] fileData;
         String contentType = file.getContentType();
@@ -64,35 +75,29 @@ public class ExpertiseService {
         String cvUrl;
 
         try {
-            fileData = file.getBytes();
-
+        fileData = file.getBytes();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+        throw new RuntimeException(e);
         }
 
         try {
-
-            cvUrl = fileService.uploadFile(cvBucketConfig.getCVBucketName(), fileData, contentType, target);
+        cvUrl = fileService.uploadFile(cvBucketConfig.getCVBucketName(), fileData, contentType, target);
         } catch (MinioException | IOException e) {
-            // 1. Ghi log đỏ (ERROR) kèm thông tin định danh và dấu vết lỗi (stacktrace)
-            log.error("Error: Fail to Upload CV of ID [{}]. Detail: {}", target, e.getMessage(), e);
-
-            // 2. Vẫn throw ra để dừng luồng hiện tại hoặc để GlobalExceptionHandler/AsyncHandler bắt lại
-            throw new RuntimeException("Upload CV thất bại cho target: " + target, e);
+        log.error("Error: Fail to Upload CV of ID [{}]. Detail: {}", target, e.getMessage(), e);
+        throw new RuntimeException("Upload CV thất bại cho target: " + target, e);
         }
 
         InterviewerExpertise expertise = InterviewerExpertise.builder()
-                .interviewer(interviewer)
-                .position(po)
-                .level(level)
-                .experienceYear(experienceYear)
-                .hourlyFee(hourlyFee)
-                .cvUrl(cvUrl)
-                .build()
-                ;
+        .interviewer(interviewer)
+        .position(po)
+        .level(level)
+        .experienceYear(experienceYear)
+        .hourlyFee(hourlyFee)
+        .cvUrl(cvUrl)
+        .build();
 
         interviewerExpertiseRepository.save(expertise);
-    }
+        }
 
     public Page<PendingExpertiseDTO> getPendingExpertiseRequests(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("updatedAt").ascending());

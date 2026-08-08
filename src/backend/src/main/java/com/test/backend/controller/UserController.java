@@ -1,5 +1,6 @@
 package com.test.backend.controller;
 
+import com.test.backend.dto.user.UserProfileResponse;
 import com.nimbusds.openid.connect.sdk.UserInfoRequest;
 import com.nimbusds.openid.connect.sdk.claims.UserInfo;
 import com.test.backend.dto.user.UserUpdateRequest;
@@ -47,6 +48,14 @@ public class UserController {
 
         UserUpdateResponse response = userService.updateUserInfo(user, request);
 
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileResponse> getCurrentUser(
+            @AuthenticationPrincipal CustomUserDetail userDetail) {
+
+        UserProfileResponse response = userService.getCurrentUserProfile(userDetail);
         return ResponseEntity.ok(response);
     }
 

@@ -11,17 +11,16 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
+import { handleUploadCV } from "./uploadCv"; // 👈 Sửa đường dẫn import cho đúng thư mục của bạn
 import "./BookingPage.css";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
-// Khởi tạo Stripe instance với public key từ file .env
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
 );
 
-// Helper lấy thông tin người dùng từ localStorage
 const getStoredUser = () => {
   if (typeof window === "undefined") return null;
   try {
@@ -272,69 +271,33 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
       return;
     }
 
-    // 1. Lấy token từ LocalStorage
-    let rawToken =
-      localStorage.getItem("accessToken") ||
-      localStorage.getItem("token") ||
-      localStorage.getItem("jwt") ||
-      localStorage.getItem("auth_token");
-
-    if (!rawToken) {
-      try {
-        const userObj = JSON.parse(localStorage.getItem("user") || "{}");
-        rawToken = userObj.token || userObj.accessToken || userObj.jwt;
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    if (!rawToken || rawToken === "undefined" || rawToken === "null") {
-      setSubmitError(
-        "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn. Vui lòng đăng nhập lại!",
-      );
-      setTimeout(() => {
-        window.location.href = "/login";
-      }, 2000);
-      return;
-    }
-
-    // 2. Tẩy sạch chữ Bearer thừa và khoảng trắng
-    const cleanToken = rawToken.trim().replace(/^Bearer\s+/i, "");
-
-    // 3. Tạo Header CHUẨN duy nhất 1 chữ Bearer
-    const authHeader = `Bearer ${cleanToken}`;
-
-    console.log("👉 Token tìm thấy:", cleanToken);
-    console.log("👉 Authorization Header chuẩn gửi đi:", authHeader);
-
     setSubmitError(null);
     setSubmitting(true);
 
     try {
-      // 1. Upload CV
-      const cvFormData = new FormData();
-      cvFormData.append("file", cvFile);
+      // 1. Tái sử dụng hàm handleUploadCV từ util file
+      const uploadData = await handleUploadCV(
+        cvFile,
+        mentor?.role || "GENERAL",
+      );
 
-      const uploadRes = await fetch(`${API_BASE}/api/v1/uploads/cv`, {
-        method: "POST",
-        headers: {
-          Authorization: authHeader, // 👈 Đã dùng Header chuẩn
-        },
-        body: cvFormData,
-      });
-
-      if (uploadRes.status === 401) {
-        throw new Error(
-          "Phiên đăng nhập không hợp lệ (401). Vui lòng đăng nhập lại.",
-        );
+      if (!uploadData || !uploadData.url) {
+        throw new Error("Upload CV không thành công. Vui lòng thử lại!");
       }
 
-      if (!uploadRes.ok) {
-        throw new Error("Upload CV thất bại. Vui lòng thử lại.");
-      }
-
-      const uploadData = await uploadRes.json();
       const cvUrl = uploadData.url;
+
+      // Chuẩn bị Header Auth
+      let rawToken =
+        localStorage.getItem("accessToken") ||
+        localStorage.getItem("token") ||
+        localStorage.getItem("jwt") ||
+        localStorage.getItem("auth_token");
+
+      const cleanToken = rawToken
+        ? rawToken.trim().replace(/^Bearer\s+/i, "")
+        : "";
+      const authHeader = `Bearer ${cleanToken}`;
 
       // 2. Tạo Booking
       const bookingPayload = {
@@ -391,6 +354,7 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
       setSubmitting(false);
     }
   };
+
   const handlePaymentSuccess = (paymentIntent) => {
     if (onConfirm) onConfirm({ booking: createdBooking, paymentIntent });
   };

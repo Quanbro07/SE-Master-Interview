@@ -1,9 +1,39 @@
+/* Custom Scrollbar mượt mà */
+.rp-main,
+.rp-root,
+body {
+  scrollbar-width: thin;
+  scrollbar-color: #3b3e54 #12131a;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #12131a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3b3e54;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5b5f7e;
+}
+
+/* Base Layout */
 .rp-root {
   display: flex;
   min-height: 100vh;
   background: #0f0f13;
   color: #f4f4f5;
 }
+
 .rp-main {
   flex: 1;
   display: flex;
@@ -11,6 +41,7 @@
   justify-content: center;
   padding: 32px;
 }
+
 .rp-inner {
   width: 100%;
   max-width: 900px;
@@ -20,6 +51,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
 }
+
 .rp-title {
   text-align: center;
   margin: 0 0 28px;
@@ -29,13 +61,13 @@
   font-weight: 900;
 }
 
-/* --- Basic info card --- */
+/* Basic Info Card */
 .rp-basic-card {
   padding: 26px 28px;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 36px;
+  margin-bottom: 25px;
 }
 
 .rp-basic-header {
@@ -70,26 +102,18 @@
   flex-direction: column;
   gap: 4px;
 }
+
 .rp-name {
   margin: 0;
   font-size: 20px;
   font-weight: 800;
   color: #f8f8ff;
 }
-.rp-subtitle {
-  margin: 0;
-  font-size: 14px;
-  color: #a1a1aa;
-  font-style: italic;
-}
 
 .rp-input-name {
   font-size: 18px;
   font-weight: 700;
   margin-bottom: 4px;
-}
-.rp-input-subtitle {
-  font-size: 13px;
 }
 
 .rp-edit-btn {
@@ -103,6 +127,7 @@
   cursor: pointer;
   transition: background 0.15s ease;
 }
+
 .rp-edit-btn:hover {
   background: #5b21b6;
 }
@@ -111,6 +136,7 @@
   display: flex;
   gap: 8px;
 }
+
 .rp-cancel-btn,
 .rp-save-btn {
   padding: 10px 18px;
@@ -123,17 +149,21 @@
     background 0.15s ease,
     transform 0.15s ease;
 }
+
 .rp-cancel-btn {
   background: rgba(255, 255, 255, 0.08);
   color: #e4e4e7;
 }
+
 .rp-cancel-btn:hover {
   background: rgba(255, 255, 255, 0.14);
 }
+
 .rp-save-btn {
   background: #16a34a;
   color: #fff;
 }
+
 .rp-save-btn:hover {
   background: #15803d;
 }
@@ -142,17 +172,21 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px 24px;
-  margin-bottom: 20px;
+}
+
+.rp-field-grid-mt {
+  margin-top: 20px;
 }
 
 .rp-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
-.rp-field-bio {
-  margin-bottom: 20px;
+
+.rp-field-full {
+  grid-column: span 2;
 }
 
 .rp-label {
@@ -161,18 +195,15 @@
   text-transform: uppercase;
   color: #9c9ca8;
 }
+
 .rp-value {
   margin: 0;
   font-size: 14px;
   color: #e4e4e7;
 }
-.rp-bio-text {
-  line-height: 1.6;
-  color: #d4d4d8;
-}
 
 .rp-input,
-.rp-textarea {
+.rp-select {
   padding: 9px 12px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -181,137 +212,231 @@
   font-size: 14px;
   font-family: inherit;
 }
+
+.rp-select {
+  background-color: #12131a;
+  color: #ffffff;
+  border-color: #2d2f3e;
+  cursor: pointer;
+}
+
+.rp-select option {
+  background-color: #12131a;
+  color: #ffffff;
+}
+
 .rp-input:focus,
-.rp-textarea:focus {
+.rp-select:focus {
   outline: none;
   border-color: #7c3aed;
   background: rgba(255, 255, 255, 0.08);
 }
-.rp-textarea {
-  resize: vertical;
-  line-height: 1.5;
+
+/* Block 1: Tag Expertise đã duyệt */
+.rp-expertise-tags-container {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.rp-tag-row {
+.rp-expertise-tags-wrapper {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 2px;
-}
-.rp-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgba(58, 85, 237, 0.18);
-  border: 1px solid rgba(58, 61, 237, 0.4);
-  color: #b4bafe;
-  font-size: 12px;
-  font-weight: 600;
-}
-.rp-tag-remove {
-  border: none;
-  background: none;
-  color: #d8b4fe;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0;
-}
-.rp-tag-remove:hover {
-  color: #fff;
-}
-
-.rp-tag-input-row {
-  display: flex;
-  gap: 8px;
+  gap: 10px;
   margin-top: 10px;
 }
-.rp-tag-input {
-  flex: 1;
-}
-.rp-tag-add-btn {
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: none;
-  background: #6d28d9;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.rp-tag-add-btn:hover {
-  background: #5b21b6;
+
+.rp-no-expertise {
+  color: #777;
+  font-size: 0.85rem;
+  font-style: italic;
 }
 
-/* --- Milestones --- */
-.rp-section-title {
-  font-size: 18px;
-  font-weight: 800;
-  color: #e4e4e7;
-  margin: 0 0 16px;
-}
-
-.rp-milestone-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.rp-milestone-card {
-  display: flex;
-  gap: 16px;
-  padding: 16px 18px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+.rp-expertise-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(
+    135deg,
+    rgba(30, 58, 138, 0.4) 0%,
+    rgba(17, 24, 39, 0.6) 100%
+  );
+  border: 1px solid #2563eb;
+  color: #60a5fa;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
-}
-.rp-milestone-card:hover {
-  border-color: rgba(124, 58, 237, 0.35);
-  background: rgba(124, 58, 237, 0.06);
+    transform 0.2s ease,
+    border-color 0.2s ease;
 }
 
-.rp-milestone-icon {
-  width: 40px;
-  height: 40px;
+.rp-expertise-badge:hover {
+  transform: translateY(-2px);
+  border-color: #93c5fd;
+  color: #93c5fd;
+}
+
+.rp-expertise-level {
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 0.7rem;
+  padding: 2px 6px;
   border-radius: 10px;
-  background: rgba(124, 58, 237, 0.15);
-  display: grid;
-  place-items: center;
-  font-size: 18px;
-  flex-shrink: 0;
+  text-transform: uppercase;
 }
 
-.rp-milestone-body {
-  flex: 1;
-  min-width: 0;
-}
-.rp-milestone-top-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-.rp-milestone-title {
-  margin: 0;
-  font-size: 14px;
+.rp-expertise-fee {
+  color: #34d399;
   font-weight: 700;
-  color: #f4f4f5;
 }
-.rp-milestone-date {
-  font-size: 12px;
-  color: #9c9ca8;
+
+/* Block 2: Stripe Payment */
+.rp-stripe-flex-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rp-card-title {
+  color: #fff;
+  font-size: 1.15rem;
+  margin-bottom: 6px;
+}
+
+.rp-card-subtitle {
+  color: #aaa;
+  font-size: 0.85rem;
+}
+
+.rp-stripe-btn {
+  background: #635bff;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   white-space: nowrap;
+  transition: all 0.2s;
 }
-.rp-milestone-desc {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: #a1a1aa;
-  line-height: 1.5;
+
+.rp-stripe-btn.connected {
+  background: linear-gradient(90deg, #2c5282 0%, #1e3a5f 100%);
+  border: 1px solid #3b82f6;
+  cursor: default;
+}
+
+/* Block 3: Form Đăng ký Expertise */
+.rp-section-subtitle {
+  color: #fff;
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+}
+
+.rp-warning-box {
+  background-color: #3b1313;
+  color: #f87171;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  border: 1px solid #7f1d1d;
+}
+
+.rp-autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #12131a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  margin-top: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+  z-index: 10;
+  list-style: none;
+  padding: 4px 0;
+}
+
+.rp-autocomplete-item {
+  padding: 8px 12px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.rp-autocomplete-item:hover {
+  background-color: #2563eb;
+}
+
+.rp-file-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.rp-file-btn {
+  background-color: #1e2130;
+  color: #fff;
+  border: 1px solid #3b3e54;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.rp-file-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.rp-file-status {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.rp-file-status.selected {
+  color: #10b981;
+}
+
+.rp-submit-btn-wrapper {
+  grid-column: span 2;
+  margin-top: 15px;
+}
+
+.rp-submit-btn {
+  background:
+    linear-gradient(90deg, #0338aa, #140470, #32047b, #411484) border-box,
+    rgba(84, 55, 116, 0.557) padding-box;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.rp-submit-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.rp-loading {
+  color: #fff;
+  padding: 40px;
 }
 
 @media (max-width: 720px) {
@@ -324,93 +449,8 @@
   .rp-field-grid {
     grid-template-columns: 1fr;
   }
-  .rp-basic-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 14px;
+  .rp-submit-btn-wrapper,
+  .rp-field-full {
+    grid-column: span 1;
   }
-  .rp-milestone-top-row {
-    flex-direction: column;
-    gap: 2px;
-  }
-}
-
-.rp-stripe-card {
-  background: #18181c;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 24px;
-}
-
-.rp-stripe-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.rp-stripe-badge {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 999px;
-}
-
-.rp-stripe-badge.connected {
-  background: rgba(34, 197, 94, 0.15);
-  color: #4ade80;
-}
-
-.rp-stripe-badge.not-connected {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-}
-
-.rp-stripe-desc {
-  color: #a1a1aa;
-  font-size: 13px;
-  line-height: 1.5;
-  margin: 0 0 14px;
-}
-
-.rp-stripe-account-id {
-  color: #d4d4d8;
-  font-size: 12px;
-  margin: 0 0 14px;
-}
-
-.rp-stripe-account-id code {
-  background: #27272a;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.rp-stripe-connect-btn,
-.rp-stripe-manage-btn {
-  background: linear-gradient(90deg, #4c1d95 0%, #3b0764 100%);
-  color: #fff;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 20px;
-  font-weight: 600;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.rp-stripe-manage-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.rp-stripe-connect-btn:disabled,
-.rp-stripe-manage-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.rp-stripe-error {
-  color: #f87171;
-  font-size: 12px;
-  margin: 10px 0 0;
 }

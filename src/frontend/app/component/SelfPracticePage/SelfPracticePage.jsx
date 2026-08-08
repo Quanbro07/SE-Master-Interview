@@ -2,8 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import NavigationBar from "../NavigationBar/NavigationBar";
 import "./SelfPracticePage.css";
-import "../MockInterviewPage/MockInterviewPage.css"; // reuse mock-* card styles
-import { getFallbackQuestions } from "../SharedQuestionData/sampleQuestions";
+import "../MockInterviewPage/MockInterviewPage.css"; // Reuse mock styles
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
@@ -20,16 +19,11 @@ const getAccessToken = () => {
     }
   }
   if (!token) return "";
-  return token.replace(/^"(.*)"$/, "$1").trim();
+  return token
+    .replace(/^"(.*)"$/, "$1")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
 };
-// Danh sách vị trí cố định theo yêu cầu của bạn
-const STATIC_POSITIONS = [
-  { id: 1, name: "BACK-END DEVELOPER" },
-  { id: 2, name: "FRONT-END DEVELOPER" },
-  { id: 3, name: "DATA ENGINEER" },
-  { id: 4, name: "FULL-STACK DEVELOPER" },
-  { id: 5, name: "DEVOPS ENGINEER" },
-];
 
 const DIFFICULTY_OPTIONS = [
   { value: "MIXED", label: "Mixed (any difficulty)" },
@@ -41,16 +35,20 @@ const DIFFICULTY_OPTIONS = [
 const NUM_QUESTIONS_OPTIONS = [5, 10, 15, 20];
 
 const SelfPracticePage = () => {
-  // Positions state
-  const [positions, setPositions] = useState(STATIC_POSITIONS);
+  // States cho Position Autocomplete Input
+  const [positionQuery, setPositionQuery] = useState("");
+  const [positionSuggestions, setPositionSuggestions] = useState([]);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState("");
+  const positionWrapperRef = useRef(null);
 
+  // States cho Difficulty và NumQuestions
   const [selectedDifficulty, setSelectedDifficulty] = useState("MIXED");
   const [numQuestions, setNumQuestions] = useState(10);
 
+  // States tải dữ liệu câu hỏi
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(null);
-  const [usingSampleData, setUsingSampleData] = useState(false);
 
   const [pool, setPool] = useState([]);
   const [poolIndex, setPoolIndex] = useState(0);
@@ -64,47 +62,75 @@ const SelfPracticePage = () => {
 
   const [showAnswer, setShowAnswer] = useState(false);
 
-  // Sync positions from Backend API /api/v1/position/get-all if available
-useEffect(() => {
-    const fetchPositions = async () => {
+  // Tìm kiếm danh sách Position gợi ý từ Backend API
+  useEffect(() => {
+    if (!positionQuery.trim()) {
+      setPositionSuggestions([]);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
       try {
-        // 1. Gọi hàm lấy token
-        const rawToken = getAccessToken();
-        const cleanToken = rawToken ? rawToken.replace(/^Bearer\s+/i, "") : "";
-        
-        // 2. Đính kèm vũ khí vào Request
-        const res = await fetch(`${API_BASE}/api/v1/position/get-all`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {})
-          }
-        });
-        
+        const cleanToken = getAccessToken();
+        const headers = cleanToken
+          ? { Authorization: `Bearer ${cleanToken}` }
+          : {};
+
+        const res = await fetch(
+          `${API_BASE}/api/v1/position/search?q=${encodeURIComponent(positionQuery)}`,
+          { headers },
+        );
+
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            // Map string array from backend to {id, name} format
-            const mapped = data.map((posName, index) => ({
-              id: index + 1,
-              name: posName,
-            }));
-            setPositions(mapped);
-          }
+          setPositionSuggestions(data || []);
+        } else {
+          setPositionSuggestions([]);
         }
       } catch (err) {
-        console.warn("Using static positions due to API error:", err);
+        console.error("Lỗi tìm kiếm position:", err);
+        setPositionSuggestions([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [positionQuery]);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        positionWrapperRef.current &&
+        !positionWrapperRef.current.contains(e.target)
+      ) {
+        setSuggestionsOpen(false);
       }
     };
-    fetchPositions();
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const fetchQuestions = async (positionName, difficulty, count) => {
-    if (!positionName) return;
+  const handlePositionInputChange = (e) => {
+    setPositionQuery(e.target.value);
+    setSelectedPosition(e.target.value);
+    setSuggestionsOpen(true);
+  };
+
+  const handleSelectPosition = (name) => {
+    setPositionQuery(name);
+    setSelectedPosition(name);
+    setSuggestionsOpen(false);
+  };
+
+  // Hàm Filter chính thức gọi API Backend lấy câu hỏi từ Database
+  const fetchQuestions = async () => {
+    if (!selectedPosition.trim()) {
+      setLoadError("Please enter or select a position first!");
+      return;
+    }
 
     setLoading(true);
     setLoadError(null);
-    setUsingSampleData(false);
     setPool([]);
     setPoolIndex(0);
     setAnswerText("");
@@ -113,42 +139,30 @@ useEffect(() => {
     setShowAnswer(false);
 
     try {
-      // 1. CHUẨN HÓA CHỮ ĐỂ TRÁNH LỖI ENUM 401 ẢO
-      const formattedPosition = positionName
-        .trim()
-        .toUpperCase()
-        .replace(/[-\s]+/g, "_")
-        .replace("BACK_END", "BACKEND")
-        .replace("FRONT_END", "FRONTEND");
-
       const params = new URLSearchParams({
-        position: formattedPosition,
-        numQuestions: String(count),
+        position: selectedPosition.trim(),
+        numQuestions: String(numQuestions),
       });
-      
-      if (difficulty && difficulty !== "MIXED") {
-        params.set("difficulty", difficulty);
+
+      if (selectedDifficulty && selectedDifficulty !== "MIXED") {
+        params.set("difficulty", selectedDifficulty);
       }
 
-      // 2. LẤY VÀ LÀM SẠCH TOKEN
-      const rawToken = getAccessToken();
-      const cleanToken = rawToken ? rawToken.replace(/^Bearer\s+/i, "") : "";
+      const cleanToken = getAccessToken();
 
-      // 3. GỌI API VỚI HEADER AUTHORIZATION
       const res = await fetch(
         `${API_BASE}/api/v1/question/get-question?${params.toString()}`,
         {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {})
-          }
-        }
+            ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {}),
+          },
+        },
       );
 
-      // Nếu Token hết hạn thật sự
       if (res.status === 401) {
-        setLoadError("Phiên đăng nhập đã hết hạn. Vui lòng đăng xuất và đăng nhập lại!");
+        setLoadError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
         setLoading(false);
         return;
       }
@@ -157,48 +171,25 @@ useEffect(() => {
         const data = await res.json();
         if (data && data.length > 0) {
           setPool(data);
-          setLoading(false);
-          return;
+        } else {
+          setLoadError(
+            `Không tìm thấy câu hỏi phù hợp cho vị trí "${selectedPosition}" trong Database.`,
+          );
         }
+      } else {
+        setLoadError(`Lỗi tải câu hỏi từ Server (${res.status}).`);
       }
-
-      // Fallback local data if backend returns empty
-      setPool(getFallbackQuestions(positionName, difficulty, count));
-      setUsingSampleData(true);
     } catch (err) {
-      setPool(getFallbackQuestions(positionName, difficulty, count));
-      setUsingSampleData(true);
+      console.error("Lỗi lấy danh sách câu hỏi:", err);
+      setLoadError("Không thể kết nối tới máy chủ Backend.");
     } finally {
       setLoading(false);
-    }  };
-
-  const handlePositionChange = (e) => {
-    const posName = e.target.value;
-    setSelectedPosition(posName);
-    if (posName) {
-      fetchQuestions(posName, selectedDifficulty, numQuestions);
-    }
-  };
-
-  const handleDifficultyChange = (e) => {
-    const diff = e.target.value;
-    setSelectedDifficulty(diff);
-    if (selectedPosition) {
-      fetchQuestions(selectedPosition, diff, numQuestions);
-    }
-  };
-
-  const handleNumQuestionsChange = (e) => {
-    const count = Number(e.target.value);
-    setNumQuestions(count);
-    if (selectedPosition) {
-      fetchQuestions(selectedPosition, selectedDifficulty, count);
     }
   };
 
   const currentQuestion = pool[poolIndex] || null;
   const hasMoreInPool = poolIndex < pool.length - 1;
-  const showCard = selectedPosition && !loading && currentQuestion;
+  const showCard = pool.length > 0 && !loading && currentQuestion;
 
   const nextQuestion = () => {
     if (!hasMoreInPool) return;
@@ -220,7 +211,7 @@ useEffect(() => {
       return;
     }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setMediaError("Microphone is not supported in this browser.");
+      setMediaError("Microphone không được hỗ trợ trên trình duyệt này.");
       return;
     }
     try {
@@ -245,9 +236,7 @@ useEffect(() => {
       recorder.start();
       setRecording(true);
     } catch (error) {
-      setMediaError(
-        "Unable to access microphone. Please allow permission and retry.",
-      );
+      setMediaError("Không thể truy cập Microphone. Vui lòng cấp quyền!");
     }
   };
 
@@ -272,29 +261,59 @@ useEffect(() => {
       <NavigationBar />
       <main className="self-main">
         <section className="self-inner">
-          <h1 className="selfpractice-title">-----SELF PRACTICE-----</h1>
+          <h1 className="selfpractice-title">SELF PRACTICE</h1>
 
-          <div className="self-field-select-wrap">
-            {/* Chuyển ô Input autocomplete thành Dropdown Selection */}
-            <select
-              className="self-field-select self-position-select"
-              value={selectedPosition}
-              onChange={handlePositionChange}
+          <div
+            className="self-field-select-wrap"
+            style={{
+              display: "flex",
+              gap: "12px",
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            {/* Input Position dạng Auto-complete tương tự Mock Interview */}
+            <div
+              className="mock-position-search"
+              ref={positionWrapperRef}
+              style={{ flex: "1 1 220px" }}
             >
-              <option value="" disabled>
-                -- Select Position --
-              </option>
-              {positions.map((pos) => (
-                <option key={pos.id} value={pos.name}>
-                  {pos.name}
-                </option>
-              ))}
-            </select>
+              <input
+                type="text"
+                className="self-field-select mock-position-input"
+                placeholder="Type a position (e.g. Quality Assurance)"
+                value={positionQuery}
+                onChange={handlePositionInputChange}
+                onFocus={() => positionQuery.trim() && setSuggestionsOpen(true)}
+              />
+              {suggestionsOpen && positionQuery.trim() && (
+                <div className="mock-position-dropdown">
+                  {positionSuggestions.length > 0 ? (
+                    positionSuggestions.map((name) => (
+                      <button
+                        type="button"
+                        key={name}
+                        className="mock-position-dropdown-item"
+                        onClick={() => handleSelectPosition(name)}
+                      >
+                        {name}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="mock-position-dropdown-empty">
+                      No positions match &quot;{positionQuery}&quot;.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
+            {/* Dropdown Đội khó */}
             <select
               className="self-field-select self-difficulty-select"
               value={selectedDifficulty}
-              onChange={handleDifficultyChange}
+              onChange={(e) => setSelectedDifficulty(e.target.value)}
+              style={{ flex: "0 1 180px" }}
             >
               {DIFFICULTY_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -303,10 +322,12 @@ useEffect(() => {
               ))}
             </select>
 
+            {/* Dropdown Số lượng câu hỏi */}
             <select
               className="self-field-select self-count-select"
               value={numQuestions}
-              onChange={handleNumQuestionsChange}
+              onChange={(e) => setNumQuestions(Number(e.target.value))}
+              style={{ flex: "0 1 140px" }}
             >
               {NUM_QUESTIONS_OPTIONS.map((n) => (
                 <option key={n} value={n}>
@@ -314,14 +335,19 @@ useEffect(() => {
                 </option>
               ))}
             </select>
+
+            {/* Nút bấm để thực hiện Filter lấy câu hỏi */}
+            <button
+              type="button"
+              className="mock-action-btn primary"
+              onClick={fetchQuestions}
+              style={{ padding: "12px 24px", height: "100%" }}
+            >
+              Start Practice
+            </button>
           </div>
 
           {loadError && <p className="self-error">{loadError}</p>}
-          {usingSampleData && (
-            <p className="self-sample-notice">
-              No live data yet — showing sample questions for preview.
-            </p>
-          )}
 
           <div className="self-loader-area">
             {loading && (
@@ -332,7 +358,7 @@ useEffect(() => {
                   ))}
                 </div>
                 <div className="self-loading-text">
-                  Generating questions, please wait !
+                  Fetching practice questions, please wait!
                 </div>
               </div>
             )}
@@ -355,7 +381,9 @@ useEffect(() => {
                 <div className="mock-answer-area">
                   <button
                     type="button"
-                    className={`mock-micro-icon-button ${recording ? "recording" : ""}`}
+                    className={`mock-micro-icon-button ${
+                      recording ? "recording" : ""
+                    }`}
                     onClick={startRecording}
                   >
                     <img src="/micro.png" alt="Record" />
@@ -364,7 +392,7 @@ useEffect(() => {
                     className="mock-answer-textarea"
                     value={answerText}
                     onChange={(e) => setAnswerText(e.target.value)}
-                    placeholder="Input your answer here or send your record."
+                    placeholder="Input your answer here or record audio."
                   />
                 </div>
                 {audioUrl && (
@@ -380,24 +408,26 @@ useEffect(() => {
 
                 {showAnswer && (
                   <div className="self-answer-reveal">
-                    <p className="self-answer-reveal-label">Answer</p>
+                    <p className="self-answer-reveal-label">Suggested Answer</p>
                     <p className="self-answer-reveal-text">
                       {currentQuestion.suggestionAnswer ||
-                        "No suggested answer available."}
+                        "No suggested answer available in database."}
                     </p>
                   </div>
                 )}
 
                 {!hasMoreInPool && (
                   <p className="mock-pool-exhausted">
-                    This is the last question in the batch.
+                    This is the last question in this practice set.
                   </p>
                 )}
 
                 <div className="mock-control-row">
                   <button
                     type="button"
-                    className={`mock-action-btn key ${showAnswer ? "active" : ""}`}
+                    className={`mock-action-btn key ${
+                      showAnswer ? "active" : ""
+                    }`}
                     onClick={revealAnswer}
                   >
                     {showAnswer ? "Hide Key" : "Key"}

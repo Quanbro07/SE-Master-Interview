@@ -1,0 +1,35 @@
+/* Custom Scrollbar đẹp tương tự BookingPage */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Đảm bảo trang admin cuộn mượt mà */
+.admin-page-root {
+  display: flex;
+  min-height: 100vh;
+  background-color: #0b0c10;
+  color: #fff;
+}
+
+/* Container chính cuộn độc lập nếu nội dung dài */
+.admin-main {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+  height: 100vh;
+}

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import "./RNavigationBar.css";
 import { useState } from "react";
 
@@ -13,7 +13,6 @@ const navItems = [
 
 const RNavigationBar = () => {
   const pathname = usePathname();
-  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const toggleNavbar = () => {
@@ -23,16 +22,6 @@ const RNavigationBar = () => {
   const isActive = (href) =>
     pathname === href ||
     (href === "/interviewer/dashboard" && pathname === "/interviewer");
-
-  // DEV-ONLY: swap to the interviewee side. Replace with a real role check
-  // once the backend exposes a `type` attribute on the logged-in user.
-  const switchToInterviewee = () => {
-    router.push("/interview-booking");
-  };
-
-  const switchToAdmin = () => {
-    router.push("/admin");
-  };
 
   return (
     <aside className={`i-nav-bar ${isCollapsed ? "collapsed" : ""}`}>
@@ -80,29 +69,6 @@ const RNavigationBar = () => {
           );
         })}
       </nav>
-
-      {/* DEV role switcher */}
-      <div className="role-switch-container">
-        <button
-          type="button"
-          className="role-switch-fab change-to-interviewee"
-          onClick={switchToInterviewee}
-          title="Switch to Interviewee view (dev only)"
-        >
-          <span className="role-switch-fab-label">E</span>
-          <span className="role-switch-tooltip">To Interviewee</span>
-        </button>
-
-        <button
-          type="button"
-          className="role-switch-fab change-to-admin"
-          onClick={switchToAdmin}
-          title="Switch to Admin view (dev only)"
-        >
-          <span className="role-switch-fab-label">A</span>
-          <span className="role-switch-tooltip">To Admin</span>
-        </button>
-      </div>
     </aside>
   );
 };

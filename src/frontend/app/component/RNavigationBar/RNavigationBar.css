@@ -3,6 +3,7 @@
   position: sticky;
   top: 0;
   align-self: flex-start;
+  height: 100vh;
   max-height: 100vh;
   width: 300px;
   min-height: 100vh;
@@ -14,6 +15,7 @@
   flex-direction: column;
   gap: 32px;
   box-sizing: border-box;
+  z-index: 100;
   transition:
     width 0.3s cubic-bezier(0.25, 1, 0.5, 1),
     background-color 0.3s ease,
@@ -157,94 +159,4 @@
   font-size: 16px;
   font-weight: 700;
   color: #c6b0fa;
-}
-
-/* DEV-ONLY role switcher, bottom-left circle */
-.navigation-bar,
-.i-nav-bar {
-  position: relative; /* anchors the floating button */
-}
-
-.role-switch-fab {
-  position: relative;
-  bottom: auto;
-  top: 500px;
-  left: 16px;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: #381089;
-  color: #fff;
-  font-weight: 700;
-  font-size: 14px;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  z-index: 30;
-  box-shadow: 0 6px 18px rgba(96, 37, 235, 0.4);
-  transition:
-    transform 0.15s ease,
-    background 0.15s ease;
-}
-
-.role-switch-fab:hover {
-  background: #281593;
-  transform: scale(1.08);
-}
-
-.role-switch-fab-label {
-  pointer-events: none;
-}
-
-/* Tooltip shown on hover */
-.role-switch-tooltip {
-  position: absolute;
-  left: calc(100% + 10px);
-  bottom: 6px;
-  white-space: nowrap;
-  padding: 6px 10px;
-  border-radius: 6px;
-  background: #2a2a30;
-  color: #f4f4f5;
-  font-size: 12px;
-  font-weight: 500;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.15s ease;
-  pointer-events: none;
-}
-
-.role-switch-fab:hover .role-switch-tooltip {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* Keep the button visible and centered even when the sidebar is collapsed */
-.navigation-bar.collapsed .role-switch-fab,
-.i-nav-bar.collapsed .role-switch-fab {
-  left: 50%;
-  transform: translateX(-50%);
-}
-.navigation-bar.collapsed .role-switch-fab:hover,
-.i-nav-bar.collapsed .role-switch-fab:hover {
-  transform: translateX(-50%) scale(1.08);
-}
-
-.role-switch-containter {
-  display: flex;
-  flex-direction: column;
-  gap: 30px;
-  width: 500px;
-}
-.change-to-admin {
-  background: #9c1089;
-  box-shadow: 0 6px 18px rgba(63, 8, 88, 0.4);
-  border: #5e0a71;
-  z-index: 0;
-}
-
-.change-to-admin:hover {
-  background: #7a0c6e;
-  transform: scale(1.08);
 }

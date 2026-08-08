@@ -23,7 +23,6 @@ const normalizeRole = (roleStr) => {
 };
 
 const decodeJwtPayload = (token) => {
-  // Fix: Thêm check an toàn để tránh crash app nếu token không hợp lệ (không chứa dấu chấm)
   if (!token || typeof token !== "string" || !token.includes(".")) {
     return null;
   }
@@ -195,13 +194,13 @@ const InterviewerDetailsFields = ({ values, onChange }) => (
 const AuthCallbackInner = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tokenFromUrl = searchParams.get("regToken") || searchParams.get("token");
-    const purpose = searchParams.has("regToken") 
-      ? "REGISTRATION" 
-      : searchParams.get("purpose");
+  const tokenFromUrl =
+    searchParams.get("regToken") || searchParams.get("token");
+  const purpose = searchParams.has("regToken")
+    ? "REGISTRATION"
+    : searchParams.get("purpose");
 
   const token = tokenFromUrl;
-
   const isProcessingRef = useRef(false);
 
   const [loading, setLoading] = useState(true);
@@ -227,7 +226,6 @@ const AuthCallbackInner = () => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
-  // Fix: Bọc useCallback để tránh infinite loop khi dùng trong hook khác
   const redirectForRole = useCallback(
     (role) => {
       const target =
@@ -236,7 +234,7 @@ const AuthCallbackInner = () => {
         "/interview-booking";
       router.replace(target);
     },
-    [router]
+    [router],
   );
 
   const loadAndCacheSchedule = useCallback(async (token) => {
@@ -286,99 +284,53 @@ const AuthCallbackInner = () => {
 
       redirectForRole(role);
     },
-    [loadAndCacheSchedule, loadAndCacheBookingData, redirectForRole]
+    [loadAndCacheSchedule, loadAndCacheBookingData, redirectForRole],
   );
 
-  const handleLogin = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const cleanToken = token ? token.trim().replace(/ /g, "+") : "";
-      if (!cleanToken) {
-        throw new Error("Invalid or missing authentication token.");
-      }
-
-      const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          ...authHeaders(cleanToken),
-        },
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        if (res.status === 401) {
-          clearAllAuthData();
-          throw new Error(
-            "Session expired or invalid token (401). Please try logging in again."
-          );
-        }
-        throw new Error(`Login failed (${res.status})`);
-      }
-
-      const data = await res.json();
-      storeAuthResponse(data);
-      const accessToken = extractAccessToken(data);
-      await checkInterviewerProfileAndProceed(accessToken, data.role);
-    } catch (err) {
-      console.error("Login error:", err);
-      setError(err.message || "Login failed. Please try again.");
-      setLoading(false);
-    }
-  }, [token, checkInterviewerProfileAndProceed]);
-
-    useEffect(() => {
+  useEffect(() => {
     if (!token) {
       setError("Missing login information. Please try signing in again.");
       setLoading(false);
       return;
     }
 
-    // Ngăn chặn chạy 2 lần trong Strict Mode
     if (isProcessingRef.current) return;
     isProcessingRef.current = true;
-
-    // Fix bẫy F5: Xóa token khỏi URL ngay lập tức để refresh không bị lỗi
-    window.history.replaceState({}, document.title, window.location.pathname);
 
     const authenticate = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
-        // Cứu lại các dấu '+' bị Next.js biến thành dấu cách
         const cleanToken = token.trim().replace(/ /g, "+");
 
-        // CHIẾN THUẬT MỚI: Luôn gọi thẳng vào API Login trước bất chấp URL nói gì!
+        // Gọi API Login
         const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
           method: "POST",
           headers: {
             Accept: "application/json",
-            ...authHeaders(cleanToken), // Giữ nguyên dòng này để backend nhận đúng chuẩn
+            ...authHeaders(cleanToken),
           },
           credentials: "include",
         });
 
         if (res.ok) {
-          // ĐĂNG NHẬP THÀNH CÔNG -> User đã tồn tại, vào thẳng luôn!
           const data = await res.json();
           storeAuthResponse(data);
           const accessToken = extractAccessToken(data);
           await checkInterviewerProfileAndProceed(accessToken, data.role);
-          return; 
+          return;
         }
 
-        // NẾU ĐĂNG NHẬP THẤT BẠI (Status 400, 401...) -> Đích thị là User mới
+        // Nếu người dùng mới -> Bật form Đăng ký bổ sung thông tin
         if (purpose === "REGISTRATION" || searchParams.has("regToken")) {
           clearAllAuthData();
           const claims = decodeJwtPayload(cleanToken);
           setDisplayEmail(claims?.sub || "");
-          setMode("register"); // Lúc này mới mở form Complete Profile
+          setMode("register");
         } else {
           setError("Login failed. Invalid token or session expired.");
         }
-
       } catch (err) {
         console.error("Auth error:", err);
         setError("An error occurred during authentication.");
@@ -388,8 +340,7 @@ const AuthCallbackInner = () => {
     };
 
     authenticate();
-
-  }, [token, purpose]);
+  }, [token, purpose, searchParams, checkInterviewerProfileAndProceed]);
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
@@ -397,9 +348,9 @@ const AuthCallbackInner = () => {
     setError(null);
 
     try {
-const cleanToken = token ? token.trim().replace(/ /g, "+") : "";
+      const cleanToken = token ? token.trim().replace(/ /g, "+") : "";
       const payload = {
-        email: displayEmail, // Thêm email để an toàn với DB
+        email: displayEmail,
         user_name: form.userName,
         full_name: form.fullName,
         linkedin_url: form.linkedinUrl,
@@ -408,7 +359,6 @@ const cleanToken = token ? token.trim().replace(/ /g, "+") : "";
         ...(form.role === "Interviewer" && {
           title: form.title,
           company: form.company,
-          // Fix: Đảm bảo parse int an toàn, tránh bị NaN
           yearsExperience: form.yearsExperience
             ? parseInt(form.yearsExperience, 10) || 0
             : null,
@@ -431,7 +381,7 @@ const cleanToken = token ? token.trim().replace(/ /g, "+") : "";
         if (res.status === 401) {
           clearAllAuthData();
           throw new Error(
-            "Registration session expired or invalid token (401). Please try logging in again."
+            "Registration session expired or invalid token (401). Please try logging in again.",
           );
         }
         throw new Error(`Registration failed (${res.status})`);
@@ -456,7 +406,6 @@ const cleanToken = token ? token.trim().replace(/ /g, "+") : "";
       const payload = {
         title: form.title,
         company: form.company,
-        // Fix: Đảm bảo parse int an toàn
         years_experience: form.yearsExperience
           ? parseInt(form.yearsExperience, 10) || 0
           : null,
@@ -468,7 +417,6 @@ const cleanToken = token ? token.trim().replace(/ /g, "+") : "";
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          // Fix: Gọi hàm lấy token trực tiếp thay vì phụ thuộc vào state (tránh mất token khi reload trang)
           ...authHeaders(getStoredAccessToken()),
         },
         body: JSON.stringify(payload),

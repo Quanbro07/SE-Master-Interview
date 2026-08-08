@@ -414,3 +414,7 @@
 .mock-action-btn.key.active {
   background: linear-gradient(90deg, #4c1d95 0%, #3b0764 100%);
 }
+
+.primary {
+  background: linear-gradient(90deg, #4c1d95 0%, #3b0764 100%);
+}

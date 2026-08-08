@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   addDays,
   addWeeks,
@@ -11,21 +12,16 @@ import {
 import RNavigationBar from "../RNavigationBar/RNavigationBar";
 import "./RCalendar.css";
 
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 9:00 -> 20:00 (kept as original range)
+// Thời gian từ 9h đến 22h (mỗi bước 1h)
+const HOURS = Array.from({ length: 14 }, (_, i) => i + 9); // 9 -> 22
 const WEEKDAY_LABELS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
-// TODO: confirm this matches wherever the backend is actually reachable
-// from the browser (same value used elsewhere in the app).
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 const dateKey = (date, hour) => `${format(date, "yyyy-MM-dd")}-${hour}`;
 const repeatKey = (weekdayIndex, hour) => `${weekdayIndex}-${hour}`;
 
-// TODO: unverified mapping. AvailableSchedule.dayOfWeek is constrained to
-// 2-8 (@Min(2) @Max(8)), which doesn't match ISO DayOfWeek(1-7) directly.
-// Assuming Monday=2 ... Sunday=8 to match this UI's Mon-first week
-// (weekStartsOn: 1). Confirm against the real ScheduleService.
 const weekdayIndexToDayOfWeek = (weekdayIndex) => weekdayIndex + 2;
 const dayOfWeekToWeekdayIndex = (dayOfWeek) => dayOfWeek - 2;
 
@@ -59,24 +55,39 @@ const mergeHoursIntoRanges = (hours) => {
 
 const formatHourAsTime = (hour) => `${String(hour).padStart(2, "0")}:00:00`;
 
-// TODO: confirm actual LocalTime serialization shape ("HH:mm:ss" assumed).
 const parseHourFromTimeString = (value) => {
   if (!value) return null;
   const [hourStr] = value.split(":");
   return parseInt(hourStr, 10);
 };
 
+// Variants cho Animation chuyển tuần
+const slideVariants = {
+  enter: (direction) => ({
+    x: direction > 0 ? 40 : -40,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction) => ({
+    x: direction < 0 ? 40 : -40,
+    opacity: 0,
+  }),
+};
+
 const RCalendar = () => {
   const [weekStart, setWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 }),
   );
+  const [[page, direction], setPage] = useState([0, 0]);
   const [repeatWeekly, setRepeatWeekly] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedSlots, setSelectedSlots] = useState(new Set()); // specific-date mode
-  const [repeatSlots, setRepeatSlots] = useState(new Set()); // repeat-weekly mode
-  const [blockedSlots, setBlockedSlots] = useState(new Set()); // blocked time slots
+  const [selectedSlots, setSelectedSlots] = useState(new Set());
+  const [repeatSlots, setRepeatSlots] = useState(new Set());
+  const [blockedSlots, setBlockedSlots] = useState(new Set());
 
-  const [scheduleLoading, setScheduleLoading] = useState(false);
   const [scheduleError, setScheduleError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -96,49 +107,52 @@ const RCalendar = () => {
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const monthLabel = format(weekDays[6], "MMMM yyyy");
 
-  // Load blocked schedules for the visible week
   const loadBlockedSchedules = async (dateInWeek, days) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/schedule/get?dateInWeek=${dateInWeek}`, {
-        headers: authHeaders(),
-      });
-      if (!res.ok) return; // Silently fail if blocked schedule fetch doesn't work
-      
+      const res = await fetch(
+        `${API_BASE}/api/v1/schedule/get?dateInWeek=${dateInWeek}`,
+        { headers: authHeaders() },
+      );
+      if (!res.ok) return;
+
       const data = await res.json();
-      // Data should include blocked schedules; parse them to mark slots
       const nextBlockedSlots = new Set();
-      
-      // Check if backend returns blocked_schedules (implementation-dependent)
+
       if (data.blockedSchedules && Array.isArray(data.blockedSchedules)) {
         data.blockedSchedules.forEach((block) => {
           const blockStart = new Date(block.startTime);
           const blockEnd = new Date(block.endTime);
-          
+
           days.forEach((day) => {
-            for (let hour = HOURS[0]; hour <= HOURS[HOURS.length - 1]; hour++) {
+            HOURS.forEach((hour) => {
               const slotStart = new Date(day);
               slotStart.setHours(hour, 0, 0, 0);
               const slotEnd = new Date(slotStart);
               slotEnd.setHours(hour + 1, 0, 0, 0);
-              
-              // Check if this hour overlaps with blocked period
+
               if (slotStart < blockEnd && slotEnd > blockStart) {
                 nextBlockedSlots.add(`${format(day, "yyyy-MM-dd")}-${hour}`);
               }
-            }
+            });
           });
         });
       }
-      
+
       setBlockedSlots(nextBlockedSlots);
     } catch (err) {
-      // Silently fail - blocked schedule is secondary
       console.warn("Could not load blocked schedules:", err.message);
     }
   };
 
-  const goPrevWeek = () => setWeekStart((prev) => subWeeks(prev, 1));
-  const goNextWeek = () => setWeekStart((prev) => addWeeks(prev, 1));
+  const goPrevWeek = () => {
+    setPage([page - 1, -1]);
+    setWeekStart((prev) => subWeeks(prev, 1));
+  };
+
+  const goNextWeek = () => {
+    setPage([page + 1, 1]);
+    setWeekStart((prev) => addWeeks(prev, 1));
+  };
 
   const isSlotSelected = (date, hour, weekdayIndex) => {
     if (repeatWeekly) return repeatSlots.has(repeatKey(weekdayIndex, hour));
@@ -229,26 +243,21 @@ const RCalendar = () => {
     }
   };
 
-  // Load recurring weekly availability whenever the visible week changes.
   useEffect(() => {
     const loadSchedule = async () => {
-      setScheduleLoading(true);
       setScheduleError(null);
       try {
         const dateInWeek = format(weekDays[0], "yyyy-MM-dd");
-        
-        // Try to load from cache first
-        let cachedSchedule = null;
+
         const cachedData = localStorage.getItem("interviewerSchedule");
         if (cachedData) {
           try {
-            cachedSchedule = JSON.parse(cachedData);
+            JSON.parse(cachedData);
           } catch (e) {
             console.warn("Could not parse cached schedule");
           }
         }
 
-        // Fetch fresh data from backend
         const res = await fetch(
           `${API_BASE}/api/v1/schedule/get?dateInWeek=${dateInWeek}`,
           { headers: authHeaders() },
@@ -256,7 +265,6 @@ const RCalendar = () => {
         if (!res.ok) throw new Error(`Failed to load schedule (${res.status})`);
         const data = await res.json();
 
-        // Update cache
         localStorage.setItem("interviewerSchedule", JSON.stringify(data));
 
         const nextRepeatSlots = new Set();
@@ -268,27 +276,23 @@ const RCalendar = () => {
             const endHour = parseHourFromTimeString(range.end_time);
             if (startHour == null || endHour == null) return;
             for (let h = startHour; h < endHour; h += 1) {
-              nextRepeatSlots.add(repeatKey(weekdayIndex, h));
+              if (h >= 9 && h <= 22) {
+                nextRepeatSlots.add(repeatKey(weekdayIndex, h));
+              }
             }
           });
         });
         setRepeatSlots(nextRepeatSlots);
 
-        // Fetch blocked schedules for this week
         await loadBlockedSchedules(dateInWeek, weekDays);
       } catch (err) {
         setScheduleError(err.message || "Could not load your schedule.");
-      } finally {
-        setScheduleLoading(false);
       }
     };
 
     loadSchedule();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [format(weekDays[0], "yyyy-MM-dd")]);
 
-  // Save is only supported in repeat-weekly mode — AvailableSchedule has
-  // no concept of a specific calendar date, only a recurring day_of_week.
   const handleSaveSchedule = async () => {
     if (!repeatWeekly) {
       setScheduleError(
@@ -341,7 +345,6 @@ const RCalendar = () => {
     }
   };
 
-  // Add Blocked Schedule
   const handleBlockFieldChange = (field) => (e) => {
     setBlockForm((prev) => ({ ...prev, [field]: e.target.value }));
   };
@@ -395,7 +398,7 @@ const RCalendar = () => {
       <RNavigationBar />
       <main className="r-calendar-main">
         <section className="r-calendar-inner">
-          <h1 className="r-calendar-title">-----CALENDAR-----</h1>
+          <h1 className="r-calendar-title">CALENDAR</h1>
 
           <div className={`r-calendar-card ${isEditing ? "is-editing" : ""}`}>
             <div className="r-calendar-topbar">
@@ -422,9 +425,6 @@ const RCalendar = () => {
             </div>
 
             {scheduleError && <p className="calendar-error">{scheduleError}</p>}
-            {scheduleLoading && (
-              <p className="calendar-loading">Loading your schedule…</p>
-            )}
 
             <div className="r-calendar-nav-row">
               <button
@@ -446,45 +446,76 @@ const RCalendar = () => {
               </button>
             </div>
 
-            <div className="r-calendar-grid">
-              <div className="grid-header-row">
-                <div className="grid-time-col-spacer" />
-                {weekDays.map((date, i) => (
-                  <div
-                    key={i}
-                    className={`grid-day-header ${!isSameMonth(date, weekDays[6]) ? "faded-month" : ""}`}
-                  >
-                    <span className="weekday-name">{WEEKDAY_LABELS[i]}</span>
-                    <span className="weekday-date">{format(date, "d")}</span>
+            {/* BẢNG LỊCH VOI ANIMATION SLIDE & TỶ LỆ Ô HÌNH VUÔNG */}
+            <div className="r-calendar-table-wrapper custom-scrollbar">
+              <AnimatePresence mode="wait" custom={direction}>
+                <motion.div
+                  key={page}
+                  custom={direction}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.22, ease: "easeInOut" }}
+                  className="r-calendar-grid"
+                >
+                  {/* Hàng tiêu đề Giờ */}
+                  <div className="grid-header-row">
+                    <div className="grid-day-col-spacer">DAY</div>
+                    {HOURS.map((hour) => (
+                      <div key={hour} className="grid-time-header">
+                        {hour}:00
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
 
-              {HOURS.map((hour) => (
-                <div key={hour} className="grid-hour-row">
-                  <div className="grid-time-label">{hour}:00</div>
+                  {/* Danh sách các Thứ */}
                   {weekDays.map((date, weekdayIndex) => {
-                    const selected = isSlotSelected(date, hour, weekdayIndex);
-                    const blocked = isSlotBlocked(date, hour);
+                    const isFaded = !isSameMonth(date, weekDays[6]);
+
                     return (
-                      <button
-                        key={weekdayIndex}
-                        type="button"
-                        className={`slot-cell ${selected ? "is-selected" : ""} ${blocked ? "is-blocked" : ""} ${!isEditing ? "is-locked" : ""}`}
-                        onMouseDown={() =>
-                          handleMouseDown(date, hour, weekdayIndex)
-                        }
-                        onMouseEnter={() =>
-                          handleMouseEnter(date, hour, weekdayIndex)
-                        }
-                        aria-pressed={selected}
-                        aria-label={`${WEEKDAY_LABELS[weekdayIndex]} ${format(date, "MMM d")} ${hour}:00${blocked ? " (blocked)" : ""}`}
-                        disabled={blocked} // Prevent editing blocked slots
-                      />
+                      <div key={weekdayIndex} className="grid-day-row">
+                        <div
+                          className={`grid-day-label ${isFaded ? "faded-month" : ""}`}
+                        >
+                          <span className="weekday-name">
+                            {WEEKDAY_LABELS[weekdayIndex]}
+                          </span>
+                          <span className="weekday-date">
+                            {format(date, "d")}
+                          </span>
+                        </div>
+
+                        {HOURS.map((hour) => {
+                          const selected = isSlotSelected(
+                            date,
+                            hour,
+                            weekdayIndex,
+                          );
+                          const blocked = isSlotBlocked(date, hour);
+
+                          return (
+                            <button
+                              key={hour}
+                              type="button"
+                              className={`slot-cell ${selected ? "is-selected" : ""} ${blocked ? "is-blocked" : ""} ${!isEditing ? "is-locked" : ""}`}
+                              onMouseDown={() =>
+                                handleMouseDown(date, hour, weekdayIndex)
+                              }
+                              onMouseEnter={() =>
+                                handleMouseEnter(date, hour, weekdayIndex)
+                              }
+                              aria-pressed={selected}
+                              aria-label={`${WEEKDAY_LABELS[weekdayIndex]} ${format(date, "MMM d")} ${hour}:00${blocked ? " (blocked)" : ""}`}
+                              disabled={blocked}
+                            />
+                          );
+                        })}
+                      </div>
                     );
                   })}
-                </div>
-              ))}
+                </motion.div>
+              </AnimatePresence>
             </div>
 
             <div className="r-calendar-footer">

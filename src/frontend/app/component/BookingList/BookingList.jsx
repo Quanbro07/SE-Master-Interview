@@ -34,11 +34,11 @@ const BookingSection = ({
           }
         }
 
-        // 2. Làm sạch token và gắn thêm chữ Bearer chuẩn
-        const cleanToken = rawToken ? rawToken.trim().replace(/^Bearer\s+/i, "") : "";
+        const cleanToken = rawToken
+          ? rawToken.trim().replace(/^Bearer\s+/i, "")
+          : "";
         const authHeader = cleanToken ? `Bearer ${cleanToken}` : "";
 
-        // 3. Gọi fetch có đính kèm Header Authorization
         const res = await fetch(
           `${API_BASE}/api/v1/booking/filter-interviewer?position=${encodeURIComponent(
             positionQuery,
@@ -46,9 +46,9 @@ const BookingSection = ({
           {
             method: "GET",
             headers: {
-              ...(authHeader ? { Authorization: authHeader } : {})
-            }
-          }
+              ...(authHeader ? { Authorization: authHeader } : {}),
+            },
+          },
         );
 
         let listFromApi = [];
@@ -71,9 +71,6 @@ const BookingSection = ({
           }));
         }
 
-        // ------------------------------------------------------------------
-        // 🔥 GIẢI PHÁP FRONTEND: Lấy dữ liệu Interviewer từ LocalStorage
-        // ------------------------------------------------------------------
         let cachedUser = null;
         try {
           cachedUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -82,7 +79,6 @@ const BookingSection = ({
         }
 
         if (cachedUser && (cachedUser.fullName || cachedUser.userName)) {
-          // Chuẩn hóa danh sách expertise từ localStorage
           const userExpertise = Array.isArray(cachedUser.expertise)
             ? cachedUser.expertise.map((e) =>
                 e.toUpperCase().replace(/\s+/g, "_"),
@@ -93,7 +89,6 @@ const BookingSection = ({
             .toUpperCase()
             .replace(/\s+/g, "_");
 
-          // Kiểm tra xem vị trí hiện tại có khớp với Interviewer trong LocalStorage không
           const isMatched = userExpertise.some(
             (exp) =>
               (exp.includes("FRONT") && currentPosUpper.includes("FRONT")) ||
@@ -114,7 +109,6 @@ const BookingSection = ({
               avatar: "/user.png",
             };
 
-            // Tránh trùng lặp nếu API đã có
             const exists = listFromApi.some(
               (m) =>
                 m.name.toLowerCase() === localInterviewer.name.toLowerCase(),
@@ -138,7 +132,6 @@ const BookingSection = ({
     fetchInterviewers();
   }, [positionQuery, title]);
 
-  // Bộ lọc theo thanh Tìm kiếm
   const filteredMentors = mentors.filter((m) =>
     searchKeyword
       ? m.name.toLowerCase().includes(searchKeyword.toLowerCase()) ||

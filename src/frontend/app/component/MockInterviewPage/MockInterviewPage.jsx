@@ -2,18 +2,13 @@
 import { useEffect, useRef, useState } from "react";
 import NavigationBar from "../NavigationBar/NavigationBar";
 import "./MockInterviewPage.css";
-import {
-  getFallbackQuestions,
-  getFallbackPositionSuggestions,
-} from "../SharedQuestionData/sampleQuestions";
 
-// TODO: confirm this matches wherever the backend is actually reachable
-// from the browser (same value used elsewhere).
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 const POOL_SIZE = 10;
 
+// Helper lấy Clean Authorization Token
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
   const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
@@ -26,13 +21,13 @@ const getAccessToken = () => {
     }
   }
   if (!token) return "";
-  // Xóa dấu ngoặc kép ở 2 đầu nếu có
-  return token.replace(/^"(.*)"$/, "$1").trim();
+  return token
+    .replace(/^"(.*)"$/, "$1")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
 };
 
 const MockInterviewPage = () => {
-  // Position search (typed input + suggestions), same pattern as
-  // Self-practice, replacing the old static <select>.
   const [positionQuery, setPositionQuery] = useState("");
   const [positionSuggestions, setPositionSuggestions] = useState([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
@@ -40,8 +35,8 @@ const MockInterviewPage = () => {
   const positionWrapperRef = useRef(null);
 
   const [loading, setLoading] = useState(false);
+  const [evaluating, setEvaluating] = useState(false);
   const [loadError, setLoadError] = useState(null);
-  const [usingSampleData, setUsingSampleData] = useState(false);
 
   const [pool, setPool] = useState([]);
   const [poolIndex, setPoolIndex] = useState(0);
@@ -54,6 +49,7 @@ const MockInterviewPage = () => {
   const audioChunksRef = useRef([]);
 
   const [history, setHistory] = useState([]);
+  const [evaluations, setEvaluations] = useState([]); // Chứa kết quả đánh giá từ backend
   const [reviewMode, setReviewMode] = useState(false);
   const [reviewIndex, setReviewIndex] = useState(0);
 
@@ -61,8 +57,7 @@ const MockInterviewPage = () => {
   const hasMoreInPool = poolIndex < pool.length - 1;
   const showCard = selectedField && !loading && currentQuestion && !reviewMode;
 
-  // Debounced position search, falling back to local sample positions
-  // when the backend returns nothing (no data yet) or fails.
+  // Lấy gợi ý Vị trí (Position) từ Backend
   useEffect(() => {
     if (!positionQuery.trim()) {
       setPositionSuggestions([]);
@@ -71,26 +66,25 @@ const MockInterviewPage = () => {
 
     const timeoutId = setTimeout(async () => {
       try {
-        // Móc token từ LocalStorage
-        let token = localStorage.getItem("accessToken") || localStorage.getItem("token") || "";
-        const cleanToken = token.replace(/^Bearer\s+/i, "").replace(/"/g, "").trim();
-        const headers = cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {};
+        const cleanToken = getAccessToken();
+        const headers = cleanToken
+          ? { Authorization: `Bearer ${cleanToken}` }
+          : {};
 
         const res = await fetch(
           `${API_BASE}/api/v1/position/search?q=${encodeURIComponent(positionQuery)}`,
-          { headers } // Đính kèm thẻ căn cước vào đây
+          { headers },
         );
-        
+
         if (res.ok) {
           const data = await res.json();
-          if (data.length > 0) {
-            setPositionSuggestions(data);
-            return;
-          }
+          setPositionSuggestions(data || []);
+        } else {
+          setPositionSuggestions([]);
         }
-        setPositionSuggestions(getFallbackPositionSuggestions(positionQuery));
-      } catch {
-        setPositionSuggestions(getFallbackPositionSuggestions(positionQuery));
+      } catch (err) {
+        console.error("Lỗi tìm kiếm position:", err);
+        setPositionSuggestions([]);
       }
     }, 300);
 
@@ -116,93 +110,78 @@ const MockInterviewPage = () => {
     setSelectedField("");
   };
 
+  // 1. Tải danh sách câu hỏi từ Postgres DB thông qua API Backend
   const startSession = async (position) => {
     setSelectedField(position);
     setSuggestionsOpen(false);
     setLoading(true);
     setLoadError(null);
-    setUsingSampleData(false);
     setReviewMode(false);
     setPool([]);
     setPoolIndex(0);
     setHistory([]);
+    setEvaluations([]);
     setAnswerText("");
     setAudioUrl("");
     setMediaError("");
 
     try {
-      // 1. ĐỊNH DẠNG LẠI CHỮ TRƯỚC KHI GỬI (Vũ khí chống lỗi 401 ảo)
-      const formattedPosition = position
-        .trim()
-        .toUpperCase()
-        .replace(/[-\s]+/g, "_") // Đổi khoảng trắng & dấu gạch ngang thành dấu gạch dưới
-        .replace("BACK_END", "BACKEND") // Gom chữ lại cho đúng chuẩn Backend
-        .replace("FRONT_END", "FRONTEND");
-
+      const cleanToken = getAccessToken();
       const params = new URLSearchParams({
-        position: formattedPosition, // Truyền chữ đã format vào đây (vd: BACKEND_DEVELOPER)
+        position: position.trim(),
         numQuestions: String(POOL_SIZE),
       });
 
-      // 2. Dùng hàm xịn để lấy token
-      const rawToken = getAccessToken();
-      const cleanToken = rawToken ? rawToken.replace(/^Bearer\s+/i, "") : "";
-      
       const res = await fetch(
         `${API_BASE}/api/v1/question/get-question?${params.toString()}`,
         {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            // 3. Gắn Header Token
-            ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {})
-          }
-        }
+            ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {}),
+          },
+        },
       );
 
-      // Nếu Token hết hạn thật sự
       if (res.status === 401) {
-        setLoadError("Phiên đăng nhập đã hết hạn hoặc không có quyền (Vui lòng thử đăng nhập tài khoản Interviewee).");
+        setLoadError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
         setLoading(false);
         return;
       }
 
       if (res.ok) {
         const data = await res.json();
-        if (data.length > 0) {
+        if (data && data.length > 0) {
           setPool(data);
-          setLoading(false);
-          return;
+        } else {
+          setLoadError(
+            `Không tìm thấy câu hỏi nào cho vị trí "${position}" trong Database.`,
+          );
         }
+      } else {
+        setLoadError(`Lỗi tải câu hỏi từ Server (${res.status}).`);
       }
-      
-      setPool(getFallbackQuestions(position, null, POOL_SIZE));
-      setUsingSampleData(true);
-    } catch {
-      setPool(getFallbackQuestions(position, null, POOL_SIZE));
-      setUsingSampleData(true);
+    } catch (err) {
+      console.error("Lỗi lấy danh sách câu hỏi:", err);
+      setLoadError("Không thể kết nối đến máy chủ Backend.");
     } finally {
       setLoading(false);
     }
   };
+
   const handleSelectPosition = (name) => {
     setPositionQuery(name);
     startSession(name);
   };
 
-  const submitAnswerAndAdvance = async () => {
+  const submitAnswerAndAdvance = () => {
     if (!currentQuestion) return;
 
     setHistory((prev) => [
       ...prev,
-      { question: currentQuestion, answerText, audioUrl, feedback: null },
+      { question: currentQuestion, answerText, audioUrl },
     ]);
 
-    // TODO: this is the integration point for the real adaptive endpoint.
-    // Once it exists, replace this pool-walking fallback with a POST that
-    // sends { questionId: currentQuestion.questionId, answerText,
-    // audioBlob } and returns the next Question, chosen based on the
-    // assessed level of this answer.
     if (hasMoreInPool) {
       setPoolIndex((prev) => prev + 1);
       setAnswerText("");
@@ -211,18 +190,56 @@ const MockInterviewPage = () => {
     }
   };
 
-  const endInterview = () => {
+  // 2. Kết thúc phỏng vấn và gửi toàn bộ câu trả lời lên Backend để đánh giá
+  const endInterview = async () => {
     if (!currentQuestion) return;
+
+    let finalHistory = [...history];
     if (
-      !history.some((h) => h.question.questionId === currentQuestion.questionId)
+      !finalHistory.some(
+        (h) => h.question.questionId === currentQuestion.questionId,
+      )
     ) {
-      setHistory((prev) => [
-        ...prev,
-        { question: currentQuestion, answerText, audioUrl, feedback: null },
-      ]);
+      finalHistory.push({ question: currentQuestion, answerText, audioUrl });
+      setHistory(finalHistory);
     }
-    setReviewIndex(history.length);
+
     setReviewMode(true);
+    setReviewIndex(0);
+    setEvaluating(true);
+
+    try {
+      const cleanToken = getAccessToken();
+      const payload = {
+        answers: finalHistory.map((item) => ({
+          questionId: item.question.questionId,
+          userAnswer: item.answerText || "",
+        })),
+      };
+
+      const res = await fetch(
+        `${API_BASE}/api/v1/question/evaluate-questions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {}),
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      if (res.ok) {
+        const evalData = await res.json();
+        setEvaluations(evalData || []);
+      } else {
+        console.error("Đánh giá câu trả lời thất bại với status:", res.status);
+      }
+    } catch (err) {
+      console.error("Lỗi gửi đánh giá câu hỏi:", err);
+    } finally {
+      setEvaluating(false);
+    }
   };
 
   const moveReview = (direction) => {
@@ -238,7 +255,7 @@ const MockInterviewPage = () => {
       return;
     }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setMediaError("Microphone is not supported in this browser.");
+      setMediaError("Microphone không được hỗ trợ trên trình duyệt này.");
       return;
     }
     try {
@@ -263,9 +280,7 @@ const MockInterviewPage = () => {
       recorder.start();
       setRecording(true);
     } catch (error) {
-      setMediaError(
-        "Unable to access microphone. Please allow permission and retry.",
-      );
+      setMediaError("Không thể truy cập Microphone. Vui lòng cấp quyền!");
     }
   };
 
@@ -286,6 +301,9 @@ const MockInterviewPage = () => {
   }, []);
 
   const reviewEntry = history[reviewIndex];
+  const currentEval = evaluations.find(
+    (e) => e.questionId === reviewEntry?.question?.questionId,
+  );
 
   return (
     <div className="mock-page-root">
@@ -293,7 +311,6 @@ const MockInterviewPage = () => {
       <main className="mock-main">
         <section className="mock-inner">
           <h1 className="mockinterview-title">MOCK INTERVIEW</h1>
-          <div className="mock-page-title-wrap"></div>
           <div className="mock-intro">
             <p className="mock-subtitle">Choose your position</p>
           </div>
@@ -303,7 +320,7 @@ const MockInterviewPage = () => {
               <input
                 type="text"
                 className="mock-field-select mock-position-input"
-                placeholder="Type a position (e.g. Backend Developer)"
+                placeholder="Type a position (e.g. Quality Assurance)"
                 value={positionQuery}
                 onChange={handlePositionInputChange}
                 onFocus={() => positionQuery.trim() && setSuggestionsOpen(true)}
@@ -342,7 +359,7 @@ const MockInterviewPage = () => {
                   ))}
                 </div>
                 <div className="mock-loading-text">
-                  Generating questions, please wait !
+                  Fetching questions from database, please wait!
                 </div>
               </div>
             )}
@@ -353,7 +370,8 @@ const MockInterviewPage = () => {
               <div className="mock-question-card">
                 <div className="mock-card-header">
                   <p className="mock-card-title">
-                    Mock Interview: {selectedField}
+                    Mock Interview: {selectedField} ({poolIndex + 1}/
+                    {pool.length})
                   </p>
                 </div>
                 <h2 className="mock-question-title">
@@ -371,7 +389,7 @@ const MockInterviewPage = () => {
                     className="mock-answer-textarea"
                     value={answerText}
                     onChange={(e) => setAnswerText(e.target.value)}
-                    placeholder="Input your answer here or send your record."
+                    placeholder="Input your answer here or record audio."
                   />
                 </div>
                 {audioUrl && (
@@ -386,8 +404,7 @@ const MockInterviewPage = () => {
                 )}
                 {!hasMoreInPool && (
                   <p className="mock-pool-exhausted">
-                    No more questions in this batch — click End Interview to
-                    finish.
+                    You reached the end of questions — click End to evaluate.
                   </p>
                 )}
                 <div className="mock-control-row">
@@ -413,7 +430,9 @@ const MockInterviewPage = () => {
 
           {reviewMode && reviewEntry && (
             <div className="mock-review-card">
-              <h2 className="review-title">MOCK INTERVIEW: {selectedField}</h2>
+              <h2 className="review-title">
+                MOCK INTERVIEW REPORT: {selectedField}
+              </h2>
               <p className="review-question">
                 <strong>Question {reviewIndex + 1}:</strong>{" "}
                 {reviewEntry.question.content}
@@ -424,25 +443,53 @@ const MockInterviewPage = () => {
                 </p>
                 <p>{reviewEntry.answerText || "No text answer provided."}</p>
                 {reviewEntry.audioUrl && (
-                  <>
-                    <p className="audio-summary">
-                      Voice answer recorded. Play it back below.
-                    </p>
-                    <audio
-                      controls
-                      src={reviewEntry.audioUrl}
-                      style={{ width: "100%", marginTop: "12px" }}
-                    />
-                  </>
+                  <audio
+                    controls
+                    src={reviewEntry.audioUrl}
+                    style={{ width: "100%", marginTop: "12px" }}
+                  />
                 )}
               </div>
+
               <div className="feedback-report">
                 <span className="feedback-score">FEEDBACK REPORT</span>
-                <p className="feedback-text feedback-pending">
-                  Pending backend evaluation — feedback will appear here once
-                  the assessment service is connected.
-                </p>
+                {evaluating ? (
+                  <p className="feedback-text feedback-pending">
+                    Evaluating your response with Backend AI, please wait...
+                  </p>
+                ) : currentEval ? (
+                  <div
+                    className="evaluation-details"
+                    style={{ marginTop: "10px" }}
+                  >
+                    <p>
+                      <strong>Score:</strong> {currentEval.score ?? "N/A"}/100
+                    </p>
+                    <p>
+                      <strong>Feedback:</strong>{" "}
+                      {currentEval.feedback || "No feedback generated."}
+                    </p>
+                    {currentEval.suggestedAnswer && (
+                      <p style={{ marginTop: "8px", color: "#8257e5" }}>
+                        <strong>Suggested Answer:</strong>{" "}
+                        {currentEval.suggestedAnswer}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="feedback-text">
+                    {reviewEntry.question.suggestionAnswer ? (
+                      <>
+                        <strong>Reference Answer:</strong>{" "}
+                        {reviewEntry.question.suggestionAnswer}
+                      </>
+                    ) : (
+                      "No evaluation returned for this question."
+                    )}
+                  </p>
+                )}
               </div>
+
               <div className="review-actions">
                 <button
                   type="button"

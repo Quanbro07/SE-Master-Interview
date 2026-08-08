@@ -5,12 +5,7 @@
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -117,12 +112,55 @@ body {
 .page-title::before,
 .page-title::after {
   content: "-----";
-  color: rgba(167,139,250,0.95);
+  color: rgba(167, 139, 250, 0.95);
   font-weight: 700;
   margin: 0 10px;
 }
 
 @media (max-width: 480px) {
-  .page-title { font-size: 22px !important; padding: 4px 8px; }
-  .page-title::before, .page-title::after { content: "--"; margin: 0 6px; }
+  .page-title {
+    font-size: 22px !important;
+    padding: 4px 8px;
+  }
+  .page-title::before,
+  .page-title::after {
+    content: "--";
+    margin: 0 6px;
+  }
+}
+
+/* ==========================================
+   CUSTOM SCROLLBAR STYLES (BookingList Style)
+   ========================================== */
+
+/* Dành cho Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Dành cho Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+}
+
+/* Smooth Scrolling toàn bộ ứng dụng */
+html {
+  scroll-behavior: smooth;
 }
