@@ -1,0 +1,52 @@
+package com.test.backend.controller;
+
+import com.test.backend.config.CVBucketConfig;
+import com.test.backend.entity.booking.Booking;
+import com.test.backend.exception.customException.NotFoundException;
+import com.test.backend.repository.BookingRepository;
+import com.test.backend.service.EmailService;
+import com.test.backend.service.FileService;
+import io.minio.errors.MinioException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.UUID;
+
+@RequiredArgsConstructor
+@RestController
+@RequestMapping("api/v1/test")
+public class TestController {
+    private final EmailService emailService;
+
+    private final FileService fileService;
+
+    private final BookingRepository bookingRepository;
+
+    private final CVBucketConfig cvBucket;
+
+    @PostMapping("/test-email/{bookingId}")
+    public ResponseEntity<?> test(@PathVariable Long bookingId) {
+        Booking booking = bookingRepository.findByBookingIdFetchInterviewerAndBooker(bookingId)
+                .orElseThrow(() -> new NotFoundException("Booking Not found"));
+
+        emailService.sendEmailsForSuccessfulPayment(booking);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/file/upload")
+    public ResponseEntity<?> testUpload(@RequestParam("file") MultipartFile file) throws IOException, MinioException {
+
+        String originalFileName = file.getOriginalFilename();
+
+        String targetName = UUID.randomUUID().toString() + "_" + originalFileName;
+
+        String url = fileService.uploadFile(cvBucket.getCVBucketName(), file.getBytes(), file.getContentType(), targetName);
+
+        return ResponseEntity.ok(url);
+    }
+
+}

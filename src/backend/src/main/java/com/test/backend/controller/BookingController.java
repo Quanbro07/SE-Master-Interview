@@ -54,7 +54,7 @@ public class BookingController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasRole('Interviewee')")
+//    @PreAuthorize("hasRole('Interviewee')")
     @PostMapping("/booking-interviewer")
     public ResponseEntity<BookingResponse> bookingInterviewer(
             @RequestBody BookingRequest request,
