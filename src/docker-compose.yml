@@ -96,7 +96,18 @@ services:
     networks:
       - app-network
 
-
+  core_ai:
+    build:
+      context: ./core_ai
+      dockerfile: dockerfile
+    container_name: master-interview-ai
+    ports:
+      - "8000:8000"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: unless-stopped
 
   
 volumes:
