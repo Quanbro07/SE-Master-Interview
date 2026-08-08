@@ -1,0 +1,120 @@
+services:
+  database:
+    container_name: postgres
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5332:5432"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+  
+  # Minio
+  minio:
+    image: minio/minio
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - app-network
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: master-interview-app
+    depends_on:
+      database:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      #Profile
+      - SPRING_PROFILES_ACTIVE=prod
+
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      
+      # DB
+      - POSTGRES_HOST=database
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      
+      # OAuth2
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+
+      
+      - REDIRECT_URL=${REDIRECT_URL}
+      - FRONTEND_URL=http://localhost:3000
+
+      # Minio
+      - MINIO_SERVER_URL=http://host.docker.internal:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET_CV=cv-bucket
+      
+      # Internal
+      - INTERNAL_URL=http://host.docker.internal:8000
+      - INTERNAL_CV_ASSESSMENT_ENDPOINT=/api/ai/cv-assessment
+      
+      #Stripe
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_PUBLISH_KEY=${STRIPE_PUBLISH_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      
+      # Mail
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+  core_ai:
+    build:
+      context: ./core_ai
+      dockerfile: dockerfile
+    container_name: master-interview-ai
+    ports:
+      - "8000:8000"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  
+volumes:
+  db_data:
+    name: master-interview_db_data
+  minio_data:
+
+  
+networks:
+  app-network:
