@@ -19,7 +19,6 @@ import java.util.Optional;
 
 @RequiredArgsConstructor
 @Component
-@Order(2)
 public class AdminInit {
 
     private final UserRepository userRepository;
@@ -28,6 +27,8 @@ public class AdminInit {
 
     private final JwtService jwtService;
 
+
+    @Order(2)
     @Bean
     CommandLineRunner initAdmin(UserRepository userRepository) {
         return args -> {

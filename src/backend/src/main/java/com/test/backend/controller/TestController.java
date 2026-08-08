@@ -51,4 +51,9 @@ public class TestController {
 
         return ResponseEntity.ok(url);
     }
+
+    @GetMapping("/test-limit")
+    public String hello() {
+        return "Hello World! YOu are within rate limit.";
+    }
 }

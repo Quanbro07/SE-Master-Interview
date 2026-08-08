@@ -75,13 +75,11 @@ public class JwtFilterChain extends OncePerRequestFilter {
             String tokenType = jwtService.extractClaims(jwtToken, claims -> claims.get("type", String.class));
 
             if("PRE_AUTH".equals(tokenType)) {
-                log.warn("=== TOKEN LÀ PRE_AUTH, SKIP AUTHENTICATION ===");
                 filterChain.doFilter(request, response);
                 return;
             }
 
             userEmail = jwtService.extractUsername(jwtToken);
-            log.info("=== USER EMAIL TỪ TOKEN: {} ===", userEmail);
 
             if(userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
@@ -103,7 +101,6 @@ public class JwtFilterChain extends OncePerRequestFilter {
                     );
 
                     SecurityContextHolder.getContext().setAuthentication(authenToken);
-                    log.info("=== ĐÃ SET SECURITY CONTEXT THÀNH CÔNG ===");
                 }
             }
 

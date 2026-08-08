@@ -36,4 +36,7 @@ public interface AvailableScheduleRepository extends JpaRepository<AvailableSche
     );
 
     List<AvailableSchedule> findAllByInterviewer_InterviewerId(Long interviewerId);
+
+    List<AvailableSchedule> findAllByInterviewer_InterviewerIdIn(List<Long> interviewerIds);
+
 }

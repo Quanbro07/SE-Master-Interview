@@ -22,4 +22,15 @@ public interface BlockedScheduleRepository extends JpaRepository<BlockedSchedule
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
     );
+    @Query("""
+    SELECT b FROM BlockedSchedule b 
+    WHERE b.interviewer.interviewerId IN :interviewerIds 
+    AND b.startTime < :endTime 
+    AND b.endTime > :startTime
+    """)
+    List<BlockedSchedule> findOverlappingBlocksForInterviewers(
+            @Param("interviewerIds") List<Long> interviewerIds,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime);
+
 }

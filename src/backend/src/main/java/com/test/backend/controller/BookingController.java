@@ -21,6 +21,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -34,10 +35,11 @@ public class BookingController {
     @GetMapping("/filter-interviewer")
     public ResponseEntity<Page<FilterInterviewerPositionResponse>> filterInterviewerByPosition(
             @RequestParam("position") String position,
+            @RequestParam("date") LocalDate date,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        Page<FilterInterviewerPositionResponse>response = bookingService.filterInterviewerByPosition(position, page, size);
+        Page<FilterInterviewerPositionResponse>response = bookingService.filterInterviewerByPosition(position, date,  page, size);
 
         return ResponseEntity.ok(response);
     }

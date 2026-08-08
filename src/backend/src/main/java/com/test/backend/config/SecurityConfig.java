@@ -2,6 +2,7 @@ package com.test.backend.config;
 
 import com.test.backend.exception.GlobalExceptionHandler;
 import com.test.backend.filterChain.JwtFilterChain;
+import com.test.backend.filterChain.RateLimitFilterChain;
 import com.test.backend.oauth2.customService.CustomOauth2UserService;
 import com.test.backend.oauth2.customUser.CustomOidcUserService;
 import com.test.backend.oauth2.successHandler.AuthenticationSuccessHandler;
@@ -34,6 +35,8 @@ public class SecurityConfig {
     private final AuthenticationSuccessHandler authenticationSuccessHandler;
 
     private final JwtFilterChain jwtFilterChain;
+
+    private final RateLimitFilterChain rateLimitFilterChain;
 
 
     @Bean
@@ -69,6 +72,10 @@ public class SecurityConfig {
                         .successHandler(authenticationSuccessHandler)
                 )
 
+                // Rate Limit trước
+                .addFilterBefore(rateLimitFilterChain, UsernamePasswordAuthenticationFilter.class)
+
+                // Token sau
                 .addFilterBefore(jwtFilterChain, UsernamePasswordAuthenticationFilter.class)
         ;
 

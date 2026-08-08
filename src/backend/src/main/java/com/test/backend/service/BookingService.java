@@ -14,6 +14,8 @@ import com.test.backend.dto.interview.InterviewResultRequest;
 import com.test.backend.dto.interview.InterviewerReviewResponse;
 import com.test.backend.dto.interview.ReviewInterviewerRequest;
 import com.test.backend.dto.schedule.AddBlockedScheduleRequest;
+import com.test.backend.dto.schedule.DailyFreeScheduleDTO;
+import com.test.backend.dto.schedule.WeeklyFreeScheduleResponse;
 import com.test.backend.entity.blockedSchedule.BlockedSchedulePurpose;
 import com.test.backend.entity.booking.Booking;
 import com.test.backend.entity.booking.BookingStatus;
@@ -45,8 +47,12 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -75,14 +81,29 @@ public class BookingService {
 
     private final CVBucketConfig cvBucket;
 
-    public Page<FilterInterviewerPositionResponse> filterInterviewerByPosition(String position, int page, int size) {
+    public Page<FilterInterviewerPositionResponse> filterInterviewerByPosition(
+            String position,
+            LocalDate date,
+            int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
 
         Page<InterviewerExpertise> expertisePage = interviewerExpertiseRepository
                 .findAllByPositionWithBalancedSort(position, pageable);
 
+        List<Long> interviewerIds = expertisePage.getContent().stream()
+                .map(ie -> ie.getInterviewer().getInterviewerId())
+                .toList();
+
+        Map<Long, List<DailyFreeScheduleDTO>> schedulesMap = scheduleService
+                .getAvailableScheduleForInterviewers(interviewerIds, date);
+
         Page<FilterInterviewerPositionResponse> response =
-                expertisePage.map(this::coverToFilterInterviewerPositionResponse);
+                expertisePage.map(ie -> {
+                    Long id = ie.getInterviewer().getInterviewerId();
+                    List<DailyFreeScheduleDTO> schedules = schedulesMap.getOrDefault(id, Collections.emptyList());
+
+                    return coverToFilterInterviewerPositionResponse(ie, schedules);
+                });
 
         return response;
     }
@@ -356,22 +377,18 @@ public class BookingService {
         bookingRepository.save(booking);
     }
 
-    private FilterInterviewerPositionResponse coverToFilterInterviewerPositionResponse(InterviewerExpertise expertise) {
+    private FilterInterviewerPositionResponse coverToFilterInterviewerPositionResponse(
+            InterviewerExpertise expertise,
+            List<DailyFreeScheduleDTO> schedules) {
         Interviewer interviewer = expertise.getInterviewer();
         User user = interviewer.getUser();
 
         return FilterInterviewerPositionResponse.builder()
                 .interviewerId(interviewer.getInterviewerId())
                 .email(user.getEmail())
-                .userName(user.getUserName())
                 .fullName(user.getFullName())
-                .linkedinUrl(user.getLinkedinUrl())
-                .githubUrl(user.getGithubUrl())
-                .level(expertise.getLevel())
-                .experienceYear(expertise.getExperienceYear())
-                .hourlyFee(expertise.getHourlyFee())
                 .overallRating(interviewer.getOverallRating())
-                .totalReview(interviewer.getTotalReviews())
+                .availableSchedules(WeeklyFreeScheduleResponse.builder().dailySchedules(schedules).build())
                 .build();
     }
 

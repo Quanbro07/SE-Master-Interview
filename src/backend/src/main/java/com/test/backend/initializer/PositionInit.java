@@ -14,7 +14,6 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @Component
-@Order(1)
 public class PositionInit {
 
 
@@ -23,6 +22,8 @@ public class PositionInit {
 
     private final PositionRepository positionRepository;
 
+
+    @Order(1)
     @Bean
     CommandLineRunner initPosition() {
         return args -> {
