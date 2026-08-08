@@ -142,7 +142,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: DockerFile
     container_name: master-interview-frontend
     ports:
       - "3000:3000"
