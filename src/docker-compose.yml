@@ -142,7 +142,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: DockerFile
     container_name: master-interview-frontend
     ports:
       - "3000:3000"
@@ -152,7 +152,29 @@ services:
       - backend
     networks:
       - app-network
+  core_ai:
 
+    build:
+
+      context: ./core_ai
+
+      dockerfile: dockerfile
+
+    container_name: master-interview-ai
+
+    ports:
+
+      - "8000:8000"
+
+    depends_on:
+
+      - backend
+
+    networks:
+
+      - app-network
+
+    restart: unless-stopped
 volumes:
   db_data:
     name: master-interview_db_data

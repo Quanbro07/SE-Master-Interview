@@ -6,7 +6,7 @@ import "./CVAssessmentPage.css";
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
-// Helper lấy Access Token
+// Hàm lấy Access Token gọn gàng, đồng bộ với các component khác
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
   const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
@@ -20,74 +20,6 @@ const getAccessToken = () => {
   }
   if (!token) return "";
   return token.replace(/^"(.*)"$/, "$1").trim();
-};
-
-// Helper lấy Refresh Token
-const getRefreshToken = () => {
-  if (typeof window === "undefined") return "";
-  const keys = ["refreshToken", "refresh_token"];
-  let token = "";
-  for (const key of keys) {
-    const val = localStorage.getItem(key);
-    if (val) {
-      token = val;
-      break;
-    }
-  }
-  if (!token) return "";
-  return token.replace(/^"(.*)"$/, "$1").trim();
-};
-
-// Cập nhật lại tất cả token key trong LocalStorage
-const updateStoredTokens = (newAccessToken, newRefreshToken) => {
-  if (newAccessToken) {
-    localStorage.setItem("accessToken", newAccessToken);
-    localStorage.setItem("token", newAccessToken);
-    localStorage.setItem("jwt", newAccessToken);
-  }
-  if (newRefreshToken) {
-    localStorage.setItem("refreshToken", newRefreshToken);
-  }
-};
-
-// Hàm Refresh Token
-const refreshAccessToken = async () => {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
-
-  const cleanRefreshToken = refreshToken
-    .replace(/^Bearer\s+/i, "")
-    .replace(/"/g, "")
-    .trim();
-
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/auth/refresh-token`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${cleanRefreshToken}`,
-      },
-      body: JSON.stringify({ refreshToken: cleanRefreshToken }),
-    });
-
-    if (!res.ok) {
-      localStorage.clear();
-      return null;
-    }
-
-    const data = await res.json();
-    const newAccessToken =
-      data.accessToken || data.token || data.access_token || data.jwt;
-    const newRefreshToken = data.refreshToken || data.refresh_token;
-
-    if (newAccessToken) {
-      updateStoredTokens(newAccessToken, newRefreshToken);
-      return newAccessToken;
-    }
-  } catch (err) {
-    console.error("Failed to refresh token:", err);
-  }
-  return null;
 };
 
 // Labels cho section names từ backend
@@ -130,11 +62,11 @@ const CVAssessmentPage = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Gọi API Backend lấy danh sách gợi ý Position
+  // Gọi API Backend lấy danh sách gợi ý Position (có kèm Token)
   const fetchPositions = async (query) => {
     try {
-      const token = getAccessToken();
-      const cleanToken = token ? token.replace(/^Bearer\s+/i, "") : "";
+      const rawToken = getAccessToken();
+      const cleanToken = rawToken ? rawToken.replace(/^Bearer\s+/i, "") : "";
 
       const endpoint = query.trim()
         ? `${API_BASE}/api/v1/position/search?q=${encodeURIComponent(query)}`
@@ -152,7 +84,6 @@ const CVAssessmentPage = () => {
         const data = await res.json();
         setSuggestions(data || []);
       } else {
-        console.warn(`Position fetch failed with status: ${res.status}`);
         setSuggestions([]);
       }
     } catch (err) {
@@ -161,18 +92,16 @@ const CVAssessmentPage = () => {
     }
   };
 
-  // Xử lý khi gõ vào ô Input Position với Debounce nhẹ
   useEffect(() => {
     const timer = setTimeout(() => {
       if (showDropdown) {
         fetchPositions(position);
       }
-    }, 300); // Đợi 300ms sau khi ngừng gõ mới gọi API
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [position, showDropdown]);
 
-  // Xử lý khi gõ vào ô Input Position
   const handlePositionChange = (e) => {
     const value = e.target.value;
     setPosition(value);
@@ -180,7 +109,6 @@ const CVAssessmentPage = () => {
     fetchPositions(value);
   };
 
-  // Xử lý khi click chọn 1 Option từ danh sách thả xuống
   const handleSelectPosition = (selectedPos) => {
     setPosition(selectedPos);
     setShowDropdown(false);
@@ -198,6 +126,7 @@ const CVAssessmentPage = () => {
     inputRef.current?.click();
   };
 
+  // Hàm Submit trực tiếp, truyền token chuẩn như các trang khác
   const onSubmit = async () => {
     if (!file) {
       setError("Please select a CV file.");
@@ -211,52 +140,27 @@ const CVAssessmentPage = () => {
     setLoading(true);
     setError(null);
 
-    // --- FIX Ở ĐÂY ---
-    // Chuyển đổi định dạng chữ cho phù hợp với Backend (VD: "Backend Developer" -> "BACKEND_DEVELOPER")
-    const formattedPosition = position.trim().toUpperCase().replace(/\s+/g, "_");
-
     try {
-      let token = getAccessToken();
+      const rawToken = getAccessToken();
+      const cleanToken = rawToken ? rawToken.replace(/^Bearer\s+/i, "") : "";
 
-      if (!token) {
-        throw new Error(
-          "Phiên đăng nhập không tồn tại. Vui lòng đăng nhập lại!",
-        );
-      }
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("position", position.trim());
 
-      const sendRequest = async (authToken) => {
-        const formData = new FormData();
-        formData.append("file", file);
-        // Thay vì gửi `position` gốc, gửi `formattedPosition` đã được format
-        formData.append("position", formattedPosition);
-
-        const cleanToken = authToken.replace(/^Bearer\s+/i, "");
-        const bearerHeader = `Bearer ${cleanToken}`;
-
-        return await fetch(`${API_BASE}/api/v1/cv-assessment/assess-cv`, {
-          method: "POST",
-          headers: {
-            Authorization: bearerHeader,
-          },
-          body: formData,
-        });
-      };
-
-      let res = await sendRequest(token);
+      // GỌI API VỚI CẤU HÌNH CHUẨN CHO FORMDATA
+      const res = await fetch(`${API_BASE}/api/v1/cv-assessment/assess-cv`, {
+        method: "POST",
+        headers: {
+          ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {}),
+        },
+        body: formData,
+      });
 
       if (res.status === 401) {
-        console.warn(
-          "Token expired or invalid (401). Attempting token refresh...",
-        );
-        const newToken = await refreshAccessToken();
-
-        if (newToken) {
-          res = await sendRequest(newToken);
-        } else {
-          throw new Error(
-            "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!",
-          );
-        }
+        setError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+        setLoading(false);
+        return;
       }
 
       if (!res.ok) {
@@ -282,7 +186,6 @@ const CVAssessmentPage = () => {
         <section className="cv-inner">
           <h1 className="cvassessment-title">-----CV ASSESSMENT-----</h1>
 
-          {/* Autocomplete Input Search */}
           <div
             className="cv-position-picker"
             ref={dropdownRef}
@@ -312,7 +215,6 @@ const CVAssessmentPage = () => {
               }}
             />
 
-            {/* Dropdown Options hiện bên dưới */}
             {showDropdown && suggestions.length > 0 && (
               <ul
                 className="position-dropdown"
@@ -399,18 +301,9 @@ const CVAssessmentPage = () => {
             {loading && (
               <div className="cv-loader">
                 <div className="orbit">
-                  <div className="dot" />
-                  <div className="dot" />
-                  <div className="dot" />
-                  <div className="dot" />
-                  <div className="dot" />
-                  <div className="dot" />
-                  <div className="dot" />
-                  <div className="dot" />
-                  <div className="dot" />
-                  <div className="dot" />
-                  <div className="dot" />
-                  <div className="dot" />
+                  {Array.from({ length: 12 }).map((_, idx) => (
+                    <div key={idx} className="dot" />
+                  ))}
                 </div>
                 <div className="loading-text">
                   Your CV is being judged, please wait!
