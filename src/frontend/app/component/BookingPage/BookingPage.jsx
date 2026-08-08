@@ -2,6 +2,7 @@
 import NavigationBar from "../NavigationBar/NavigationBar";
 import ChatPanel from "../ChatPanel/ChatPanel";
 import BookingList from "../BookingList/BookingList";
+import UserHeader from "../UserHeader/UserHeader";
 import React, { useState, useRef, useEffect } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
@@ -561,7 +562,7 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
 
 const BookingPage = () => {
   const [navCollapsed, setNavCollapsed] = useState(false);
-  const [chatCollapsed, setChatCollapsed] = useState(false);
+  const [chatCollapsed, setChatCollapsed] = useState(true);
 
   const [activePopup, setActivePopup] = useState(null);
   const [selectedMentor, setSelectedMentor] = useState(null);
@@ -613,13 +614,6 @@ const BookingPage = () => {
       />
 
       <main className="dashboard-main">
-        {notice && (
-          <div className="booking-notice" key={notice}>
-            <span className="notice-dash" />
-            <span className="notice-text">{notice}</span>
-            <span className="notice-dash" />
-          </div>
-        )}
         <BookingList
           navCollapsed={navCollapsed}
           chatCollapsed={chatCollapsed}
@@ -627,27 +621,13 @@ const BookingPage = () => {
         />
       </main>
 
-      {chatCollapsed && (
-        <div
-          className="chat-trigger-header"
-          onClick={() => setChatCollapsed(false)}
-        >
-          <div className="chatbot-icon">
-            <img src="/logo.png" alt="Chatbot Icon" />
-          </div>
-          <span className="user-name">
-            {currentUser?.fullName || currentUser?.userName || "Interviewee"}
-          </span>
-          <div className="user-avatar">
-            <img src={currentUser?.avatar || "/user.png"} alt="User Avatar" />
-          </div>
-        </div>
-      )}
-
-      <ChatPanel
-        isCollapsed={chatCollapsed}
-        onClose={() => setChatCollapsed(true)}
+      <UserHeader
+        user={currentUser}
+        isChatOpen={!chatCollapsed}
+        onToggleChat={() => setChatCollapsed((prev) => !prev)}
       />
+
+      <ChatPanel isCollapsed={chatCollapsed} />
 
       {activePopup === "profile" && (
         <ProfilePopup

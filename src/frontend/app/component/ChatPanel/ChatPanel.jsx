@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./ChatPanel.css";
 
-const ChatPanel = ({ isCollapsed, onClose }) => {
+const ChatPanel = ({ isCollapsed }) => {
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -40,16 +40,7 @@ const ChatPanel = ({ isCollapsed, onClose }) => {
 
   return (
     <aside className={`chat-panel ${isCollapsed ? "collapsed" : ""}`}>
-      {/* Chat Header nội bộ */}
-      <div className="chat-header">
-        <div className="chatbot-icon" onClick={onClose}>
-          <img src="/logo.png" alt="Chatbot Icon" />
-        </div>
-        <span className="user-name">John</span>
-        <div className="user-avatar">
-          <img src="/user.png" alt="User Avatar" />
-        </div>
-      </div>
+      {/* Đã xóa chat-header nội bộ để UserHeader nằm cố định ở trên */}
 
       {/* Thân tin nhắn */}
       <div className="chat-messages">
