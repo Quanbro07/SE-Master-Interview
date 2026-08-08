@@ -1,5 +1,7 @@
 package com.test.backend.service;
 
+import com.test.backend.dto.agent.ChatResponse;
+import com.test.backend.dto.agent.ToolResultHolder;
 import com.test.backend.dto.question.FilterDifficulty;
 import com.test.backend.dto.question.QuestionResponse;
 import com.test.backend.entity.position.Position;
@@ -10,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
@@ -39,6 +42,9 @@ public class AgentToolService {
     private final QuestionService questionService;
     private final PositionResolverService positionResolverService;
 
+    @Autowired
+    private ToolResultHolder resultHolder;
+
     private CustomUserDetail getCurrentUser() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetail userDetail) {
@@ -49,32 +55,27 @@ public class AgentToolService {
     }
 
     @Tool(description = "Searches for questions based on a target job position or topic.")
-    public String searchQuestions(
+    public List<QuestionResponse> searchQuestions(
             @ToolParam(description = "The required job position, MUST not be null") String position,
             @ToolParam(description = "Number of questions, default 10", required = false) Integer questionNum,
             @ToolParam(description = "Difficulty: EASY, MEDIUM, HARD") FilterDifficulty difficulty) {
         try {
+            questionNum = questionNum != null ? questionNum : 10;
+            difficulty = difficulty != null ? difficulty : FilterDifficulty.EASY;
+
             log.info("[Tool:searchQuestions] position={}", position);
             String resolvedPosition = positionResolverService.resolvePosition(position);
             List<QuestionResponse> questions = questionService.getQuestions(resolvedPosition, difficulty, questionNum);
-
+            resultHolder.capture("searchQuestions", questions);
             // SCENARIO 1: NO DATA FOUND -> Tell the LLM to STOP immediately
             if (questions.isEmpty()) {
-                return "STATUS: EMPTY. No interview questions found for position '"
-                        + resolvedPosition + "'. STOP tool execution now and inform the user that no questions are available for this position.";
+                return List.of();
             }
-
             // SCENARIO 2: DATA FOUND -> Return clean JSON and tell the LLM to respond
-            try {
-                String jsonOutput = objectMapper.writeValueAsString(questions);
-                return "STATUS: SUCCESS. Questions found: " + jsonOutput
-                        + ". Summarize and display these questions to the user. Do NOT call any more tools.";
-            } catch (Exception e) {
-                return "STATUS: ERROR. Failed to parse question data.";
-            }
+            return questions;
         } catch (Exception ex) {
             log.error("[Tool:searchQuestions] Lỗi khi tìm kiếm position={}: {}", position, ex.getMessage(), ex);
-            return "There is no interview question for the required position: " + position + "'. Stop searching and inform the user that no data exists.";
+            return List.of();
         }
     }
 

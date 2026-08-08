@@ -2,8 +2,10 @@ package com.test.backend.controller;
 
 import com.test.backend.dto.agent.ChatRequest;
 import com.test.backend.dto.agent.ChatResponse;
+import com.test.backend.dto.agent.ToolResultHolder;
 import com.test.backend.entity.user.CustomUserDetail;
 import com.test.backend.service.AgentService;
+import com.test.backend.service.AiAgentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,11 +30,11 @@ public class AgentController {
     }
 
     @PostMapping("/prompt")
-    public ResponseEntity<ChatResponse> sendPrompt(
+    public ResponseEntity<ChatResponse<?>> sendPrompt(
             @RequestBody ChatRequest request,
             @AuthenticationPrincipal CustomUserDetail userDetail) {
-        Long interviewee_id = userDetail.getUser().getUserId();
-        ChatResponse response = agentService.processPrompt(interviewee_id, request);
+        Long user_id = userDetail.getUser().getUserId();
+        ChatResponse<?> response = agentService.processPrompt(user_id, request);
         return ResponseEntity.ok(response);
     }
 }
