@@ -53,7 +53,8 @@ public class SecurityConfig {
                                     "/api/v1/stripe/webhook",
                                     "/api/v1/zoom/webhook",
                                     "/stripe_test.html",
-                                    "/error"
+                                    "/error",
+                                    "/actuator/**"
                                     ).permitAll()
                                 .anyRequest().authenticated()
                         )

@@ -192,6 +192,18 @@
             <artifactId>bucket4j-redis</artifactId>
             <version>8.10.1</version>
         </dependency>
+
+        <!-- Monitor -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
     </dependencies>
 
     <build>

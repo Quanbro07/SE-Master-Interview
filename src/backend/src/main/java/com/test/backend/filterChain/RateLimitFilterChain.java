@@ -30,6 +30,14 @@ public class RateLimitFilterChain extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
 
+        String requestURI = request.getRequestURI();
+
+        // Nếu là Prometheus đang vào lấy metrics thì cho qua luôn, không tính lượt (rate limit)
+        if (requestURI.startsWith("/actuator")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String clientIp = getClientIp(request);
 
         Bucket tokenBucket = rateLimitService.resolveBucket(clientIp);

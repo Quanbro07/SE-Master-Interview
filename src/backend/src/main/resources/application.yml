@@ -1,9 +1,20 @@
 authentication:
   redirect_url: ${REDIRECT_URL}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      namespace: default
+
 spring:
   application:
-    name: backend
+    name: master-interview-backend
 
 # OAUTH2
   security:

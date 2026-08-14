@@ -56,6 +56,13 @@ public class JwtFilterChain extends OncePerRequestFilter {
         final String jwtToken;
         final String userEmail;
 
+        String requestURI = request.getRequestURI();
+
+        if (requestURI.startsWith("/actuator") || requestURI.startsWith("/api/v1/auth")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         if(authHeader == null || !authHeader.startsWith("Bearer ")) {
             log.warn("=== THIẾU HEADER HOẶC SAI PREFIX BEARER ===");
             filterChain.doFilter(request, response);
