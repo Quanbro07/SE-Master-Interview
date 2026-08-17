@@ -16,6 +16,7 @@ import com.test.backend.exception.customException.NotFoundException;
 import com.test.backend.repository.BookingRepository;
 import com.test.backend.repository.InterviewerRepository;
 import com.test.backend.repository.PaymentRepository;
+import com.test.backend.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,9 @@ public class StripeEventService {
     private final BookingRepository bookingRepository;
 
     private final PaymentRepository paymentRepository;
+
+    private final EmailService emailService;
+
 
     public void handleAccountUpdated(Account account) {
         log.info("Update Account: " + account.getId());
@@ -92,7 +96,7 @@ public class StripeEventService {
         String intentId = intentSuccess.getId();
         log.info("Payment succeeded for Intent ID: {}", intentId);
 
-        Booking booking = bookingRepository.findByPaymentIntentIdFetchPayment(intentId)
+        Booking booking = bookingRepository.findByPaymentIntentIdFetchAll(intentId)
                 .orElseThrow(() -> new NotFoundException("Error: Cannot Find Booking for Intent ID: " + intentId));
 
         List<Payment> paymentList = booking.getPaymentList();
@@ -136,6 +140,9 @@ public class StripeEventService {
         // Lưu vào database
         bookingRepository.save(booking);
         paymentRepository.save(payment);
+
+        // Gửi mail
+        emailService.sendEmailsForSuccessfulPayment(booking);
     }
 
     public void handlePaymentFailed(PaymentIntent intentFailed) {

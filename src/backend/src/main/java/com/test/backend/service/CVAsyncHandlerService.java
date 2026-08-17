@@ -38,6 +38,7 @@ public class CVAsyncHandlerService {
             Position position,
             CVAssessmentResponse response,
             byte[] fileData,
+            String orignalFileName,
             String contentType) {
 
         CVAssessment cvAssessment = this.buildCVAssessment(response);
@@ -60,7 +61,7 @@ public class CVAsyncHandlerService {
 
         try {
             // upload
-            cvUrl = fileService.uploadFile(cvBucketConfig.getCVBucketName(), fileData, contentType, target);
+            cvUrl = fileService.uploadFile(cvBucketConfig.getCVBucketName(), fileData, contentType,orignalFileName, target);
 
         } catch (MinioException | IOException e) {
             // 1. Ghi log đỏ (ERROR) kèm thông tin định danh và dấu vết lỗi (stacktrace)

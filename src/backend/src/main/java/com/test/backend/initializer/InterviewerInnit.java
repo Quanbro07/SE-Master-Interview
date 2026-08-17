@@ -29,7 +29,6 @@
 
     @RequiredArgsConstructor
     @Component
-    @Order(3)
     public class InterviewerInnit {
 
         private final InterviewerRepository interviewerRepository;
@@ -52,6 +51,7 @@
         );
 
 
+        @Order(3)
         @Bean
         CommandLineRunner initInterviewer() {
             return args -> {

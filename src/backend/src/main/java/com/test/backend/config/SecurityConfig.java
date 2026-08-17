@@ -1,10 +1,13 @@
 package com.test.backend.config;
 
+import com.test.backend.exception.GlobalExceptionHandler;
 import com.test.backend.filterChain.JwtFilterChain;
+import com.test.backend.filterChain.RateLimitFilterChain;
 import com.test.backend.oauth2.customService.CustomOauth2UserService;
 import com.test.backend.oauth2.customUser.CustomOidcUserService;
 import com.test.backend.oauth2.successHandler.AuthenticationSuccessHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -17,6 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.util.Arrays;
 import java.util.List;
@@ -33,8 +37,12 @@ public class SecurityConfig {
 
     private final JwtFilterChain jwtFilterChain;
 
+    private final RateLimitFilterChain rateLimitFilterChain;
+
+
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+    @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
@@ -48,13 +56,18 @@ public class SecurityConfig {
                                     "/api/v1/stripe/webhook",
                                     "/api/v1/zoom/webhook",
                                     "/stripe_test.html",
-                                    "/api/v1/auth/refresh-token"
+                                    "/api/v1/auth/refresh-token",
+                                    "/error",
+                                    "/actuator/**"
                                     ).permitAll()
                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                 .anyRequest().authenticated()
                         )
                 .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            // Đẩy exception về cho @ControllerAdvice xử lý
+                            exceptionResolver.resolveException(request, response, null, authException);
+                        })
                 )
                 .oauth2Login(oauth -> oauth
                         .userInfoEndpoint(userInfo -> userInfo
@@ -65,6 +78,10 @@ public class SecurityConfig {
                         .successHandler(authenticationSuccessHandler)
                 )
 
+                // Rate Limit trước
+                .addFilterBefore(rateLimitFilterChain, UsernamePasswordAuthenticationFilter.class)
+
+                // Token sau
                 .addFilterBefore(jwtFilterChain, UsernamePasswordAuthenticationFilter.class)
         ;
 

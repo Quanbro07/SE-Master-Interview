@@ -3,6 +3,7 @@ package com.test.backend.exception;
 import com.test.backend.exception.customException.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -140,6 +141,34 @@ public class GlobalExceptionHandler {
                                 HttpStatus.UNAUTHORIZED.value(),
                                 HttpStatus.UNAUTHORIZED.getReasonPhrase(),
                                 e.getMessage()
+                        )
+                );
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Object> handleAuthenticationException(AuthenticationException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(
+                        new ErrorResponse(
+                                LocalDateTime.now().toString(),
+                                HttpStatus.UNAUTHORIZED.value(),
+                                HttpStatus.UNAUTHORIZED.getReasonPhrase(),
+                                ex.getMessage()
+                        )
+                );
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException e) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(
+                        new ErrorResponse(
+                                LocalDateTime.now().toString(),
+                                HttpStatus.BAD_REQUEST.value(),
+                                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                                e.getMessage() // Sẽ in ra đúng: "Error - Booking! startTime must be before endTime"
                         )
                 );
     }

@@ -26,7 +26,6 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @Component
-@Order(3)
 public class IntervieweeInit {
 
     private final IntervieweeRepository intervieweeRepository;
@@ -35,7 +34,7 @@ public class IntervieweeInit {
 
     private final JwtService jwtService;
 
-
+    @Order(3)
     @Bean
     CommandLineRunner initInterviewee() {
         return args -> {

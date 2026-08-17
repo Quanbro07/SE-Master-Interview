@@ -59,6 +59,7 @@ public class UserService {
             throw new ErrorTypeException("File is not an image type");
         }
 
+        String originalFileName = avatar.getOriginalFilename();
         String target = "avatar"+ "_" + user.getUserId();
 
         byte[] fileData;
@@ -74,6 +75,7 @@ public class UserService {
                     .uploadFile(avatarBucketConfig.getAvatarBucketName(),
                             fileData,
                             originalContentType,
+                            originalFileName,
                             target);
         } catch (MinioException | IOException e) {
             // 1. Ghi log đỏ (ERROR) kèm thông tin định danh và dấu vết lỗi (stacktrace)

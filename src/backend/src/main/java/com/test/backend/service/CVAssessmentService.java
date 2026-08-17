@@ -48,7 +48,9 @@ public class CVAssessmentService {
 
         String contentType = file.getContentType();
 
-        cvAsyncHandlerService.saveCVAssessmentAndUploadFileAsync(interviewee, positionGet, response, fileData, contentType);
+        String originalFileName = file.getOriginalFilename();
+
+        cvAsyncHandlerService.saveCVAssessmentAndUploadFileAsync(interviewee, positionGet, response, fileData,originalFileName , contentType);
 
 
         return response;

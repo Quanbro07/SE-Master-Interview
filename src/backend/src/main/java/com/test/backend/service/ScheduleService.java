@@ -1,9 +1,6 @@
 package com.test.backend.service;
 
-import com.test.backend.dto.schedule.AvailableScheduleDTO;
-import com.test.backend.dto.schedule.ScheduleDTO;
-import com.test.backend.dto.schedule.ScheduleTimeDTO;
-import com.test.backend.dto.schedule.AddBlockedScheduleRequest;
+import com.test.backend.dto.schedule.*;
 import com.test.backend.entity.availableSchedule.AvailableSchedule;
 import com.test.backend.entity.blockedSchedule.BlockedSchedule;
 import com.test.backend.entity.blockedSchedule.BlockedSchedulePurpose;
@@ -86,59 +83,85 @@ public class ScheduleService {
 
 
     // * Get Available Schedule
-    public AvailableScheduleDTO getAvailableSchedule(Long userId, LocalDate dateInWeek) {
-        // 1. Xác định khung thời gian của tuần chứa dateInWeek (Thứ 2 00:00:00 đến Chủ Nhật 23:59:59)
+    public Map<Long, List<DailyFreeScheduleDTO>> getAvailableScheduleForInterviewers(
+            List<Long> interviewerIds, LocalDate dateInWeek) {
+
+        if (interviewerIds.isEmpty()) return Collections.emptyMap();
+
         LocalDate monday = dateInWeek.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDateTime startOfWeek = monday.atStartOfDay();
         LocalDateTime endOfWeek = monday.plusDays(6).atTime(LocalTime.MAX);
 
-        // 2. Fetch dữ liệu
-        List<AvailableSchedule> availableTemplates = availableScheduleRepository.findAllByInterviewer_InterviewerId(userId);
-        List<BlockedSchedule> overlappingBlocks = blockedScheduleRepository.findOverlappingBlockedSchedules(userId, startOfWeek, endOfWeek);
+        // 1. QUERY BATCH
+        List<AvailableSchedule> allTemplates = availableScheduleRepository
+                .findAllByInterviewer_InterviewerIdIn(interviewerIds);
+        List<BlockedSchedule> allBlocks = blockedScheduleRepository
+                .findOverlappingBlocksForInterviewers(interviewerIds, startOfWeek, endOfWeek);
 
-        // Gom nhóm Template theo dayOfWeek (2-8) để tra cứu cho nhanh
-        Map<Short, List<AvailableSchedule>> templateByDay = availableTemplates.stream()
-                .collect(Collectors.groupingBy(AvailableSchedule::getDayOfWeek));
+        // 2. GOM NHÓM THEO INTERVIEWER_ID
+        Map<Long, List<AvailableSchedule>> templatesByInterviewer = allTemplates.stream()
+                .collect(Collectors.groupingBy(t -> t.getInterviewer().getInterviewerId()));
 
-        List<ScheduleDTO> scheduleDTOList = new ArrayList<>();
+        Map<Long, List<BlockedSchedule>> blocksByInterviewer = allBlocks.stream()
+                .collect(Collectors.groupingBy(b -> b.getInterviewer().getInterviewerId()));
 
-        // 3. Duyệt qua 7 ngày trong tuần (từ Thứ 2 đến Chủ Nhật)
-        for (int i = 0; i < 7; i++) {
-            LocalDate currentDate = monday.plusDays(i);
-            short dayOfWeekId = (short) (currentDate.getDayOfWeek().getValue() + 1); // Java (1-7) -> App (2-8)
+        // 3. TÍNH TOÁN LỊCH CHO TỪNG NGƯỜI
+        Map<Long, List<DailyFreeScheduleDTO>> result = new HashMap<>();
 
-            // Lấy lịch Template của ngày hôm đó (nếu Interviewer có cài đặt rảnh vào thứ này)
-            List<AvailableSchedule> dailyTemplates = templateByDay.getOrDefault(dayOfWeekId, Collections.emptyList());
-            if (dailyTemplates.isEmpty()) continue;
+        for (Long interviewerId : interviewerIds) {
+            List<AvailableSchedule> myTemplates = templatesByInterviewer.getOrDefault(interviewerId, Collections.emptyList());
+            List<BlockedSchedule> myBlocks = blocksByInterviewer.getOrDefault(interviewerId, Collections.emptyList());
 
-            List<ScheduleTimeDTO> dailyFreeTimeDTOs = new ArrayList<>();
-            for (AvailableSchedule template : dailyTemplates) {
-                // "Gắn" ngày thực tế vào giờ của template để biến thành LocalDateTime
-                LocalDateTime availStart = LocalDateTime.of(currentDate, template.getStartTime());
-                LocalDateTime availEnd = LocalDateTime.of(currentDate, template.getEndTime());
+            // Gom template của người này theo ngày trong tuần
+            Map<Short, List<AvailableSchedule>> templateByDay = myTemplates.stream()
+                    .collect(Collectors.groupingBy(AvailableSchedule::getDayOfWeek));
 
-                // Đưa vào máy xay (thuật toán cắt thời gian) cùng với danh sách block
-                List<TimeSlot> freeSlots = calculateFreeTimeSlots(availStart, availEnd, overlappingBlocks);
+            List<DailyFreeScheduleDTO> dailyScheduleList = new ArrayList<>();
 
-                // Chuyển kết quả LocalDateTime về lại LocalTime để nhét vào DTO
-                for (TimeSlot slot : freeSlots) {
-                    // Bỏ qua các khoảng thời gian bị ép về độ dài = 0 (start = end)
-                    if (slot.start().isBefore(slot.end())) {
-                        dailyFreeTimeDTOs.add(new ScheduleTimeDTO(slot.start().toLocalTime(), slot.end().toLocalTime()));
+            for (int i = 0; i < 7; i++) {
+                LocalDate currentDate = monday.plusDays(i);
+                short dayOfWeekId = (short) (currentDate.getDayOfWeek().getValue() + 1);
+
+                List<AvailableSchedule> dailyTemplates = templateByDay.getOrDefault(dayOfWeekId, Collections.emptyList());
+                if (dailyTemplates.isEmpty()) continue;
+
+                List<ScheduleTimeDTO> dailyFreeTimeDTOs = new ArrayList<>();
+
+                LocalDateTime now = LocalDateTime.now();
+                for (AvailableSchedule template : dailyTemplates) {
+                    LocalDateTime availStart = LocalDateTime.of(currentDate, template.getStartTime());
+                    LocalDateTime availEnd = LocalDateTime.of(currentDate, template.getEndTime());
+
+                    // TH 1: Khung giờ này đã hoàn toàn nằm trong quá khứ -> Bỏ qua luôn
+                    if (availEnd.isBefore(now)) {
+                        continue;
                     }
+
+                    // TH 2: Khung giờ này đang diễn ra (VD: Ca từ 13h - 17h, mà giờ đang là 14h)
+                    // -> Cắt bỏ khúc 13h-14h, chỉ cho book từ 14h trở đi
+                    if (availStart.isBefore(now)) {
+                        availStart = now;
+                    }
+
+                    // Tính toán overlap với myBlocks thay vì gọi DB
+                    List<TimeSlot> freeSlots = calculateFreeTimeSlots(availStart, availEnd, myBlocks);
+
+                    for (TimeSlot slot : freeSlots) {
+                        if (slot.start().isBefore(slot.end())) {
+                            dailyFreeTimeDTOs.add(new ScheduleTimeDTO(slot.start().toLocalTime(), slot.end().toLocalTime()));
+                        }
+                    }
+                }
+
+                if (!dailyFreeTimeDTOs.isEmpty()) {
+                    dailyFreeTimeDTOs.sort(Comparator.comparing(ScheduleTimeDTO::startTime));
+                    dailyScheduleList.add(new DailyFreeScheduleDTO(currentDate, dayOfWeekId, dailyFreeTimeDTOs));
                 }
             }
 
-            // Nếu ngày hôm đó còn khung giờ rảnh, sort tăng dần rồi add vào kết quả
-            if (!dailyFreeTimeDTOs.isEmpty()) {
-                dailyFreeTimeDTOs.sort(Comparator.comparing(ScheduleTimeDTO::startTime));
-                scheduleDTOList.add(new ScheduleDTO(dayOfWeekId, dailyFreeTimeDTOs));
-            }
+            result.put(interviewerId, dailyScheduleList);
         }
-
-        return AvailableScheduleDTO.builder()
-                .scheduleDTOList(scheduleDTOList)
-                .build();
+        return result;
     }
 
     // * Add Bocked Schedule

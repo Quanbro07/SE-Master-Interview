@@ -14,7 +14,6 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @Component
-@Order(1)
 public class CategoryInit {
 
     private final CategoryRepository categoryRepository;
@@ -24,6 +23,8 @@ public class CategoryInit {
     @Value("${init.isDev}")
     private boolean isDev;
 
+
+    @Order(1)
     @Bean
     CommandLineRunner initCategory() {
         return args -> {

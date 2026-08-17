@@ -85,3 +85,6 @@ lerna-debug.log*
 
 # === Database volume ===
 *.sh
+
+# === Docker Volumes Data ===
+/data/
