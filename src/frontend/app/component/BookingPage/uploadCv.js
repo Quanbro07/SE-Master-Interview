@@ -2,6 +2,34 @@
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
+const getAccessToken = () => {
+  if (typeof window === "undefined") return "";
+  const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
+  let token = "";
+  
+  for (const key of keys) {
+    const val = localStorage.getItem(key);
+    if (val) {
+      token = val;
+      break;
+    }
+  }
+
+  // Quét dự phòng trong object user
+  if (!token) {
+    try {
+      const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+      token = userObj.token || userObj.accessToken || userObj.jwt || "";
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  if (!token) return "";
+  // Xóa sạch dấu ngoặc kép thừa (nếu có)
+  return token.replace(/^"(.*)"$/, "$1").trim(); 
+};
+
 export const handleUploadCV = async (
   selectedFile,
   positionName = "GENERAL",
@@ -11,24 +39,9 @@ export const handleUploadCV = async (
     return null;
   }
 
-  // 1. Lấy token từ localStorage
-  let rawToken =
-    localStorage.getItem("accessToken") ||
-    localStorage.getItem("token") ||
-    localStorage.getItem("jwt") ||
-    localStorage.getItem("auth_token") ||
-    localStorage.getItem("authToken");
-
-  if (!rawToken) {
-    try {
-      const userObj = JSON.parse(localStorage.getItem("user") || "{}");
-      rawToken = userObj.token || userObj.accessToken || userObj.jwt;
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  const cleanToken = rawToken ? rawToken.trim().replace(/^Bearer\s+/i, "") : "";
+  // 1. Dùng hàm xịn để lấy token
+  const rawToken = getAccessToken();
+  const cleanToken = rawToken ? rawToken.replace(/^Bearer\s+/i, "") : "";
 
   if (!cleanToken) {
     alert(
@@ -37,7 +50,7 @@ export const handleUploadCV = async (
     return null;
   }
 
-  // 2. Chuẩn bị FormData
+  // 2. Chuẩn bị FormData y như cũ
   const formData = new FormData();
   formData.append("file", selectedFile);
   formData.append("position", positionName);
@@ -61,12 +74,16 @@ export const handleUploadCV = async (
     if (res.ok) {
       const data = await res.json();
       console.log("Upload CV thành công:", data);
+<<<<<<< Updated upstream
 
       // Nếu backend trả về kết quả đánh giá chứa URL hoặc thông tin CV
       return {
         url: data.cvUrl || data.url || data.fileUrl || "uploaded",
         ...data,
       };
+=======
+      return data; 
+>>>>>>> Stashed changes
     } else {
       const errorText = await res.text();
       console.error("Lỗi Upload CV:", res.status, errorText);
