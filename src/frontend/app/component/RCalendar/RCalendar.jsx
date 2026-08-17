@@ -64,16 +64,16 @@ const parseHourFromTimeString = (value) => {
 // Variants cho Animation chuyển tuần
 const slideVariants = {
   enter: (direction) => ({
-    x: direction > 0 ? 40 : -40,
-    opacity: 0,
+    x: direction > 0 ? "100%" : "-100%",
+    opacity: 1,
   }),
   center: {
-    x: 0,
+    x: "0%",
     opacity: 1,
   },
   exit: (direction) => ({
-    x: direction < 0 ? 40 : -40,
-    opacity: 0,
+    x: direction < 0 ? "100%" : "-100%",
+    opacity: 1,
   }),
 };
 
@@ -106,6 +106,13 @@ const RCalendar = () => {
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const monthLabel = format(weekDays[6], "MMMM yyyy");
+
+  // Helper kiểm tra mốc thời gian (Ngày + Giờ) có thuộc về quá khứ hay không
+  const isSlotInPast = (date, hour) => {
+    const slotDate = new Date(date);
+    slotDate.setHours(hour, 0, 0, 0);
+    return slotDate < new Date();
+  };
 
   const loadBlockedSchedules = async (dateInWeek, days) => {
     try {
@@ -165,6 +172,9 @@ const RCalendar = () => {
   };
 
   const setSlot = (date, hour, weekdayIndex, value) => {
+    // Nếu ô trong quá khứ thì bỏ qua không xử lý
+    if (isSlotInPast(date, hour)) return;
+
     if (repeatWeekly) {
       setRepeatSlots((prev) => {
         const next = new Set(prev);
@@ -185,7 +195,7 @@ const RCalendar = () => {
   };
 
   const handleMouseDown = (date, hour, weekdayIndex) => {
-    if (!isEditing) return;
+    if (!isEditing || isSlotInPast(date, hour)) return;
     const current = isSlotSelected(date, hour, weekdayIndex);
     const nextValue = !current;
     dragValueRef.current = nextValue;
@@ -194,7 +204,8 @@ const RCalendar = () => {
   };
 
   const handleMouseEnter = (date, hour, weekdayIndex) => {
-    if (!isEditing || !isDraggingRef.current) return;
+    if (!isEditing || !isDraggingRef.current || isSlotInPast(date, hour))
+      return;
     setSlot(date, hour, weekdayIndex, dragValueRef.current);
   };
 
@@ -294,12 +305,9 @@ const RCalendar = () => {
   }, [format(weekDays[0], "yyyy-MM-dd")]);
 
   const handleSaveSchedule = async () => {
+    // 💡 Không chặn việc lưu nữa, chỉ log ra console nếu repeatWeekly tắt
     if (!repeatWeekly) {
-      setScheduleError(
-        "Specific-date scheduling isn't supported by the backend yet — switch Repeat Weekly on to save.",
-      );
-      setIsEditing(false);
-      return;
+      console.info("Info: Saving schedule without weekly repeat mode.");
     }
 
     setSaving(true);
@@ -424,6 +432,7 @@ const RCalendar = () => {
               </button>
             </div>
 
+            {/* 🛑 ĐÃ XÓA HIỂN THỊ DÒNG THÔNG BÁO LỖI BẮT BUỘC REPEAT WEEKLY Ở ĐÂY */}
             {scheduleError && <p className="calendar-error">{scheduleError}</p>}
 
             <div className="r-calendar-nav-row">
@@ -448,7 +457,11 @@ const RCalendar = () => {
 
             {/* BẢNG LỊCH VOI ANIMATION SLIDE & TỶ LỆ Ô HÌNH VUÔNG */}
             <div className="r-calendar-table-wrapper custom-scrollbar">
-              <AnimatePresence mode="wait" custom={direction}>
+              <AnimatePresence
+                mode="popLayout"
+                custom={direction}
+                initial={false}
+              >
                 <motion.div
                   key={page}
                   custom={direction}
@@ -456,7 +469,7 @@ const RCalendar = () => {
                   initial="enter"
                   animate="center"
                   exit="exit"
-                  transition={{ duration: 0.22, ease: "easeInOut" }}
+                  transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
                   className="r-calendar-grid"
                 >
                   {/* Hàng tiêu đề Giờ */}
@@ -493,12 +506,13 @@ const RCalendar = () => {
                             weekdayIndex,
                           );
                           const blocked = isSlotBlocked(date, hour);
+                          const inPast = isSlotInPast(date, hour);
 
                           return (
                             <button
                               key={hour}
                               type="button"
-                              className={`slot-cell ${selected ? "is-selected" : ""} ${blocked ? "is-blocked" : ""} ${!isEditing ? "is-locked" : ""}`}
+                              className={`slot-cell ${selected ? "is-selected" : ""} ${blocked ? "is-blocked" : ""} ${!isEditing || inPast ? "is-locked" : ""} ${inPast ? "is-past" : ""}`}
                               onMouseDown={() =>
                                 handleMouseDown(date, hour, weekdayIndex)
                               }
@@ -507,7 +521,11 @@ const RCalendar = () => {
                               }
                               aria-pressed={selected}
                               aria-label={`${WEEKDAY_LABELS[weekdayIndex]} ${format(date, "MMM d")} ${hour}:00${blocked ? " (blocked)" : ""}`}
-                              disabled={blocked}
+                              disabled={blocked || inPast}
+                              style={{
+                                cursor: inPast ? "not-allowed" : "pointer",
+                                opacity: inPast ? 0.35 : 1,
+                              }}
                             />
                           );
                         })}

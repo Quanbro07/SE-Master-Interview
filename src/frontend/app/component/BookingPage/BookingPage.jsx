@@ -11,15 +11,14 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import { handleUploadCV } from "./uploadCv"; // 👈 Sửa đường dẫn import cho đúng thư mục của bạn
+import { handleUploadCV } from "./uploadCv";
 import "./BookingPage.css";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
-);
+const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 const getStoredUser = () => {
   if (typeof window === "undefined") return null;
@@ -31,65 +30,121 @@ const getStoredUser = () => {
   }
 };
 
+const renderStarRating = (rating = 5.0) => {
+  const stars = [];
+  const numericRating = Math.min(5.0, Math.max(0, parseFloat(rating) || 0));
+
+  for (let i = 1; i <= 5; i++) {
+    if (numericRating >= i) {
+      stars.push(
+        <span key={i} style={{ color: "#FBBF24" }}>
+          ★
+        </span>,
+      );
+    } else if (numericRating >= i - 0.5) {
+      stars.push(
+        <span key={i} style={{ color: "#FBBF24" }}>
+          ★
+        </span>,
+      );
+    } else {
+      stars.push(
+        <span key={i} style={{ color: "#4B5563" }}>
+          ★
+        </span>,
+      );
+    }
+  }
+
+  return stars;
+};
+
 const ProfilePopup = ({ mentor, onBook, onCancel }) => {
   if (!mentor) return null;
+
+  const ratingValue = parseFloat(mentor.rate || mentor.rating || 5.0).toFixed(
+    1,
+  );
+  const reviewCount = mentor.reviews ?? 0;
+
   return (
     <div className="popup-overlay" onClick={onCancel}>
       <div
         className="popup-content profile-popup-box"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* HEADER PROFILE */}
         <div className="profile-popup-header">
           <div className="profile-avatar-wrapper">
             <img src={mentor.avatar || "/user.png"} alt={mentor.name} />
           </div>
           <div className="profile-name-block">
             <h3 className="profile-name">{mentor.name}</h3>
-            <p className="profile-role">{mentor.role}</p>
+
+            <p className="profile-role" style={{ textTransform: "uppercase" }}>
+              {mentor.displayPosition || mentor.position || "SOFTWARE ENGINEER"}
+            </p>
+
+            <p
+              className="profile-exp"
+              style={{
+                color: "#cbd5e1",
+                fontSize: "13px",
+                margin: "2px 0 0 0",
+              }}
+            >
+              {mentor.expYears ?? 0} Years of experience
+            </p>
           </div>
-          <div className="profile-rating">⭐⭐⭐⭐⭐ (54 reviews)</div>
+
+          <div
+            className="profile-rating"
+            style={{ display: "flex", alignItems: "center", gap: "4px" }}
+          >
+            <span style={{ fontSize: "16px", letterSpacing: "2px" }}>
+              {renderStarRating(ratingValue)}
+            </span>
+            <span
+              style={{ marginLeft: "6px", color: "#FBBF24", fontWeight: "600" }}
+            >
+              ({reviewCount} reviews)
+            </span>
+          </div>
         </div>
 
+        {/* DETAILS BODY */}
         <div className="profile-details-body">
           <aside className="profile-left-panel">
             <div className="profile-left-header">
               <h4>About me</h4>
             </div>
-            <ul className="profile-list">
-              <li>Seasoned tech lead at Google</li>
-              <li>10+ years in software development</li>
-              <li>Expert in scalable web apps</li>
-              <li>Skilled in leading cross-functional teams</li>
-              <li>Delivers innovative solutions</li>
-            </ul>
+            <ul className="profile-list"></ul>
           </aside>
 
           <div className="profile-right-panel">
             <div className="profile-right-section">
               <h4>Work experience</h4>
-              <ul className="profile-list">
-                <li>Led development of scalable web applications</li>
-                <li>Managed cross-functional teams to deliver projects</li>
-                <li>Implemented innovative solutions to complex problems</li>
-              </ul>
+              <ul className="profile-list"></ul>
             </div>
+
             <div className="profile-right-section">
               <h4>Languages</h4>
               <ul className="profile-list">
                 <li>English</li>
-                <li>Japanese</li>
-                <li>German</li>
+                <li>Vietnamese</li>
               </ul>
             </div>
+
             <div className="profile-right-section fee-block">
               <h4>Fee</h4>
               <p className="fee-text">
-                {mentor.price || "$10"}/session/45 minutes
+                {mentor.price ? `${mentor.price}/session/45 minutes` : "N/A"}
               </p>
             </div>
           </div>
         </div>
 
+        {/* BUTTON ACTIONS */}
         <div className="popup-actions profile-popup-actions">
           <button className="popup-btn btn-book" onClick={onBook}>
             BOOK
@@ -119,12 +174,6 @@ const monthNames = [
 ];
 
 const weekdayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-const availableTimeSlots = [
-  { label: "07:00-08:00", start: "07:00", end: "08:00" },
-  { label: "14:30-15:30", start: "14:30", end: "15:30" },
-  { label: "20:00-21:00", start: "20:00", end: "21:00" },
-];
 
 const parsePriceToCents = (priceLabel) => {
   if (!priceLabel) return 1000;
@@ -198,7 +247,12 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
     new Date(today.getFullYear(), today.getMonth(), 1),
   );
   const [selectedDate, setSelectedDate] = useState(todayStart);
-  const [selectedSlot, setSelectedSlot] = useState(availableTimeSlots[0]);
+
+  // STATE ĐỘNG CHO TIME SLOTS (FETCH TỪ BACKEND)
+  const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [loadingSchedule, setLoadingSchedule] = useState(false);
+
   const [cvFile, setCvFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -260,6 +314,113 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
     return `${y}-${m}-${d}`;
   };
 
+  const getDbDayOfWeek = (date) => {
+    const day = date.getDay();
+    return day === 0 ? 8 : day + 1;
+  };
+
+  // FETCH & LOG THỜI GIAN RẢNH KHI CHỌN NGÀY HOẶC MENTOR
+  useEffect(() => {
+    if (!mentor?.id) return;
+
+    const fetchInterviewerSchedule = async () => {
+      setLoadingSchedule(true);
+      setSelectedSlot(null);
+      try {
+        const dateStr = formatDateForBackend(selectedDate);
+
+        const rawToken =
+          localStorage.getItem("accessToken") ||
+          localStorage.getItem("token") ||
+          localStorage.getItem("jwt");
+        const cleanToken = rawToken
+          ? rawToken.trim().replace(/^Bearer\s+/i, "")
+          : "";
+
+        const res = await fetch(
+          `${API_BASE}/api/v1/schedule/get?interviewerId=${mentor.id}&dateInWeek=${dateStr}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${cleanToken}`,
+            },
+          },
+        );
+
+        if (!res.ok) throw new Error("Failed to fetch schedule");
+
+        const data = await res.json();
+        const targetDayOfWeek = getDbDayOfWeek(selectedDate);
+
+        // 1. Lọc khung giờ rảnh
+        const daySchedule = (data.schedules || []).find(
+          (s) => s.day_of_week === targetDayOfWeek,
+        );
+
+        let validSlots = [];
+
+        if (daySchedule && daySchedule.schedule_times) {
+          daySchedule.schedule_times.forEach((range) => {
+            const startH = parseInt(range.start_time.split(":")[0], 10);
+            const endH = parseInt(range.end_time.split(":")[0], 10);
+
+            for (let h = startH; h < endH; h++) {
+              const startStr = `${String(h).padStart(2, "0")}:00`;
+              const endStr = `${String(h + 1).padStart(2, "0")}:00`;
+              validSlots.push({
+                label: `${startStr}-${endStr}`,
+                start: startStr,
+                end: endStr,
+                startHour: h,
+              });
+            }
+          });
+        }
+
+        // 2. Lọc bỏ khung giờ bị Block
+        const blockedList = data.blockedSchedules || [];
+        const finalAvailableSlots = validSlots.filter((slot) => {
+          const slotStart = new Date(
+            `${dateStr}T${String(slot.startHour).padStart(2, "0")}:00:00`,
+          );
+          const slotEnd = new Date(
+            `${dateStr}T${String(slot.startHour + 1).padStart(2, "0")}:00:00`,
+          );
+
+          const isBlocked = blockedList.some((b) => {
+            const bStart = new Date(b.startTime);
+            const bEnd = new Date(b.endTime);
+            return slotStart < bEnd && slotEnd > bStart;
+          });
+
+          return !isBlocked;
+        });
+
+        // 🟢 LOG THỜI GIAN RẢNH RA CONSOLE
+        console.log(`[SCHEDULE LOG] Ngày đã chọn: ${dateStr}`);
+        console.log(
+          `[SCHEDULE LOG] Interviewer ID: ${mentor.id} (${mentor.name})`,
+        );
+        console.log(
+          "[SCHEDULE LOG] Danh sách slot rảnh lọc được:",
+          finalAvailableSlots,
+        );
+
+        setAvailableTimeSlots(finalAvailableSlots);
+        if (finalAvailableSlots.length > 0) {
+          setSelectedSlot(finalAvailableSlots[0]);
+        }
+      } catch (err) {
+        console.error("[SCHEDULE ERROR] Lỗi khi lấy lịch rảnh:", err);
+        setAvailableTimeSlots([]);
+      } finally {
+        setLoadingSchedule(false);
+      }
+    };
+
+    fetchInterviewerSchedule();
+  }, [selectedDate, mentor]);
+
   const handleFileChange = (e) => {
     setCvFile(e.target.files?.[0] || null);
   };
@@ -270,12 +431,17 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
       setSubmitError("Please upload your CV before confirming.");
       return;
     }
+    if (!selectedSlot) {
+      setSubmitError("Please select an available time slot.");
+      return;
+    }
 
     setSubmitError(null);
     setSubmitting(true);
 
     try {
-      // 1. Tái sử dụng hàm handleUploadCV từ util file
+      const positionToUpload =
+        mentor?.displayPosition || mentor?.position || "BACKEND";
       const uploadData = await handleUploadCV(
         cvFile,
         mentor?.role || "GENERAL",
@@ -287,7 +453,6 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
 
       const cvUrl = uploadData.url;
 
-      // Chuẩn bị Header Auth
       let rawToken =
         localStorage.getItem("accessToken") ||
         localStorage.getItem("token") ||
@@ -299,7 +464,6 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
         : "";
       const authHeader = `Bearer ${cleanToken}`;
 
-      // 2. Tạo Booking
       const bookingPayload = {
         bookingDate: formatDateForBackend(selectedDate),
         startTime: selectedSlot.start,
@@ -328,7 +492,6 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
       const booking = await res.json();
       setCreatedBooking(booking);
 
-      // 3. Lấy PaymentIntent từ Stripe
       const amount = parsePriceToCents(mentor?.price);
       const intentRes = await fetch(
         `${API_BASE}/api/v1/booking/${booking.bookingId || booking.id}/payment-intent`,
@@ -366,6 +529,7 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="payment-grid">
+          {/* CỘT TRÁI: LỊCH CHỌN NGÀY VÀ SLOTS */}
           <div className="payment-schedule">
             <h3 className="popup-title">Book Interview with {mentor?.name}</h3>
             <div className="calendar-controls">
@@ -416,26 +580,35 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
             </div>
             <div className="time-slots-section">
               <h4>Available time</h4>
-              <div className="time-action-row">
-                <div className="time-slots">
-                  {availableTimeSlots.map((slot) => (
+              <div className="time-slots-grid">
+                {loadingSchedule ? (
+                  <div className="time-slots-loading">
+                    Đang tải lịch rảnh...
+                  </div>
+                ) : availableTimeSlots.length === 0 ? (
+                  <div className="time-slots-empty">
+                    Không có giờ rảnh trong ngày này
+                  </div>
+                ) : (
+                  availableTimeSlots.map((slot) => (
                     <button
                       type="button"
                       key={slot.label}
                       className={`slot-btn ${
-                        selectedSlot.label === slot.label ? "selected" : ""
+                        selectedSlot?.label === slot.label ? "selected" : ""
                       }`}
                       onClick={() => setSelectedSlot(slot)}
                       disabled={step === "payment"}
                     >
                       {slot.label}
                     </button>
-                  ))}
-                </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
 
+          {/* CỘT PHẢI: BOOKING DETAILS / PAYMENT */}
           <div className="payment-form-details">
             {step === "booking" && (
               <>
@@ -454,7 +627,9 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
                   </div>
                   <div className="summary-row">
                     <span className="summary-label">Time</span>
-                    <span className="summary-value">{selectedSlot.label}</span>
+                    <span className="summary-value">
+                      {selectedSlot ? selectedSlot.label : "--:--"}
+                    </span>
                   </div>
                   <div className="summary-row">
                     <span className="summary-label">Fee</span>

@@ -71,6 +71,7 @@ const RProfile = () => {
       );
     });
   };
+
   // 1. Fetch Profile
   useEffect(() => {
     const fetchProfileFromAPI = async () => {
@@ -238,7 +239,7 @@ const RProfile = () => {
     try {
       const authHeader = getAuthHeader();
       if (!authHeader) {
-        alert("Vui lòng đăng nhập lại!");
+        console.error("Lỗi Stripe: Vui lòng đăng nhập lại!");
         return;
       }
 
@@ -257,15 +258,14 @@ const RProfile = () => {
         if (redirectUrl) {
           window.location.href = redirectUrl;
         } else {
-          alert("Khởi tạo liên kết Stripe thành công!");
+          console.log("Khởi tạo liên kết Stripe thành công.");
         }
       } else {
         const errText = await res.text().catch(() => "");
-        alert(`Lỗi kết nối Stripe (${res.status}): ${errText}`);
+        console.error(`Lỗi kết nối Stripe (${res.status}): ${errText}`);
       }
     } catch (err) {
-      console.error("Lỗi kết nối Stripe:", err);
-      alert("Lỗi máy chủ khi kết nối Stripe!");
+      console.error("Lỗi máy chủ khi kết nối Stripe:", err);
     } finally {
       setConnectingStripe(false);
     }
@@ -296,7 +296,7 @@ const RProfile = () => {
     try {
       const authHeader = getAuthHeader();
       if (!authHeader) {
-        alert("Phiên đăng nhập hết hạn!");
+        console.error("Lỗi phiên đăng nhập hết hạn khi lưu thông tin");
         return;
       }
 
@@ -326,13 +326,11 @@ const RProfile = () => {
         );
 
         setIsEditing(false);
-        alert("Cập nhật thông tin thành công!");
       } else {
-        alert("Cập nhật thất bại. Mã lỗi: " + res.status);
+        console.error("Cập nhật thông tin thất bại. Mã lỗi:", res.status);
       }
     } catch (err) {
-      console.error("Lỗi cập nhật thông tin:", err);
-      alert("Lỗi kết nối máy chủ!");
+      console.error("Lỗi kết nối máy chủ khi cập nhật thông tin:", err);
     } finally {
       setSaving(false);
     }
@@ -343,11 +341,11 @@ const RProfile = () => {
     e.preventDefault();
 
     if (!expPosition.trim()) {
-      alert("Vui lòng nhập hoặc chọn vị trí chuyên môn (Position)!");
+      console.warn("Chưa nhập hoặc chọn vị trí chuyên môn (Position)");
       return;
     }
     if (!expFile) {
-      alert("Vui lòng tải lên tài liệu/chứng chỉ/CV minh chứng!");
+      console.warn("Chưa tải lên tài liệu/chứng chỉ/CV minh chứng");
       return;
     }
 
@@ -356,7 +354,7 @@ const RProfile = () => {
     try {
       const authHeader = getAuthHeader();
       if (!authHeader) {
-        alert("Phiên đăng nhập không hợp lệ!");
+        console.error("Phiên đăng nhập không hợp lệ");
         return;
       }
 
@@ -377,17 +375,18 @@ const RProfile = () => {
       );
 
       if (res.ok) {
-        alert("Gửi yêu cầu Expertise thành công và đang chờ Admin duyệt!");
+        console.log(
+          "Gửi yêu cầu Expertise thành công và đang chờ Admin duyệt.",
+        );
         setExpFile(null);
         setPositionQuery("");
         setExpPosition("");
       } else {
         const errText = await res.text();
-        alert(`Gửi yêu cầu thất bại (${res.status}): ${errText}`);
+        console.error(`Gửi yêu cầu thất bại (${res.status}): ${errText}`);
       }
     } catch (err) {
       console.error("Lỗi gửi yêu cầu Expertise:", err);
-      alert("Lỗi kết nối máy chủ!");
     } finally {
       setSubmittingExpertise(false);
     }
@@ -564,14 +563,6 @@ const RProfile = () => {
             <h2 className="rp-section-subtitle">
               Request Expertise Certification
             </h2>
-
-            {!isStripeConnected && (
-              <div className="rp-warning-box">
-                ⚠️ <strong>Lưu ý:</strong> Bạn cần liên kết tài khoản Stripe
-                thành công ở phía trên trước khi thực hiện gửi yêu cầu cấp chứng
-                nhận Expertise.
-              </div>
-            )}
 
             <form onSubmit={handleRequestExpertise} className="rp-field-grid">
               <div

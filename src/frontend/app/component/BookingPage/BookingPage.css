@@ -699,3 +699,378 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ============================================================
+   FIXED AVAILABLE TIME SLOTS (GRID 4 COLUMNS & FIXED HEIGHT)
+   ============================================================ */
+
+.time-slots-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  width: 100%;
+}
+
+.time-slots-section h4 {
+  margin: 0;
+  font-size: 13px;
+  color: #e4e4e7;
+  font-weight: 600;
+}
+
+/* Khung chứa các ô time: cố định chiều cao cho đúng 2 hàng */
+.time-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* Đúng 4 ô trên 1 hàng */
+  gap: 8px;
+  height: 74px; /* Cố định chiều cao tương đương 2 hàng ô nút */
+  overflow-y: auto; /* Tự cuộn nếu nhiều hơn 2 hàng */
+  padding-right: 4px;
+  box-sizing: border-box;
+}
+
+/* Custom scrollbar nhỏ gọn cho danh sách time */
+.time-slots-grid::-webkit-scrollbar {
+  width: 4px;
+}
+.time-slots-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+/* Nút time slot thu nhỏ */
+.slot-btn {
+  background-color: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 6px 4px; /* Giảm padding để chữ không bị tràn */
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 11px; /* Font size thu nhỏ */
+  text-align: center;
+  white-space: nowrap;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.slot-btn.selected {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+.time-slots-empty,
+.time-slots-loading {
+  grid-column: span 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #71717a;
+  font-size: 12px;
+  font-style: italic;
+  height: 100%;
+}
+/* ============================================================
+   FIXED AVAILABLE TIME SLOTS (KEEP BOX SIZE & FIXED CONTAINER)
+   ============================================================ */
+
+.time-slots-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  width: 100%;
+}
+
+.time-slots-section h4 {
+  margin: 0;
+  font-size: 13px;
+  color: #e4e4e7;
+  font-weight: 600;
+}
+
+/* 
+  Khung chứa time slots: 
+  - Cố định height vừa đúng 2 hàng slot (hoặc theo độ cao chuẩn bạn muốn).
+  - align-content: start giúp các ô slot giữ nguyên kích thước tự nhiên, 
+    không bị kéo dãn (stretch) để lấp đầy khung khi chỉ có 1 hoặc ít ô.
+*/
+.time-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(84px, 1fr)
+  ); /* Hoặc dùng 4 cột cố định: repeat(4, 1fr) */
+  gap: 8px;
+  height: 84px; /* Cố định chiều cao tổng của khu vực time slots */
+  align-content: start; /* GIỮ NGUYÊN KÍCH THƯỚC Ô - Không bị dãn full chiều cao */
+  overflow-y: auto; /* Hiện thanh cuộn nếu danh sách slot vượt quá 2 hàng */
+  padding-right: 4px;
+  box-sizing: border-box;
+}
+
+/* Custom scrollbar nhỏ gọn */
+.time-slots-grid::-webkit-scrollbar {
+  width: 4px;
+}
+.time-slots-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+/* Kích thước ô Nút time slot giữ nguyên thiết kế ban đầu */
+.slot-btn {
+  background-color: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 8px 4px; /* Chiều cao & padding chuẩn của box */
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  height: 34px; /* Cố định độ cao chính xác của 1 box time */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slot-btn.selected {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+/* Trạng thái trống hoặc đang tải cũng chiếm trọn chiều cao cố định */
+.time-slots-empty,
+.time-slots-loading {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #71717a;
+  font-size: 12px;
+  font-style: italic;
+  height: 100%; /* Lấp đầy chiều cao 84px đã cố định */
+}
+
+/* ============================================================
+   FIXED AVAILABLE TIME SLOTS (ALIGN CALENDAR & FIX 2 SLOTS HEIGHT)
+   ============================================================ */
+
+.time-slots-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  width: 100%; /* Chiều rộng tự động khớp với khung lịch bên trên */
+  box-sizing: border-box;
+}
+
+.time-slots-section h4 {
+  margin: 0;
+  font-size: 13px;
+  color: #e4e4e7;
+  font-weight: 600;
+  text-align: center; /* Căn giữa tiêu đề "Available time" cho cân đối */
+}
+
+/* 
+  Khung chứa các ô slot:
+  - Cố định height = (34px height của 1 slot * 2) + 8px gap = 76px 
+    (Vừa khít chiều cao của đúng 2 slot thời gian)
+  - Căn giữa các slot nếu số lượng ít
+*/
+.time-slots-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center; /* Căn giữa các ô time slot */
+  align-content: start;
+  width: 100%; /* Bằng 100% độ rộng của khung Lịch */
+  max-height: 76px; /* Độ cao vừa khít 2 hàng slot (34px * 2 + 8px gap) */
+  height: 76px;
+  overflow-y: auto; /* Tự hiện scroll bar nếu có hơn 2 slot */
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+
+/* Custom scrollbar nhỏ gọn cho danh sách slot */
+.time-slots-grid::-webkit-scrollbar {
+  width: 4px;
+}
+.time-slots-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+/* Kích thước & kiểu dáng từng nút Time Slot */
+.slot-btn {
+  background-color: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  height: 34px; /* Chiều cao cố định của 1 slot */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px; /* Chiều rộng chuẩn vừa chữ thời gian (vd: 13:00-14:00) */
+}
+
+.slot-btn:hover {
+  border-color: rgba(59, 130, 246, 0.5);
+  background-color: #3f3f46;
+}
+
+.slot-btn.selected {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+/* Trạng thái khi không có slot hoặc đang load */
+.time-slots-empty,
+.time-slots-loading {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #71717a;
+  font-size: 12px;
+  font-style: italic;
+  height: 100%;
+}
+
+/* ============================================================
+   FIXED POPUP SIZE & FIXED TIME SLOTS GRID (4 COLUMNS x 2 ROWS)
+   ============================================================ */
+
+/* 1. Giữ kích thước Popup cố định hoàn toàn */
+.payment-popup-box {
+  width: 820px;
+  min-width: 820px;
+  height: 580px; /* Khóa chiều cao cố định để popup không co giãn */
+  max-height: 90vh;
+  padding: 32px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 2. Giữ kích thước Lịch cố định (không bị nhảy khi chuyển tháng/ngày) */
+.calendar-dates {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  height: 222px; /* Cố định height cho 5-6 hàng ngày */
+  align-content: start;
+}
+
+/* 3. Khung chứa Time Slots Section */
+.time-slots-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.time-slots-section h4 {
+  margin: 0;
+  font-size: 13px;
+  color: #e4e4e7;
+  font-weight: 600;
+  text-align: left;
+}
+
+/* 
+   4. Wrapper cho Time Slots Grid:
+   - grid-template-columns: repeat(4, 1fr) -> Đúng 4 slots / hàng
+   - Cố định height vừa khít 2 hàng (32px * 2 + 8px gap = 72px)
+   - Nếu > 8 slots sẽ tự động bật scrollbar
+*/
+.time-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 slots trên 1 hàng */
+  gap: 8px;
+  height: 72px; /* Cố định height đúng 2 hàng */
+  max-height: 72px;
+  align-content: start;
+  overflow-y: auto; /* Hiện scrollbar nếu quá 8 slots */
+  padding-right: 4px;
+  box-sizing: border-box;
+}
+
+/* Thanh cuộn nhỏ gọn, tinh tế */
+.time-slots-grid::-webkit-scrollbar {
+  width: 4px;
+}
+.time-slots-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+}
+.time-slots-grid::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* 5. Định dạng từng Nút Timeslot */
+.slot-btn {
+  background-color: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0 4px;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 11px; /* Font vừa vặn với ô 4 cột */
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  height: 32px; /* Chiều cao chuẩn của 1 slot */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.slot-btn:hover {
+  border-color: #3b82f6;
+  background-color: #3f3f46;
+}
+
+.slot-btn.selected {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.25);
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+/* 6. Trạng thái trống / đang tải cũng chiếm trọn khung cố định 72px */
+.time-slots-empty,
+.time-slots-loading {
+  grid-column: span 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #71717a;
+  font-size: 12px;
+  font-style: italic;
+  height: 72px; /* Cố định bằng độ cao của 2 hàng */
+}
