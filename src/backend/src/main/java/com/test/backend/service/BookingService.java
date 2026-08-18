@@ -336,7 +336,7 @@ public class BookingService {
         return bookingReviews.map(this::convertToReviewResponse);
     }
 
-    public void uploadCvBooking(Long bookingId, Long intervieweeId, MultipartFile file) {
+    public String uploadCvBooking(Long bookingId, Long intervieweeId, MultipartFile file) {
         Booking booking = bookingRepository.findByBookingIdFetchBooker(bookingId)
                 .orElseThrow(() -> new NotFoundException("Booking is not found"));
 
@@ -358,13 +358,15 @@ public class BookingService {
             log.warn(e.getMessage());
         }
 
+        String cvUrl;
+
         try {
-            fileService.uploadFile(cvBucket.getCVBucketName(), fileData, contentType, originalFileName, target);
+            cvUrl = fileService.uploadFile(cvBucket.getCVBucketName(), fileData, contentType, originalFileName, target);
 
         } catch (MinioException | IOException e) {
             log.warn(e.getMessage());
         }
-
+        return cvUrl;
     }
 
     // Helper Function
