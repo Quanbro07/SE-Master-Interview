@@ -29,8 +29,6 @@ import java.util.stream.Collectors;
 public class ScheduleService {
 
     private final AvailableScheduleRepository availableScheduleRepository;
-
-    private final AvailableScheduleDTO getAvailableSchedule(Long userId, LocalDate dateInWeek);
     
     private final InterviewerRepository interviewerRepository;
 

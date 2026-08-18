@@ -30,60 +30,61 @@ const getAccessToken = () => {
   return token.replace(/^"(.*)"$/, "$1").trim();
 };
 
-export const handleUploadCV = async (
-  selectedFile,
-  positionName = "GENERAL",
-) => {
-  if (!selectedFile) {
-    alert("Vui lòng chọn file CV trước khi tiếp tục!");
-    return null;
+export const uploadCvBooking = async (bookingId, selectedFile) => {
+  if (!bookingId) {
+    alert("Không tìm thấy thông tin lượt đặt lịch (bookingId)!");
+    return false;
   }
 
-  // 1. Dùng hàm xịn để lấy token
+  if (!selectedFile) {
+    alert("Vui lòng chọn file CV trước khi tiếp tục!");
+    return false;
+  }
+
+  // 1. Lấy token xác thực
   const rawToken = getAccessToken();
   const cleanToken = rawToken ? rawToken.replace(/^Bearer\s+/i, "") : "";
 
   if (!cleanToken) {
-    alert(
-      "Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại!",
-    );
-    return null;
+    alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+    return false;
   }
 
-  // 2. Chuẩn bị FormData y như cũ
+  // 2. Tạo FormData truyền 'file' đúng với Controller Backend
   const formData = new FormData();
   formData.append("file", selectedFile);
-  formData.append("position", positionName);
 
   try {
-    // Sửa endpoint chính xác theo CVAssessmentController của Backend
-    const res = await fetch(`${API_BASE}/api/v1/cv-assessment/assess-cv`, {
-      method: "POST",
-      headers: {
-        // Lưu ý: KHÔNG thêm 'Content-Type', browser sẽ tự động gắn boundary cho FormData
-        Authorization: `Bearer ${cleanToken}`,
+    // 3. Gọi chuẩn API của BookingController
+    const res = await fetch(
+      `${API_BASE}/api/v1/booking/${bookingId}/upload-cv`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${cleanToken}`,
+          // Lưu ý: KHÔNG set Content-Type header khi dùng FormData
+        },
+        body: formData,
       },
-      body: formData,
-    });
+    );
 
     if (res.status === 401) {
-      alert("Phiên đăng nhập đã hết hạn (401). Vui lòng đăng nhập lại!");
-      return null;
+      alert("Phiên đăng nhập không hợp lệ (401). Vui lòng đăng nhập lại!");
+      return false;
     }
 
     if (res.ok) {
-      const data = await res.json();
-      console.log("Upload CV thành công:", data);
-      return data;
+      console.log("Upload CV cho Booking thành công!");
+      return true;
     } else {
       const errorText = await res.text();
       console.error("Lỗi Upload CV:", res.status, errorText);
-      alert("Upload CV thất bại. Mã lỗi: " + res.status);
-      return null;
+      alert(`Upload CV thất bại (${res.status}): ${errorText}`);
+      return false;
     }
   } catch (error) {
     console.error("Kết nối thất bại khi upload CV:", error);
     alert("Không thể kết nối đến máy chủ.");
-    return null;
+    return false;
   }
 };
