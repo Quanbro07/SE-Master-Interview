@@ -13,7 +13,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -49,21 +48,17 @@ public class SecurityConfig {
                 .authorizeHttpRequests(
                         auth -> auth
                             .requestMatchers(
-                                    "/api/v1/position/**",
-                                    "/api/v1/booking/filter-interviewer",
                                     "/api/v1/auth/register",
                                     "/api/v1/auth/login",
                                     "/api/v1/stripe/webhook",
                                     "/api/v1/zoom/webhook",
-                                    "/stripe_test.html",
-                                    "/api/v1/auth/refresh-token",
+                                    //"/stripe_test.html",
                                     "/error",
                                     "/actuator/**",
                                     "/api/v1/agent/dummy",
                                     "/api/v1/agent/prompt"
 
                                     ).permitAll()
-                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                 .anyRequest().authenticated()
                         )
                 .exceptionHandling(exception -> exception
@@ -92,18 +87,14 @@ public class SecurityConfig {
     }
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration configuration = new CorsConfiguration();
-    // Cho phép Frontend Next.js / React
-    configuration.setAllowedOrigins(List.of("http://localhost:3000"));
-    // Cho phép các HTTP method
-    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        // BẮT BUỘC: Cho phép header Authorization
-    configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept"));
-    configuration.setExposedHeaders(List.of("Authorization"));
-    configuration.setAllowCredentials(true);
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
 
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", configuration);
-    return source;
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

@@ -33,25 +33,6 @@ public class ScheduleController {
         return ResponseEntity.ok("DONE");
     }
 
-    @PreAuthorize("hasAnyRole('Interviewer','Interviewee')")
-    @GetMapping("/get")
-    public ResponseEntity<AvailableScheduleDTO> getAvailableSchedule(
-        @RequestParam(required = false) Long interviewerId,
-        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateInWeek,
-        @AuthenticationPrincipal CustomUserDetail userDetails) {
-
-        Long targetUserId = (interviewerId != null) ? interviewerId : userDetails.getUser().getUserId();
-
-        // Nếu client không truyền ngày, mặc định lấy tuần hiện tại
-        if (dateInWeek == null) {
-            dateInWeek = LocalDate.now();
-        }
-
-        AvailableScheduleDTO response = scheduleService.getAvailableSchedule(targetUserId, dateInWeek);
-
-        return ResponseEntity.ok(response);
-    }
-
     @PreAuthorize("hasRole('Interviewer')")
     @PostMapping("/add-blocked-schedule")
     public ResponseEntity<String> addBlockedSchedule(
