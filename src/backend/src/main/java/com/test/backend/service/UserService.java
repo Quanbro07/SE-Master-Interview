@@ -26,8 +26,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
+import java.util.List;
 import java.io.IOException;
+import com.test.backend.dto.user.UserProfileResponse;
+import com.test.backend.entity.user.CustomUserDetail;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -35,6 +38,8 @@ import java.io.IOException;
 public class UserService {
     private final UserRepository userRepository;
 
+    private final InterviewerRepository interviewerRepository;
+    
     private final FileService fileService;
 
     private final AvatarBucketConfig avatarBucketConfig;
@@ -120,5 +125,41 @@ public class UserService {
                 .githubUrl(user.getGithubUrl())
                 .linkedinUrl(user.getLinkedinUrl())
                 .build();
+    }
+
+    public UserProfileResponse getCurrentUserProfile(CustomUserDetail userDetail) {
+        User user = userDetail.getUser();
+
+        Interviewer interviewer = interviewerRepository.findById(user.getUserId())
+            .orElse(null);
+
+    // 2. Chuyển đổi danh sách InterviewerExpertise thành List<UserProfileResponse.ExpertiseDTO>
+    List<UserProfileResponse.ExpertiseDTO> expertiseDTOs = null;
+    
+    if (interviewer != null && interviewer.getExpertiseList() != null) {
+        expertiseDTOs = interviewer.getExpertiseList().stream()
+                .map(exp -> UserProfileResponse.ExpertiseDTO.builder()
+                        .positionId(exp.getPosition().getPositionId())
+                        .positionName(exp.getPosition().getPositionName())
+                        .level(exp.getLevel() != null ? exp.getLevel().name() : null)
+                        .experienceYear(exp.getExperienceYear())
+                        .hourlyFee(exp.getHourlyFee())
+                        .isCertified(exp.getIsCertified()) // hoặc exp.getIsCertified() tùy getter trong entity
+                        .build())
+                .toList();
+    }
+
+    // 3. Build DTO trả về
+    return UserProfileResponse.builder()
+            .id(user.getUserId())
+            .email(user.getEmail())
+            .fullName(user.getFullName())
+            .userName(user.getUserName())
+            .linkedinUrl(user.getLinkedinUrl())
+            .githubUrl(user.getGithubUrl())
+            .isStripeConnected(interviewer != null ? interviewer.getIsStripeConnected() : false)
+            .stripeAccountId(interviewer != null ? interviewer.getStripeAccountId() : null)
+            .expertises(expertiseDTOs) // <--- Gắn danh sách đã map vào đây
+            .build();
     }
 }

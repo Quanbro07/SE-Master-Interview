@@ -16,7 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import com.test.backend.dto.user.UserProfileResponse;
 import java.util.Map;
 
 @RequiredArgsConstructor
@@ -47,6 +47,14 @@ public class UserController {
 
         UserUpdateResponse response = userService.updateUserInfo(user, request);
 
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileResponse> getCurrentUser(
+            @AuthenticationPrincipal CustomUserDetail userDetail) {
+
+        UserProfileResponse response = userService.getCurrentUserProfile(userDetail);
         return ResponseEntity.ok(response);
     }
 

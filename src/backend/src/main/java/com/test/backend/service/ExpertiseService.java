@@ -52,9 +52,15 @@ public class ExpertiseService {
         Interviewer interviewer = interviewerRepository.findByInterviewerId(userId)
                 .orElseThrow(() -> new NotFoundException("Interviewer not found"));
 
-        // Nếu chưa có tài khoản Stripe thì ko dc check
-        if(!interviewer.getIsStripeConnected()) {
-            throw new StripeIntegrationException("Stripe is not connected");
+        boolean hasStripeAccountId = interviewer.getStripeAccountId() != null 
+        && !interviewer.getStripeAccountId().trim().isEmpty();
+
+        if (!Boolean.TRUE.equals(interviewer.getIsStripeConnected()) && !hasStripeAccountId) {
+        throw new StripeIntegrationException("Vui lòng kết nối tài khoản Stripe trước khi đăng ký Chuyên môn.");
+        }
+
+        if (!Boolean.TRUE.equals(interviewer.getIsStripeConnected())) {
+        log.warn("Interviewer ID [{}] đã gửi yêu cầu Expertise nhưng chưa hoàn tất đồng bộ Webhook Stripe (isStripeConnected=false).", userId);
         }
 
         byte[] fileData;

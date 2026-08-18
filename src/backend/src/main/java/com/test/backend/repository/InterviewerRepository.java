@@ -12,6 +12,8 @@ import java.util.Optional;
 @Repository
 public interface InterviewerRepository extends JpaRepository<Interviewer, Long> {
 
+    Optional<Interviewer> findByUser_UserId(Long userId);
+
     Optional<Interviewer> findByInterviewerId(Long interviewerId);
 
     Optional<Interviewer> findByStripeAccountId(String stripeAccountId);
