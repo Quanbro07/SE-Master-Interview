@@ -119,15 +119,15 @@ public class BookingController {
     // Upload CV cho booking
     @PreAuthorize("hasRole('Interviewee')")
     @PostMapping("/{bookingId}/upload-cv")
-    public ResponseEntity<Void> uploadCvBooking(
+    public ResponseEntity<String> uploadCvBooking(
             @PathVariable Long bookingId,
             @RequestParam("file")MultipartFile file,
             @AuthenticationPrincipal CustomUserDetail userDetail) {
 
         Long intervieweeId = userDetail.getUser().getUserId();
-        bookingService.uploadCvBooking(bookingId, intervieweeId, file);
+        String response = bookingService.uploadCvBooking(bookingId, intervieweeId, file);
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(response);
     }
 
 
