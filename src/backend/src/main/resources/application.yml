@@ -16,7 +16,7 @@ spring:
   application:
     name: master-interview-backend
 
-# OAUTH2
+  # OAUTH2
   security:
     oauth2:
       client:
@@ -42,7 +42,7 @@ spring:
         api-key: ${GEMINI_API_KEY}
         chat:
           model: gemini-3.6-flash
-          temperature: 0.7
+          temperature: 0.0
 
 
   data:

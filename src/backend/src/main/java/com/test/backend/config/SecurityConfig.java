@@ -52,9 +52,12 @@ public class SecurityConfig {
                                     "/api/v1/auth/login",
                                     "/api/v1/stripe/webhook",
                                     "/api/v1/zoom/webhook",
-                                    "/stripe_test.html",
+                                    //"/stripe_test.html",
                                     "/error",
-                                    "/actuator/**"
+                                    "/actuator/**",
+                                    "/api/v1/agent/dummy",
+                                    "/api/v1/agent/prompt"
+
                                     ).permitAll()
                                 .anyRequest().authenticated()
                         )
