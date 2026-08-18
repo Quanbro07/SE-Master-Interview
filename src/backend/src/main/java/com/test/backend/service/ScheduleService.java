@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 public class ScheduleService {
 
     private final AvailableScheduleRepository availableScheduleRepository;
-
     private final InterviewerRepository interviewerRepository;
 
     private final JwtService jwtService;

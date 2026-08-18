@@ -11,7 +11,7 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import { handleUploadCV } from "./uploadCv";
+import { uploadCvBooking } from "./uploadCv";
 import "./BookingPage.css";
 
 const API_BASE =
@@ -440,19 +440,6 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
     setSubmitting(true);
 
     try {
-      const positionToUpload =
-        mentor?.displayPosition || mentor?.position || "BACKEND";
-      const uploadData = await handleUploadCV(
-        cvFile,
-        mentor?.role || "GENERAL",
-      );
-
-      if (!uploadData || !uploadData.url) {
-        throw new Error("Upload CV không thành công. Vui lòng thử lại!");
-      }
-
-      const cvUrl = uploadData.url;
-
       let rawToken =
         localStorage.getItem("accessToken") ||
         localStorage.getItem("token") ||
@@ -464,37 +451,47 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
         : "";
       const authHeader = `Bearer ${cleanToken}`;
 
+      // 1. Tạo Booking trên hệ thống để thu về bookingId
       const bookingPayload = {
         bookingDate: formatDateForBackend(selectedDate),
         startTime: selectedSlot.start,
         endTime: selectedSlot.end,
-        cvUrl,
+        cvUrl: "",
         interviewerId: mentor?.id,
       };
 
-      const res = await fetch(`${API_BASE}/api/v1/booking`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: authHeader,
+      const res = await fetch(
+        `${API_BASE}/api/v1/booking/booking-interviewer`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: authHeader,
+          },
+          body: JSON.stringify(bookingPayload),
         },
-        body: JSON.stringify(bookingPayload),
-      });
+      );
 
       if (res.status === 401) {
         throw new Error(
-          "Không có quyền tạo lịch (401). Vui lòng đăng nhập lại.",
+          "Phiên đăng nhập hết hạn (401). Vui lòng đăng nhập lại.",
         );
       }
 
-      if (!res.ok) throw new Error("Tạo lịch thất bại!");
+      if (!res.ok) throw new Error("Tạo lịch đặt phỏng vấn thất bại!");
 
       const booking = await res.json();
+      const bookingId = booking.bookingId || booking.id;
+
+      // 2. Upload file CV trực tiếp cho Booking vừa tạo (dùng endpoint /api/v1/booking/{bookingId}/upload-cv)
+      await uploadCvBooking(bookingId, cvFile);
+
       setCreatedBooking(booking);
 
+      // 3. Khởi tạo Intent thanh toán Stripe
       const amount = parsePriceToCents(mentor?.price);
       const intentRes = await fetch(
-        `${API_BASE}/api/v1/booking/${booking.bookingId || booking.id}/payment-intent`,
+        `${API_BASE}/api/v1/booking/${bookingId}/payment-intent`,
         {
           method: "POST",
           headers: {
@@ -506,12 +503,15 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
       );
 
       if (!intentRes.ok)
-        throw new Error("Không thể khởi tạo thanh toán Stripe");
+        throw new Error("Không thể khởi tạo thanh toán Stripe.");
+
       const { clientSecret: secret } = await intentRes.json();
       setClientSecret(secret);
 
+      // Chuyển sang bước thanh toán
       setStep("payment");
     } catch (err) {
+      console.error("[BOOKING ERROR]:", err);
       setSubmitError(err.message || "Đã có lỗi xảy ra. Vui lòng thử lại.");
     } finally {
       setSubmitting(false);
