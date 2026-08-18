@@ -146,7 +146,7 @@ public class BookingService {
                 .note(request.note())
                 .build();
 
-        scheduleService.addBlockedSchedule(intervieweeId, blockedScheduleRequest);
+        scheduleService.addBlockedSchedule(interviewer.getInterviewerId(), blockedScheduleRequest);
 
         // Tính toán total amount
         long minutes = Duration.between(request.startDate(), request.endDate()).toMinutes();

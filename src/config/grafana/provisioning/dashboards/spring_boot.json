@@ -5,8 +5,8 @@
     "name": "spring_boot_21",
     "namespace": "default",
     "uid": "9c08347e-f787-4bad-ac84-2b562055d2e6",
-    "resourceVersion": "1786696864250980",
-    "generation": 5,
+    "resourceVersion": "1787040158185999",
+    "generation": 7,
     "creationTimestamp": "2026-08-14T07:14:35Z",
     "labels": {
       "grafana.app/deprecatedInternalID": "2995722610421760"
@@ -15,11 +15,11 @@
       "grafana.app/createdBy": "access-policy:service",
       "grafana.app/managedBy": "classic-file-provisioning",
       "grafana.app/managerId": "Default",
-      "grafana.app/sourceChecksum": "9e0ed03d4412fc4fc2878d6703d67abb",
+      "grafana.app/sourceChecksum": "4f5d28b5a5c4c61e2847e006185ea7a7",
       "grafana.app/sourcePath": "/etc/grafana/provisioning/dashboards/spring_boot.json",
-      "grafana.app/sourceTimestamp": "1786696840000",
+      "grafana.app/sourceTimestamp": "1787040100000",
       "grafana.app/updatedBy": "access-policy:service",
-      "grafana.app/updatedTimestamp": "2026-08-14T08:41:04Z",
+      "grafana.app/updatedTimestamp": "2026-08-18T08:02:38Z",
       "grafana.app/folder": ""
     }
   },
@@ -3811,6 +3811,131 @@
             "version": "13.1.3"
           }
         }
+      },
+      "panel-97": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "PBFA97CFB590B2093"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "builder",
+                        "expr": "app_users_active",
+                        "legendFormat": "__auto",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 97,
+          "links": [],
+          "title": "Active Users",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic",
+                    "seriesBy": "last"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 27,
+                    "gradientMode": "opacity",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineStyle": {
+                      "fill": "solid"
+                    },
+                    "lineWidth": 1,
+                    "pointSize": 4,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "enableFacetedFilter": false,
+                  "overflow": "ellipsis",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              }
+            },
+            "version": "13.1.3"
+          }
+        }
       }
     },
     "layout": {
@@ -3830,12 +3955,25 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
+                          "name": "panel-97"
+                        },
+                        "height": 8,
+                        "width": 24,
+                        "x": 0,
+                        "y": 0
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
                           "name": "panel-52"
                         },
                         "height": 3,
                         "width": 6,
                         "x": 0,
-                        "y": 0
+                        "y": 8
                       }
                     },
                     {
@@ -3848,7 +3986,7 @@
                         "height": 6,
                         "width": 5,
                         "x": 6,
-                        "y": 0
+                        "y": 8
                       }
                     },
                     {
@@ -3861,7 +3999,7 @@
                         "height": 6,
                         "width": 5,
                         "x": 11,
-                        "y": 0
+                        "y": 8
                       }
                     },
                     {
@@ -3874,7 +4012,7 @@
                         "height": 6,
                         "width": 8,
                         "x": 16,
-                        "y": 0
+                        "y": 8
                       }
                     },
                     {
@@ -3887,7 +4025,7 @@
                         "height": 3,
                         "width": 6,
                         "x": 0,
-                        "y": 3
+                        "y": 11
                       }
                     },
                     {
@@ -3900,7 +4038,7 @@
                         "height": 7,
                         "width": 12,
                         "x": 0,
-                        "y": 6
+                        "y": 14
                       }
                     },
                     {
@@ -3913,7 +4051,7 @@
                         "height": 7,
                         "width": 12,
                         "x": 12,
-                        "y": 6
+                        "y": 14
                       }
                     }
                   ]
