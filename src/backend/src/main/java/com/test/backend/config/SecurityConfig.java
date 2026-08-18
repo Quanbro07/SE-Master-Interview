@@ -58,7 +58,10 @@ public class SecurityConfig {
                                     "/stripe_test.html",
                                     "/api/v1/auth/refresh-token",
                                     "/error",
-                                    "/actuator/**"
+                                    "/actuator/**",
+                                    "/api/v1/agent/dummy",
+                                    "/api/v1/agent/prompt"
+
                                     ).permitAll()
                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                 .anyRequest().authenticated()

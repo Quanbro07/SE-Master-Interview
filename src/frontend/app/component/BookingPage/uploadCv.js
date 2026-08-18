@@ -6,7 +6,7 @@ const getAccessToken = () => {
   if (typeof window === "undefined") return "";
   const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
   let token = "";
-  
+
   for (const key of keys) {
     const val = localStorage.getItem(key);
     if (val) {
@@ -27,7 +27,7 @@ const getAccessToken = () => {
 
   if (!token) return "";
   // Xóa sạch dấu ngoặc kép thừa (nếu có)
-  return token.replace(/^"(.*)"$/, "$1").trim(); 
+  return token.replace(/^"(.*)"$/, "$1").trim();
 };
 
 export const handleUploadCV = async (
@@ -74,7 +74,7 @@ export const handleUploadCV = async (
     if (res.ok) {
       const data = await res.json();
       console.log("Upload CV thành công:", data);
-      return data; 
+      return data;
     } else {
       const errorText = await res.text();
       console.error("Lỗi Upload CV:", res.status, errorText);
