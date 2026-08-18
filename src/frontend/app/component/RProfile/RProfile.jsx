@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import RNavigationBar from "../RNavigationBar/RNavigationBar";
 import "./RProfile.css";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 const RProfile = () => {
   const [profile, setProfile] = useState(null);
@@ -12,20 +13,20 @@ const RProfile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // --- State Expertise Đã Duyệt ---
+  // State lưu danh sách Expertise/Position
   const [approvedExpertises, setApprovedExpertises] = useState([]);
 
-  // --- State Stripe Connection ---
+  // State Stripe Connection
   const [isStripeConnected, setIsStripeConnected] = useState(false);
   const [connectingStripe, setConnectingStripe] = useState(false);
 
-  // --- State Autocomplete Position ---
+  // State Autocomplete Position
   const [positionQuery, setPositionQuery] = useState("");
   const [positionSuggestions, setPositionSuggestions] = useState([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const positionWrapperRef = useRef(null);
 
-  // --- State Form Đăng ký Expertise ---
+  // Form Đăng ký Expertise
   const [expPosition, setExpPosition] = useState("");
   const [expLevel, setExpLevel] = useState("INTERN");
   const [expYears, setExpYears] = useState(1);
@@ -35,7 +36,6 @@ const RProfile = () => {
 
   const fileInputRef = useRef(null);
 
-  // Helper Lấy Auth Token
   const getAuthHeader = () => {
     const rawToken =
       localStorage.getItem("accessToken") ||
@@ -54,21 +54,51 @@ const RProfile = () => {
       : `Bearer ${normalizedToken}`;
   };
 
-  // Helper lọc & chuẩn hóa danh sách expertise
-  const processExpertises = (rawList) => {
+  // Trích xuất tên Position từ đối tượng DTO
+  const extractPositionName = (item) => {
+    if (typeof item === "string") return item;
+    if (!item) return "N/A";
+
+    return (
+      item.positionName ||
+      item.position_name ||
+      item.name ||
+      (item.position &&
+        (item.position.positionName ||
+          item.position.position_name ||
+          item.position.name)) ||
+      "N/A"
+    );
+  };
+
+  // Chuẩn hóa và lấy toàn bộ danh sách Chuyên môn / Vị trí
+  const processExpertises = (userData) => {
+    const rawList =
+      userData.expertises ||
+      userData.expertiseList ||
+      userData.interviewerExpertises ||
+      userData.interviewer_expertises ||
+      userData.positions ||
+      [];
+
     if (!Array.isArray(rawList)) return [];
-    return rawList.filter((item) => {
+
+    return rawList.map((item) => {
       const isCert =
         item.isCertified ?? item.is_certified ?? item.certified ?? false;
+      const posName = extractPositionName(item);
 
-      return (
-        isCert === true ||
-        isCert === "true" ||
-        isCert === "t" ||
-        isCert === 1 ||
-        item.status === "APPROVED" ||
-        item.status === "CERTIFIED"
-      );
+      return {
+        ...item,
+        displayPositionName: String(posName).toUpperCase(),
+        isCertified: Boolean(
+          isCert === true ||
+          isCert === "true" ||
+          isCert === 1 ||
+          item.status === "APPROVED" ||
+          item.status === "CERTIFIED",
+        ),
+      };
     });
   };
 
@@ -102,15 +132,9 @@ const RProfile = () => {
           setProfile(loadedData);
           setDraft(loadedData);
 
-          // Lọc danh sách Expertise từ DTO userData
-          const rawExpertises =
-            userData.expertises ||
-            userData.expertiseList ||
-            userData.interviewerExpertises ||
-            userData.interviewer_expertises ||
-            [];
-
-          setApprovedExpertises(processExpertises(rawExpertises));
+          // Cập nhật danh sách Position/Expertise
+          const expertisesList = processExpertises(userData);
+          setApprovedExpertises(expertisesList);
 
           // Cập nhật Stripe Status
           const stripeStatus = Boolean(
@@ -127,48 +151,11 @@ const RProfile = () => {
             "user",
             JSON.stringify({ ...cached, ...userData }),
           );
-        } else {
-          loadProfileFromStorage();
         }
       } catch (e) {
         console.error("Lỗi fetch profile từ Server:", e);
-        loadProfileFromStorage();
       } finally {
         setLoading(false);
-      }
-    };
-
-    const loadProfileFromStorage = () => {
-      try {
-        const savedUserStr = localStorage.getItem("user");
-        if (savedUserStr) {
-          const userData = JSON.parse(savedUserStr);
-          const loadedData = {
-            name:
-              userData.fullName ||
-              userData.full_name ||
-              userData.userName ||
-              "",
-            email: userData.email || "",
-            linkedinUrl: userData.linkedinUrl || userData.linkedin_url || "",
-            githubUrl: userData.githubUrl || userData.github_url || "",
-          };
-          setProfile(loadedData);
-          setDraft(loadedData);
-
-          const rawExpertises =
-            userData.expertises ||
-            userData.expertiseList ||
-            userData.interviewerExpertises ||
-            [];
-          setApprovedExpertises(processExpertises(rawExpertises));
-
-          setIsStripeConnected(
-            Boolean(userData.isStripeConnected || userData.is_stripe_connected),
-          );
-        }
-      } catch (e) {
-        console.error("Lỗi đọc dữ liệu Auth:", e);
       }
     };
 
@@ -195,12 +182,9 @@ const RProfile = () => {
         if (res.ok) {
           const data = await res.json();
           setPositionSuggestions(data || []);
-        } else {
-          setPositionSuggestions([]);
         }
       } catch (err) {
         console.error("Lỗi tìm kiếm position:", err);
-        setPositionSuggestions([]);
       }
     }, 300);
 
@@ -233,15 +217,12 @@ const RProfile = () => {
     setSuggestionsOpen(false);
   };
 
-  // 3. Kết nối Stripe
+  // 3. Connect Stripe
   const handleConnectStripe = async () => {
     setConnectingStripe(true);
     try {
       const authHeader = getAuthHeader();
-      if (!authHeader) {
-        console.error("Lỗi Stripe: Vui lòng đăng nhập lại!");
-        return;
-      }
+      if (!authHeader) return;
 
       const res = await fetch(`${API_BASE}/api/v1/stripe/create-account-link`, {
         method: "POST",
@@ -254,18 +235,10 @@ const RProfile = () => {
       if (res.ok) {
         const data = await res.json();
         const redirectUrl = data.url || data.accountLink || data.link;
-
-        if (redirectUrl) {
-          window.location.href = redirectUrl;
-        } else {
-          console.log("Khởi tạo liên kết Stripe thành công.");
-        }
-      } else {
-        const errText = await res.text().catch(() => "");
-        console.error(`Lỗi kết nối Stripe (${res.status}): ${errText}`);
+        if (redirectUrl) window.location.href = redirectUrl;
       }
     } catch (err) {
-      console.error("Lỗi máy chủ khi kết nối Stripe:", err);
+      console.error("Lỗi kết nối Stripe:", err);
     } finally {
       setConnectingStripe(false);
     }
@@ -295,11 +268,6 @@ const RProfile = () => {
 
     try {
       const authHeader = getAuthHeader();
-      if (!authHeader) {
-        console.error("Lỗi phiên đăng nhập hết hạn khi lưu thông tin");
-        return;
-      }
-
       const res = await fetch(`${API_BASE}/api/v1/user/update-user-info`, {
         method: "PATCH",
         headers: {
@@ -310,27 +278,11 @@ const RProfile = () => {
       });
 
       if (res.ok) {
-        const updatedProfile = { ...draft };
-        setProfile(updatedProfile);
-
-        const cached = JSON.parse(localStorage.getItem("user") || "{}");
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            ...cached,
-            full_name: updatedProfile.name,
-            user_name: updatedProfile.name,
-            linkedin_url: updatedProfile.linkedinUrl,
-            github_url: updatedProfile.githubUrl,
-          }),
-        );
-
+        setProfile({ ...draft });
         setIsEditing(false);
-      } else {
-        console.error("Cập nhật thông tin thất bại. Mã lỗi:", res.status);
       }
     } catch (err) {
-      console.error("Lỗi kết nối máy chủ khi cập nhật thông tin:", err);
+      console.error("Lỗi cập nhật profile:", err);
     } finally {
       setSaving(false);
     }
@@ -339,25 +291,11 @@ const RProfile = () => {
   // 5. Submit Expertise Request
   const handleRequestExpertise = async (e) => {
     e.preventDefault();
-
-    if (!expPosition.trim()) {
-      console.warn("Chưa nhập hoặc chọn vị trí chuyên môn (Position)");
-      return;
-    }
-    if (!expFile) {
-      console.warn("Chưa tải lên tài liệu/chứng chỉ/CV minh chứng");
-      return;
-    }
+    if (!expPosition.trim() || !expFile) return;
 
     setSubmittingExpertise(true);
-
     try {
       const authHeader = getAuthHeader();
-      if (!authHeader) {
-        console.error("Phiên đăng nhập không hợp lệ");
-        return;
-      }
-
       const formData = new FormData();
       formData.append("file", expFile);
       formData.append("position", expPosition.trim());
@@ -375,15 +313,9 @@ const RProfile = () => {
       );
 
       if (res.ok) {
-        console.log(
-          "Gửi yêu cầu Expertise thành công và đang chờ Admin duyệt.",
-        );
         setExpFile(null);
         setPositionQuery("");
         setExpPosition("");
-      } else {
-        const errText = await res.text();
-        console.error(`Gửi yêu cầu thất bại (${res.status}): ${errText}`);
       }
     } catch (err) {
       console.error("Lỗi gửi yêu cầu Expertise:", err);
@@ -401,7 +333,7 @@ const RProfile = () => {
         <section className="rp-inner">
           <h1 className="rp-title">----- PROFILE & EXPERTISE -----</h1>
 
-          {/* BLOCK 1: USER INFO & APPROVED EXPERTISES */}
+          {/* BASIC INFO CARD */}
           <div className="rp-basic-card">
             <div className="rp-basic-header">
               <div className="rp-avatar-block">
@@ -495,34 +427,32 @@ const RProfile = () => {
               </div>
             </div>
 
-            {/* TAG EXPERTISE ĐÃ DUYỆT */}
+            {/* EXPERTISE / POSITIONS LIST */}
             <div className="rp-expertise-tags-container">
-              <span className="rp-label">APPROVED EXPERTISES</span>
+              <span className="rp-label">APPROVED EXPERTISES / POSITIONS</span>
               <div className="rp-expertise-tags-wrapper">
                 {approvedExpertises.length === 0 ? (
                   <span className="rp-no-expertise">
-                    Chưa có Expertise nào được chứng nhận.
+                    Chưa có Position / Expertise nào được ghi nhận.
                   </span>
                 ) : (
                   approvedExpertises.map((item, idx) => {
-                    const rawPosName =
-                      item.positionName ||
-                      item.position_name ||
-                      item.position?.positionName ||
-                      item.position?.position_name ||
-                      item.position ||
-                      "";
-
-                    const posName = String(rawPosName).toUpperCase();
                     const level = (item.level || "VERIFIED").toUpperCase();
                     const fee = item.hourlyFee || item.hourly_fee;
 
                     return (
                       <div key={idx} className="rp-expertise-badge">
-                        <span>{posName}</span>
+                        <span>{item.displayPositionName}</span>
                         <span className="rp-expertise-level">{level}</span>
                         {fee && (
                           <span className="rp-expertise-fee">${fee}/h</span>
+                        )}
+                        {item.isCertified && (
+                          <span
+                            style={{ color: "#4ade80", fontSize: "0.8rem" }}
+                          >
+                            ✓ Certified
+                          </span>
                         )}
                       </div>
                     );
@@ -532,7 +462,7 @@ const RProfile = () => {
             </div>
           </div>
 
-          {/* BLOCK 2: STRIPE KẾT NỐI */}
+          {/* STRIPE CARD */}
           <div className="rp-basic-card">
             <div className="rp-stripe-flex-header">
               <div>
@@ -558,12 +488,11 @@ const RProfile = () => {
             </div>
           </div>
 
-          {/* BLOCK 3: FORM REQUEST EXPERTISE */}
+          {/* EXPERTISE REQUEST FORM */}
           <div className="rp-basic-card">
             <h2 className="rp-section-subtitle">
               Request Expertise Certification
             </h2>
-
             <form onSubmit={handleRequestExpertise} className="rp-field-grid">
               <div
                 className="rp-field"

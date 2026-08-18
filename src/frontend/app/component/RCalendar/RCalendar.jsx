@@ -162,7 +162,9 @@ const RCalendar = () => {
   };
 
   const isSlotSelected = (date, hour, weekdayIndex) => {
-    if (repeatWeekly) return repeatSlots.has(repeatKey(weekdayIndex, hour));
+    if (repeatWeekly) {
+      return repeatSlots.has(repeatKey(weekdayIndex, hour));
+    }
     return selectedSlots.has(dateKey(date, hour));
   };
 
@@ -172,7 +174,6 @@ const RCalendar = () => {
   };
 
   const setSlot = (date, hour, weekdayIndex, value) => {
-    // Nếu ô trong quá khứ thì bỏ qua không xử lý
     if (isSlotInPast(date, hour)) return;
 
     if (repeatWeekly) {
@@ -217,33 +218,41 @@ const RCalendar = () => {
     return () => window.removeEventListener("mouseup", stopDragging);
   }, []);
 
+  // SỬA ĐỔI: Xử lý Bật/Tắt Repeat Weekly
   const handleToggleRepeat = () => {
-    if (!repeatWeekly) {
-      setRepeatSlots((prev) => {
-        const next = new Set(prev);
+    setRepeatWeekly((prevRepeat) => {
+      const willBeRepeat = !prevRepeat;
+
+      if (willBeRepeat) {
+        // Tắt -> Bật: Gom các slot đang được chọn ở tuần hiện tại thành Lịch lặp chung
+        const newRepeatSlots = new Set();
         weekDays.forEach((date, weekdayIndex) => {
           HOURS.forEach((hour) => {
-            if (selectedSlots.has(dateKey(date, hour))) {
-              next.add(repeatKey(weekdayIndex, hour));
+            const dKey = dateKey(date, hour);
+            const rKey = repeatKey(weekdayIndex, hour);
+            if (selectedSlots.has(dKey)) {
+              newRepeatSlots.add(rKey);
             }
           });
         });
-        return next;
-      });
-    } else {
-      setSelectedSlots((prev) => {
-        const next = new Set(prev);
+        setRepeatSlots(newRepeatSlots);
+      } else {
+        // Bật -> Tắt: Nhân bản Lịch lặp chung vào các ô ngày cụ thể của tuần hiện tại
+        const newSelectedSlots = new Set();
         weekDays.forEach((date, weekdayIndex) => {
           HOURS.forEach((hour) => {
-            if (repeatSlots.has(repeatKey(weekdayIndex, hour))) {
-              next.add(dateKey(date, hour));
+            const dKey = dateKey(date, hour);
+            const rKey = repeatKey(weekdayIndex, hour);
+            if (repeatSlots.has(rKey)) {
+              newSelectedSlots.add(dKey);
             }
           });
         });
-        return next;
-      });
-    }
-    setRepeatWeekly((prev) => !prev);
+        setSelectedSlots(newSelectedSlots);
+      }
+
+      return willBeRepeat;
+    });
   };
 
   const handleEditToggle = () => {
@@ -254,76 +263,97 @@ const RCalendar = () => {
     }
   };
 
+  // SỬA ĐỔI: Tải lại dữ liệu khi đổi tuần mà không làm đè/sót state của tuần khác
   useEffect(() => {
     const loadSchedule = async () => {
       setScheduleError(null);
       try {
-        const dateInWeek = format(weekDays[0], "yyyy-MM-dd");
-
-        const cachedData = localStorage.getItem("interviewerSchedule");
-        if (cachedData) {
-          try {
-            JSON.parse(cachedData);
-          } catch (e) {
-            console.warn("Could not parse cached schedule");
-          }
-        }
+        const dateInWeek = format(weekStart, "yyyy-MM-dd");
 
         const res = await fetch(
-          `${API_BASE}/api/v1/schedule/get?dateInWeek=${dateInWeek}`,
-          { headers: authHeaders() },
+          `${API_BASE}/api/v1/schedule/get?dateInWeek=${encodeURIComponent(dateInWeek)}`,
+          {
+            method: "GET",
+            headers: authHeaders(),
+          },
         );
-        if (!res.ok) throw new Error(`Failed to load schedule (${res.status})`);
-        const data = await res.json();
 
+        if (!res.ok) {
+          throw new Error(`Failed to load schedule (Status: ${res.status})`);
+        }
+
+        const data = await res.json();
         localStorage.setItem("interviewerSchedule", JSON.stringify(data));
 
-        const nextRepeatSlots = new Set();
+        const fetchedRepeatSlots = new Set();
+        const fetchedSelectedSlots = new Set();
+
         (data.schedules || []).forEach((daySchedule) => {
           const weekdayIndex = dayOfWeekToWeekdayIndex(daySchedule.day_of_week);
           if (weekdayIndex < 0 || weekdayIndex > 6) return;
+          const targetDate = weekDays[weekdayIndex];
+
           (daySchedule.schedule_times || []).forEach((range) => {
             const startHour = parseHourFromTimeString(range.start_time);
             const endHour = parseHourFromTimeString(range.end_time);
             if (startHour == null || endHour == null) return;
             for (let h = startHour; h < endHour; h += 1) {
               if (h >= 9 && h <= 22) {
-                nextRepeatSlots.add(repeatKey(weekdayIndex, h));
+                fetchedRepeatSlots.add(repeatKey(weekdayIndex, h));
+                if (targetDate) {
+                  fetchedSelectedSlots.add(dateKey(targetDate, h));
+                }
               }
             }
           });
         });
-        setRepeatSlots(nextRepeatSlots);
+
+        setRepeatSlots(fetchedRepeatSlots);
+        // Reset sạch selectedSlots theo tuần đang xem
+        setSelectedSlots(fetchedSelectedSlots);
 
         await loadBlockedSchedules(dateInWeek, weekDays);
       } catch (err) {
+        console.error("Schedule error:", err);
         setScheduleError(err.message || "Could not load your schedule.");
       }
     };
 
     loadSchedule();
-  }, [format(weekDays[0], "yyyy-MM-dd")]);
+  }, [weekStart]);
 
+  // SỬA ĐỔI: Lưu chính xác dữ liệu theo trạng thái Bật/Tắt Repeat
   const handleSaveSchedule = async () => {
-    // 💡 Không chặn việc lưu nữa, chỉ log ra console nếu repeatWeekly tắt
-    if (!repeatWeekly) {
-      console.info("Info: Saving schedule without weekly repeat mode.");
-    }
-
     setSaving(true);
     setScheduleError(null);
 
     try {
       const hoursByWeekday = new Map();
-      repeatSlots.forEach((key) => {
-        const [weekdayIndexStr, hourStr] = key.split("-");
-        const weekdayIndex = parseInt(weekdayIndexStr, 10);
-        const hour = parseInt(hourStr, 10);
-        if (!hoursByWeekday.has(weekdayIndex)) {
-          hoursByWeekday.set(weekdayIndex, []);
-        }
-        hoursByWeekday.get(weekdayIndex).push(hour);
-      });
+
+      if (repeatWeekly) {
+        // Lưu theo repeatSlots (Toàn bộ các tuần)
+        repeatSlots.forEach((key) => {
+          const [weekdayIndexStr, hourStr] = key.split("-");
+          const weekdayIndex = parseInt(weekdayIndexStr, 10);
+          const hour = parseInt(hourStr, 10);
+          if (!hoursByWeekday.has(weekdayIndex)) {
+            hoursByWeekday.set(weekdayIndex, []);
+          }
+          hoursByWeekday.get(weekdayIndex).push(hour);
+        });
+      } else {
+        // Repeat OFF: Chỉ lưu các ô đang chọn trong tuần hiện tại thành cấu trúc khung mới
+        weekDays.forEach((date, weekdayIndex) => {
+          HOURS.forEach((hour) => {
+            if (selectedSlots.has(dateKey(date, hour))) {
+              if (!hoursByWeekday.has(weekdayIndex)) {
+                hoursByWeekday.set(weekdayIndex, []);
+              }
+              hoursByWeekday.get(weekdayIndex).push(hour);
+            }
+          });
+        });
+      }
 
       const schedules = Array.from(hoursByWeekday.entries()).map(
         ([weekdayIndex, hours]) => ({
@@ -432,7 +462,6 @@ const RCalendar = () => {
               </button>
             </div>
 
-            {/* 🛑 ĐÃ XÓA HIỂN THỊ DÒNG THÔNG BÁO LỖI BẮT BUỘC REPEAT WEEKLY Ở ĐÂY */}
             {scheduleError && <p className="calendar-error">{scheduleError}</p>}
 
             <div className="r-calendar-nav-row">
@@ -455,7 +484,6 @@ const RCalendar = () => {
               </button>
             </div>
 
-            {/* BẢNG LỊCH VOI ANIMATION SLIDE & TỶ LỆ Ô HÌNH VUÔNG */}
             <div className="r-calendar-table-wrapper custom-scrollbar">
               <AnimatePresence
                 mode="popLayout"
@@ -472,7 +500,6 @@ const RCalendar = () => {
                   transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
                   className="r-calendar-grid"
                 >
-                  {/* Hàng tiêu đề Giờ */}
                   <div className="grid-header-row">
                     <div className="grid-day-col-spacer">DAY</div>
                     {HOURS.map((hour) => (
@@ -482,7 +509,6 @@ const RCalendar = () => {
                     ))}
                   </div>
 
-                  {/* Danh sách các Thứ */}
                   {weekDays.map((date, weekdayIndex) => {
                     const isFaded = !isSameMonth(date, weekDays[6]);
 
