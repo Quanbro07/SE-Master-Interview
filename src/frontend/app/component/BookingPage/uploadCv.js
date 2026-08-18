@@ -74,16 +74,7 @@ export const handleUploadCV = async (
     if (res.ok) {
       const data = await res.json();
       console.log("Upload CV thành công:", data);
-<<<<<<< Updated upstream
-
-      // Nếu backend trả về kết quả đánh giá chứa URL hoặc thông tin CV
-      return {
-        url: data.cvUrl || data.url || data.fileUrl || "uploaded",
-        ...data,
-      };
-=======
       return data; 
->>>>>>> Stashed changes
     } else {
       const errorText = await res.text();
       console.error("Lỗi Upload CV:", res.status, errorText);
