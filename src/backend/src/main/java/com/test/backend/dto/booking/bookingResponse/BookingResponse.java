@@ -40,5 +40,4 @@ public record BookingResponse(
         @JsonProperty("cv_url")
         String cvUrl
 
-
 ) {}

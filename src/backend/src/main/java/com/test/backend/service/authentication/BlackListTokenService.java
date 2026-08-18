@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
@@ -16,7 +17,7 @@ public class BlackListTokenService {
     public void addTokenToBlacklist(String token, long remainingTime) {
         String key = BLACKLIST_TOKEN_KEY_PREFIX + token;
 
-        stringRedisTemplate.opsForValue().set(key, "invalid", remainingTime, TimeUnit.MILLISECONDS);
+        stringRedisTemplate.opsForValue().set(key, "invalid", Duration.ofMillis(remainingTime));
     }
 
     public boolean isTokenBlacklisted(String token) {
