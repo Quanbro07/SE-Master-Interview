@@ -123,8 +123,8 @@ public class StripeService {
         Booking booking = bookingRepository.findByBookingIdFetchInterviewerAndBooker(bookingId)
                 .orElseThrow(() -> new NotFoundException("Booking Not Found"));
 
-        if(!BookingStatus.ACCEPTED.equals(booking.getStatus())) {
-            throw new ForbiddenOperationException("Cannot create Intent if the Booking is not Accepted");
+        if (BookingStatus.REJECTED.equals(booking.getStatus()) || BookingStatus.CANCELLED.equals(booking.getStatus())) {
+            throw new ForbiddenOperationException("Cannot create Intent for cancelled or rejected booking");
         }
 
         Interviewer interviewer = booking.getInterviewer();
