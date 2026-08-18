@@ -358,7 +358,7 @@ public class BookingService {
             log.warn(e.getMessage());
         }
 
-        String cvUrl;
+        String cvUrl = null;
 
         try {
             cvUrl = fileService.uploadFile(cvBucket.getCVBucketName(), fileData, contentType, originalFileName, target);

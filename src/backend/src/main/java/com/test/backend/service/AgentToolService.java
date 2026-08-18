@@ -79,21 +79,21 @@ public class AgentToolService {
         }
     }
 
-    @Tool(description = "Find 1 week of available booking by filtering interviewer job position and required date")
+    @Tool(description = "Find available schedule by filtering interviewer job position and required date")
     public List<FilterInterviewerPositionResponse> getAvailableBookingsByPosition(
             @ToolParam(description = "The required job position")
             String position,
 
-            @ToolParam(description = "The required date, user will receive 1 week of available schedule from required date. Default is now", required = false)
-            LocalDate date,
+            @ToolParam(description = "The required date, user will receive 1 week of available schedule from required date. Use standard ISO format yyyy-MM-dd.", required = false)
+            String date,
 
-            @ToolParam(description = "Number of bookings. Default number is 10", required = false)
+            @ToolParam(description = "Number of schedule. Default number is 10", required = false)
             Integer size) {
         try {
             // Thiết lập giá trị mặc định an toàn nếu AI hoặc User không truyền tham số phân trang
             int pageParam = 0;
             int sizeParam = (size != null) ? size : 10;
-            LocalDate dateParam = (date != null) ? date : LocalDate.now();
+            LocalDate dateParam = (date != null) ? LocalDate.parse(date) : LocalDate.now();
 
             log.info("[Tool:getAvailableBookingsByPosition] position={}, date={}, size={}", position, dateParam, sizeParam);
 
@@ -102,6 +102,7 @@ public class AgentToolService {
             // Gọi trực tiếp xuống hàm nghiệp vụ của BookingService
             Page<FilterInterviewerPositionResponse> responsePage = bookingService.filterInterviewerByPosition(resolvedPosition, dateParam, pageParam, sizeParam);
             List<FilterInterviewerPositionResponse> responseList;
+
             if (responsePage == null || !responsePage.hasContent()) {
                 log.error("[Tool:getAvailableBookingsByPosition] There is no available booking for position={}. Stop searching and inform the user that no data exists.", position);
                 return List.of();
@@ -109,7 +110,7 @@ public class AgentToolService {
             else {
                 responseList = responsePage.getContent();
             }
-
+            resultHolder.capture("availableSchedule", responseList);
             // Chuyển đối tượng Page kết quả thành List
             return responseList;
 
