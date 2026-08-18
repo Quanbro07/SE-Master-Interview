@@ -18,7 +18,6 @@ import com.test.backend.repository.InterviewerRepository;
 import com.test.backend.repository.SocialAccountRepository;
 import com.test.backend.repository.UserRepository;
 import com.test.backend.service.SocialAccountService;
-import com.test.backend.service.UserMetricsService;
 import com.test.backend.service.UserService;
 import com.test.backend.service.jwt.JwtService;
 import com.test.backend.service.jwt.TokenType;
@@ -27,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -53,7 +53,6 @@ public class AuthenticationService {
 
     private final BlackListTokenService blacklistTokenService;
 
-    private final UserMetricsService userMetricsService;
 
     @Transactional
     public AuthenticationResponse register(RegisterRequest registerRequest, String tempToken) {
@@ -107,9 +106,6 @@ public class AuthenticationService {
 
             interviewerRepository.save(interviewer);
         }
-
-        // +1 số người login
-        userMetricsService.onLogin();
 
         return buildAuthenticationResponse(newUser);
     }
@@ -187,8 +183,10 @@ public class AuthenticationService {
 
         String email = user.getEmail();
 
+        // Tao Token
         String accessToken = jwtService.generateToken(extraClaims,email, TokenType.ACCESS);
         String refreshToken = jwtService.generateToken(extraClaims,email, TokenType.REFRESH);
+
 
         refreshTokenService.saveRefreshToken(refreshToken, user.getUserId(),
                 TokenType.REFRESH.getExpiration(),

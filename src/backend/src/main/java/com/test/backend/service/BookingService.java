@@ -146,7 +146,7 @@ public class BookingService {
                 .note(request.note())
                 .build();
 
-        scheduleService.addBlockedSchedule(intervieweeId, blockedScheduleRequest);
+        scheduleService.addBlockedSchedule(interviewer.getInterviewerId(), blockedScheduleRequest);
 
         // Tính toán total amount
         long minutes = Duration.between(request.startDate(), request.endDate()).toMinutes();
@@ -358,7 +358,7 @@ public class BookingService {
             log.warn(e.getMessage());
         }
 
-        String cvUrl;
+        String cvUrl = null;
 
         try {
             cvUrl = fileService.uploadFile(cvBucket.getCVBucketName(), fileData, contentType, originalFileName, target);
