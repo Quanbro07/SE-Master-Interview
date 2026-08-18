@@ -164,6 +164,63 @@ public class ScheduleService {
         return result;
     }
 
+    public AvailableScheduleDTO getAvailableSchedule(Long userId, LocalDate dateInWeek) {
+        // 1. Xác định khung thời gian của tuần chứa dateInWeek (Thứ 2 00:00:00 đến Chủ Nhật 23:59:59)
+        LocalDate monday = dateInWeek.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+
+        LocalDateTime startOfWeek = monday.atStartOfDay();
+        LocalDateTime endOfWeek = monday.plusDays(6).atTime(LocalTime.MAX);
+
+        // 2. Fetch dữ liệu
+        List<AvailableSchedule> availableTemplates =
+                availableScheduleRepository.findAllByInterviewer_InterviewerId(userId);
+        List<BlockedSchedule> overlappingBlocks =
+                blockedScheduleRepository.findOverlappingBlockedSchedules(userId, startOfWeek, endOfWeek);
+
+        // Group templates theo dayOfWeek 1 LẦN DUY NHẤT, tránh lặp lại mỗi vòng for
+        Map<Short, List<AvailableSchedule>> templateByDay = availableTemplates.stream()
+                .collect(Collectors.groupingBy(AvailableSchedule::getDayOfWeek));
+
+        List<ScheduleDTO> scheduleDTOList = new ArrayList<>();
+
+        // 3. Duyệt qua 7 ngày trong tuần (Thứ 2 -> Chủ Nhật)
+        for (int i = 0; i < 7; i++) {
+            LocalDate currentDate = monday.plusDays(i);
+            short dayOfWeekId = (short) (currentDate.getDayOfWeek().getValue() + 1); // Java (1-7) -> App (2-8)
+
+            List<AvailableSchedule> dailyTemplates =
+                    templateByDay.getOrDefault(dayOfWeekId, Collections.emptyList());
+            if (dailyTemplates.isEmpty()) continue;
+
+            List<ScheduleTimeDTO> dailyFreeTimeDTOs = new ArrayList<>();
+
+            for (AvailableSchedule template : dailyTemplates) {
+                LocalDateTime availStart = LocalDateTime.of(currentDate, template.getStartTime());
+                LocalDateTime availEnd = LocalDateTime.of(currentDate, template.getEndTime());
+
+                List<TimeSlot> freeSlots = calculateFreeTimeSlots(availStart, availEnd, overlappingBlocks);
+
+                for (TimeSlot slot : freeSlots) {
+                    if (slot.start().isBefore(slot.end())) {
+                        dailyFreeTimeDTOs.add(
+                                new ScheduleTimeDTO(slot.start().toLocalTime(), slot.end().toLocalTime()));
+                    }
+                }
+            }
+
+            // Chỉ add vào kết quả sau khi đã xử lý HẾT các template của ngày đó
+            if (!dailyFreeTimeDTOs.isEmpty()) {
+                dailyFreeTimeDTOs.sort(Comparator.comparing(ScheduleTimeDTO::startTime));
+                scheduleDTOList.add(new ScheduleDTO(dayOfWeekId, dailyFreeTimeDTOs));
+            }
+        }
+
+        // 4. Return SAU KHI đã duyệt xong toàn bộ 7 ngày
+        return AvailableScheduleDTO.builder()
+                .scheduleDTOList(scheduleDTOList)
+                .build();
+    }
+
     // * Add Bocked Schedule
     public void addBlockedSchedule(Long userId, AddBlockedScheduleRequest request) {
         LocalDateTime now = LocalDateTime.now();
