@@ -130,6 +130,8 @@ public class BookingController {
         return ResponseEntity.ok().build();
     }
 
+
+
     // Tạo link vào cuộc họp
     @PreAuthorize("hasRole('Interviewer')")
     @GetMapping("/{bookingId}/start-url")

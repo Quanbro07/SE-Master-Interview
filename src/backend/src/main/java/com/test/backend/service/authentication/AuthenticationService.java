@@ -18,6 +18,7 @@ import com.test.backend.repository.InterviewerRepository;
 import com.test.backend.repository.SocialAccountRepository;
 import com.test.backend.repository.UserRepository;
 import com.test.backend.service.SocialAccountService;
+import com.test.backend.service.UserMetricsService;
 import com.test.backend.service.UserService;
 import com.test.backend.service.jwt.JwtService;
 import com.test.backend.service.jwt.TokenType;
@@ -51,6 +52,8 @@ public class AuthenticationService {
     private final RefreshTokenService refreshTokenService;
 
     private final BlackListTokenService blacklistTokenService;
+
+    private final UserMetricsService userMetricsService;
 
     @Transactional
     public AuthenticationResponse register(RegisterRequest registerRequest, String tempToken) {
@@ -105,6 +108,9 @@ public class AuthenticationService {
             interviewerRepository.save(interviewer);
         }
 
+        // +1 số người login
+        userMetricsService.onLogin();
+
         return buildAuthenticationResponse(newUser);
     }
 
@@ -132,6 +138,8 @@ public class AuthenticationService {
             user.addSocialAccount(newSocialAccount);
             userRepository.save(user);
         }
+
+
         return buildAuthenticationResponse(user);
     }
 
@@ -169,6 +177,7 @@ public class AuthenticationService {
         if (remainTime > 0) {
             blacklistTokenService.addTokenToBlacklist(accessToken, remainTime);
         }
+
     }
 
     // Helper Function
