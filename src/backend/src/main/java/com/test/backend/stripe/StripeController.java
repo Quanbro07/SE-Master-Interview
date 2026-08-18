@@ -2,13 +2,16 @@ package com.test.backend.stripe;
 
 import com.test.backend.dto.stripe.PaymentIntentResponse;
 import com.test.backend.entity.user.CustomUserDetail;
+import com.test.backend.stripe.dto.PaymentEventDTO;
 import com.test.backend.stripe.dto.StripeLinkAccountResponse;
 import lombok.RequiredArgsConstructor;
 import okhttp3.Response;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
@@ -17,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 public class StripeController {
 
     private final StripeService stripeService;
+
+    private final PaymentEventService paymentEventService;
 
     @PreAuthorize("hasRole('Interviewer')")
     @PostMapping("/create-account-link")
@@ -40,5 +45,10 @@ public class StripeController {
         PaymentIntentResponse response = stripeService.createIntent(userId, bookingId);
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping(value = "/{bookingId}/payment-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<PaymentEventDTO> streamPaymentStatus(@PathVariable Long bookingId) {
+        return paymentEventService.subscribe(bookingId);
     }
 }

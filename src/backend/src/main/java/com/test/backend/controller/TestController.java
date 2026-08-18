@@ -6,6 +6,8 @@ import com.test.backend.exception.customException.NotFoundException;
 import com.test.backend.repository.BookingRepository;
 import com.test.backend.service.EmailService;
 import com.test.backend.service.FileService;
+import com.test.backend.stripe.PaymentEventService;
+import com.test.backend.stripe.dto.PaymentEventDTO;
 import io.minio.errors.MinioException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,8 @@ public class TestController {
     private final BookingRepository bookingRepository;
 
     private final CVBucketConfig cvBucket;
+
+    private final PaymentEventService paymentEventService;
 
     @PostMapping("/test-email/{bookingId}")
     public ResponseEntity<?> test(@PathVariable Long bookingId) {
@@ -55,5 +59,14 @@ public class TestController {
     @GetMapping("/test-limit")
     public String hello() {
         return "Hello World! YOu are within rate limit.";
+    }
+
+    @PostMapping("/trigger-payment/{bookingId}")
+    public ResponseEntity<Void> trigger(@PathVariable Long bookingId) {
+        paymentEventService.publishPaymentSuccess(
+                bookingId,
+                new PaymentEventDTO(bookingId, "PAID", "https://fake-receipt-url.com")
+        );
+        return ResponseEntity.ok().build();
     }
 }

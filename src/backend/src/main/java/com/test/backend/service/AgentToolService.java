@@ -1,18 +1,16 @@
 package com.test.backend.service;
 
-import com.test.backend.dto.agent.ChatResponse;
 import com.test.backend.dto.agent.ToolResultHolder;
+import com.test.backend.dto.booking.FilterInterviewerPositionResponse;
 import com.test.backend.dto.question.FilterDifficulty;
 import com.test.backend.dto.question.QuestionResponse;
-import com.test.backend.entity.position.Position;
 import com.test.backend.entity.user.CustomUserDetail;
-import com.test.backend.repository.PositionRepository;
-import com.test.backend.service.PositionResolverService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
@@ -55,7 +53,7 @@ public class AgentToolService {
         return null;
     }
 
-    @Tool(description = "Searches for questions based on a target job position or topic.")
+    @Tool(description = "Searches for questions based on a target job position or topic. If null response, stop immediately.")
     public List<QuestionResponse> searchQuestions(
             @ToolParam(description = "The required job position, MUST not be null") String position,
             @ToolParam(description = "Number of questions, default 10", required = false) Integer questionNum,
@@ -70,6 +68,7 @@ public class AgentToolService {
             resultHolder.capture("searchQuestions", questions);
             // SCENARIO 1: NO DATA FOUND -> Tell the LLM to STOP immediately
             if (questions.isEmpty()) {
+                log.error("No question matches requirements. Stop");
                 return List.of();
             }
             // SCENARIO 2: DATA FOUND -> Return clean JSON and tell the LLM to respond
@@ -80,40 +79,44 @@ public class AgentToolService {
         }
     }
 
-    @Tool(description = "Find available booking by filtering interviewer job position. the result supports paging")
-    public String getAvailableBookingsByPosition(
+    @Tool(description = "Find available schedule by filtering interviewer job position and required date")
+    public List<FilterInterviewerPositionResponse> getAvailableBookingsByPosition(
             @ToolParam(description = "The required job position")
             String position,
 
-            @ToolParam(description = "Number of data page, start from 0. Default is 0", required = false)
-            Integer page,
+            @ToolParam(description = "The required date, user will receive 1 week of available schedule from required date. Use standard ISO format yyyy-MM-dd.", required = false)
+            String date,
 
-            @ToolParam(description = "Number of booking on each page. Default number is 10", required = false)
+            @ToolParam(description = "Number of schedule. Default number is 10", required = false)
             Integer size) {
         try {
             // Thiết lập giá trị mặc định an toàn nếu AI hoặc User không truyền tham số phân trang
-            int pageParam = (page != null) ? page : 0;
+            int pageParam = 0;
             int sizeParam = (size != null) ? size : 10;
+            LocalDate dateParam = (date != null) ? LocalDate.parse(date) : LocalDate.now();
 
-            log.info("[Tool:getAvailableBookingsByPosition] position={}, page={}, size={}", position, pageParam, sizeParam);
+            log.info("[Tool:getAvailableBookingsByPosition] position={}, date={}, size={}", position, dateParam, sizeParam);
 
             String resolvedPosition = positionResolverService.resolvePosition(position);
 
             // Gọi trực tiếp xuống hàm nghiệp vụ của BookingService
-            // TODO: CHO DATE TEMP NHO THEM DATE
-            LocalDate now = LocalDate.now();
-            var responsePage = bookingService.filterInterviewerByPosition(resolvedPosition, now, pageParam, sizeParam);
+            Page<FilterInterviewerPositionResponse> responsePage = bookingService.filterInterviewerByPosition(resolvedPosition, dateParam, pageParam, sizeParam);
+            List<FilterInterviewerPositionResponse> responseList;
 
             if (responsePage == null || !responsePage.hasContent()) {
-                return "There is no available booking for position: " + position + "'. Stop searching and inform the user that no data exists.";
+                log.error("[Tool:getAvailableBookingsByPosition] There is no available booking for position={}. Stop searching and inform the user that no data exists.", position);
+                return List.of();
             }
-
-            // Chuyển đối tượng Page kết quả thành JSON String cho AI tự tổng hợp câu trả lời
-            return objectMapper.writeValueAsString(responsePage);
+            else {
+                responseList = responsePage.getContent();
+            }
+            resultHolder.capture("availableSchedule", responseList);
+            // Chuyển đối tượng Page kết quả thành List
+            return responseList;
 
         } catch (Exception ex) {
             log.error("[Tool:getAvailableBookingsByPosition] Lỗi khi lọc lịch hẹn theo position={}: {}", position, ex.getMessage(), ex);
-            return "Unable to find available booking due to system error.";
+            return List.of();
         }
     }
 
