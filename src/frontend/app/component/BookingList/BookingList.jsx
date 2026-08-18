@@ -57,10 +57,12 @@ const BookingSection = ({
         if (!positionName) return;
 
         // BẮT ĐẦU TRUYỀN NGUYÊN BẢN CHUỖI KHÔNG BIẾN ĐỔI KÝ TỰ
+        const today = new Date();
+        const dateString = today.toISOString().split('T')[0]; 
+
+        // 2. Ghép thêm biến date vào URL
         const res = await fetch(
-          `${API_BASE}/api/v1/booking/filter-interviewer?position=${encodeURIComponent(
-            positionName,
-          )}&page=0&size=20`,
+          `${API_BASE}/api/v1/booking/filter-interviewer?position=${encodeURIComponent(positionName)}&date=${dateString}&page=0&size=20`,
           {
             method: "GET",
             headers,
