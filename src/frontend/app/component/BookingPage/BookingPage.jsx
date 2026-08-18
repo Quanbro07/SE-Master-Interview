@@ -451,14 +451,24 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
         : "";
       const authHeader = `Bearer ${cleanToken}`;
 
-      // 1. Tạo Booking trên hệ thống để thu về bookingId
+      const formattedDate = formatDateForBackend(selectedDate);
+      const startDateTime = `${formattedDate} ${selectedSlot.start}:00`;
+      const endDateTime = `${formattedDate} ${selectedSlot.end}:00`;
+
       const bookingPayload = {
-        bookingDate: formatDateForBackend(selectedDate),
-        startTime: selectedSlot.start,
-        endTime: selectedSlot.end,
-        cvUrl: "",
-        interviewerId: mentor?.id,
+        interviewer_id: mentor?.id,
+        position_name:
+          mentor?.displayPosition || mentor?.position || "SOFTWARE ENGINEER",
+        start_date: startDateTime,
+        end_date: endDateTime,
+        note: "Interview Booking",
       };
+
+      // 🟢 LOG PAYLOAD GỬI ĐI TẠO BOOKING
+      console.log(
+        "=== [1] PAYLOAD GỬI LÊN BOOKING-INTERVIEWER ===",
+        bookingPayload,
+      );
 
       const res = await fetch(
         `${API_BASE}/api/v1/booking/booking-interviewer`,
@@ -478,18 +488,66 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
         );
       }
 
-      if (!res.ok) throw new Error("Tạo lịch đặt phỏng vấn thất bại!");
+      if (!res.ok) {
+        let errorMsg = `Lỗi hệ thống (${res.status})`;
+        try {
+          const errData = await res.json();
+          console.error(
+            "=== [ERROR] BACKEND TẠO BOOKING THẤT BẠI ===",
+            errData,
+          );
+          errorMsg = errData.message || errData.error || errorMsg;
+        } catch (e) {
+          const errText = await res.text();
+          console.error("=== [ERROR] BACKEND RESPONSE TEXT ===", errText);
+          if (errText) errorMsg = errText;
+        }
+        throw new Error(errorMsg);
+      }
 
       const booking = await res.json();
-      const bookingId = booking.bookingId || booking.id;
 
-      // 2. Upload file CV trực tiếp cho Booking vừa tạo (dùng endpoint /api/v1/booking/{bookingId}/upload-cv)
-      await uploadCvBooking(bookingId, cvFile);
+      // 🟢 LOG RESPONSE DỮ LIỆU TẠO BOOKING TRẢ VỀ
+      console.log(
+        "=== [2] RESPONSE NHẬN VỀ TỪ BOOKING-INTERVIEWER ===",
+        booking,
+      );
 
-      setCreatedBooking(booking);
+      const bookingId = booking?.booking_id;
 
-      // 3. Khởi tạo Intent thanh toán Stripe
+      console.log("=== [3] TRÍCH XUẤT BOOKING ID ===", bookingId);
+
+      if (!bookingId) {
+        throw new Error(
+          "Tạo lịch hẹn thành công nhưng không tìm thấy mã bookingId!",
+        );
+      }
+
+      // Upload CV
+      console.log("=== [4] TIẾN HÀNH UPLOAD CV CHO BOOKING ID ===", bookingId);
+      const uploadedCvUrl = await uploadCvBooking(bookingId, cvFile);
+      console.log("=== [5] URL CV SAU KHI UPLOAD ===", uploadedCvUrl);
+
+      if (!uploadedCvUrl) {
+        throw new Error("Tải CV lên thất bại. Vui lòng thử lại!");
+      }
+
+      setCreatedBooking({
+        ...booking,
+        bookingId,
+        cvUrl: uploadedCvUrl,
+      });
+
+      // Tạo Stripe Payment Intent
       const amount = parsePriceToCents(mentor?.price);
+      const paymentPayload = { amount, currency: "usd" };
+
+      // 🟢 LOG PAYLOAD GỬI ĐI TẠO PAYMENT INTENT
+      console.log(
+        "=== [6] PAYLOAD GỬI LÊN STRIPE PAYMENT INTENT ===",
+        paymentPayload,
+      );
+
       const intentRes = await fetch(
         `${API_BASE}/api/v1/booking/${bookingId}/payment-intent`,
         {
@@ -498,20 +556,20 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
             "Content-Type": "application/json",
             Authorization: authHeader,
           },
-          body: JSON.stringify({ amount, currency: "usd" }),
+          body: JSON.stringify(paymentPayload),
         },
       );
 
       if (!intentRes.ok)
         throw new Error("Không thể khởi tạo thanh toán Stripe.");
 
-      const { clientSecret: secret } = await intentRes.json();
-      setClientSecret(secret);
+      const intentData = await intentRes.json();
+      console.log("=== [7] RESPONSE STRIPE PAYMENT INTENT ===", intentData);
 
-      // Chuyển sang bước thanh toán
+      setClientSecret(intentData.clientSecret);
       setStep("payment");
     } catch (err) {
-      console.error("[BOOKING ERROR]:", err);
+      console.error("=== [BOOKING ERROR CATCHED] ===", err);
       setSubmitError(err.message || "Đã có lỗi xảy ra. Vui lòng thử lại.");
     } finally {
       setSubmitting(false);
