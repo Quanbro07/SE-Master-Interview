@@ -12,5 +12,6 @@ public record QuestionResponse(
         Long questionId,
         String content,
         Difficulty difficulty,
+        String answer,
         List<String> categoryList
 ) {}

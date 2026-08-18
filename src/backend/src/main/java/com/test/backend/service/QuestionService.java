@@ -103,6 +103,7 @@ public class QuestionService {
                 .questionId(question.getQuestionId())
                 .difficulty(question.getDifficultyLevel())
                 .content(question.getContent())
+                .answer(question.getSuggestionAnswer())
                 .categoryList(question.getCategories().stream().map(Category::getCategoryName).toList())
                 .build();
     }
