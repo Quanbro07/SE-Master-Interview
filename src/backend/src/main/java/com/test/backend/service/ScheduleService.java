@@ -30,6 +30,8 @@ public class ScheduleService {
 
     private final AvailableScheduleRepository availableScheduleRepository;
 
+    private final AvailableScheduleDTO getAvailableSchedule(Long userId, LocalDate dateInWeek);
+    
     private final InterviewerRepository interviewerRepository;
 
     private final JwtService jwtService;
