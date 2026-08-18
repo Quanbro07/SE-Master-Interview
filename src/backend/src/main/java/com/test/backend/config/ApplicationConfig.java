@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.test.backend.entity.user.CustomUserDetail;
 import com.test.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -34,5 +35,10 @@ public class ApplicationConfig {
     @Bean
     public ObjectMapper objectMapper() {
         return new ObjectMapper();
+    }
+
+    @Bean
+    public ChatClient chatClient(ChatClient.Builder builder) {
+        return builder.build();
     }
 }
