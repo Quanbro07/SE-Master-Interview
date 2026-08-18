@@ -17,6 +17,7 @@ import com.test.backend.repository.BookingRepository;
 import com.test.backend.repository.InterviewerRepository;
 import com.test.backend.repository.PaymentRepository;
 import com.test.backend.service.EmailService;
+import com.test.backend.stripe.dto.PaymentEventDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,8 @@ public class StripeEventService {
     private final PaymentRepository paymentRepository;
 
     private final EmailService emailService;
+
+    private final PaymentEventService paymentEventService;
 
 
     public void handleAccountUpdated(Account account) {
@@ -140,6 +143,12 @@ public class StripeEventService {
         // Lưu vào database
         bookingRepository.save(booking);
         paymentRepository.save(payment);
+
+        // Bắn SSE cho FE
+        paymentEventService.publishPaymentSuccess(
+                booking.getBookingId(),
+                new PaymentEventDTO(booking.getBookingId(), "PAID", receiptUrl)
+        );
 
         // Gửi mail
         emailService.sendEmailsForSuccessfulPayment(booking);
