@@ -1,41 +1,55 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import "./ChatPanel.css";
-import BookingConfirmPopup from "../BookingPage/BookingConfirmPopup";
+// Lưu ý: Nếu đường dẫn BookingConfirmPopup của ông khác thì tự sửa lại nhé
+// import BookingConfirmPopup from "../BookingPage/BookingConfirmPopup"; 
+
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
-// Helper lấy JWT token
+// Helper lấy JWT token an toàn
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
   const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
   let token = "";
   for (const key of keys) {
     const val = localStorage.getItem(key);
-    if (val) { token = val; break; }
+    if (val) {
+      token = val;
+      break;
+    }
   }
   if (!token) {
     try {
       const userObj = JSON.parse(localStorage.getItem("user") || "{}");
       token = userObj.token || userObj.accessToken || userObj.jwt || "";
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   }
   if (!token) return "";
   return token.replace(/^"(.*)"$/, "$1").trim();
 };
 
 // ==========================================
-// COMPONENT: LUỒNG PHỎNG VẤN MINI (SỬ DỤNG CSS CLASS MỚI)
+// COMPONENT: LUỒNG PHỎNG VẤN MINI (ĐÃ FIX LỖI)
 // ==========================================
 const MiniInterviewFlow = ({ questions }) => {
   const [isStarted, setIsStarted] = useState(false);
   const [userAnswers, setUserAnswers] = useState({});
   const [evaluationResults, setEvaluationResults] = useState(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
+  
+  // KHAI BÁO BIẾN BỊ THIẾU Ở ĐÂY NÈ ÔNG:
+  const [answerStatus, setAnswerStatus] = useState({});
 
-  const isAllAnswered = questions.every(
-    (q) => userAnswers[q.questionId] && userAnswers[q.questionId].trim() !== ""
-  );
+  const safeQuestions = Array.isArray(questions) ? questions : [];
+
+  const isAllAnswered = safeQuestions.every((q) => {
+    if (!q || !q.questionId) return false;
+    const ans = userAnswers[q.questionId];
+    return ans && typeof ans === "string" && ans.trim() !== "";
+  });
 
   const handleAnswerChange = (qId, text) => {
     setUserAnswers((prev) => ({ ...prev, [qId]: text }));
@@ -46,9 +60,9 @@ const MiniInterviewFlow = ({ questions }) => {
     try {
       const token = getAccessToken();
       const payload = {
-        answer_list: questions.map((q) => ({
+        answer_list: safeQuestions.map((q) => ({
           questionId: q.questionId,
-          answer: userAnswers[q.questionId],
+          answer: userAnswers[q.questionId] || "",
         }))
       };
 
@@ -64,7 +78,6 @@ const MiniInterviewFlow = ({ questions }) => {
       if (!res.ok) throw new Error("Lỗi khi chấm điểm!");
       
       const data = await res.json();
-      console.log("📦 [EVALUATE] Dữ liệu Backend trả về:", data);
       setEvaluationResults(data);
     } catch (error) {
       console.error(error);
@@ -74,12 +87,139 @@ const MiniInterviewFlow = ({ questions }) => {
     }
   };
 
-  // ==========================================
+  if (!isStarted) {
+    return (
+      <div className="mini-interview-intro">
+        <p>Tôi đã tìm thấy {safeQuestions.length} câu hỏi. Bạn đã sẵn sàng bắt đầu trả lời chưa?</p>
+        <button className="btn-mini-primary" onClick={() => setIsStarted(true)}>
+          Sẵn sàng
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mini-interview-list">
+      {safeQuestions.map((q, index) => {
+        if (!q || !q.questionId) return null;
+
+        const evalData = (evaluationResults && Array.isArray(evaluationResults)) 
+          ? evaluationResults.find((res) => res.questionId === q.questionId) 
+          : null;
+          
+        // LẤY TRẠNG THÁI HIỆN TẠI (ĐÃ HẾT LỖI UNDEFINED)
+        const currentStatus = answerStatus[q.questionId];
+
+        return (
+          <div key={q.questionId} className="mini-question-item">
+            <p className="mini-question-text">
+              {index + 1}. {q.content || "Câu hỏi không xác định"} 
+              {q.difficulty && <span className="mini-question-diff">({q.difficulty})</span>}
+            </p>
+            
+            <textarea
+              className="mini-answer-input"
+              placeholder="Nhập câu trả lời của bạn..."
+              value={userAnswers[q.questionId] || ""}
+              onChange={(e) => handleAnswerChange(q.questionId, e.target.value)}
+              disabled={evaluationResults !== null}
+            />
+
+            {/* 1. Nút xem đáp án ban đầu */}
+            {q.answer && !currentStatus && (
+              <button 
+                type="button"
+                className="btn-show-answer"
+                onClick={() => setAnswerStatus(prev => ({ ...prev, [q.questionId]: 'confirming' }))}
+              >
+                Nhấn để xem đáp án mẫu
+              </button>
+            )}
+
+            {/* 2. Hộp thoại xác nhận Inline màu vàng */}
+            {currentStatus === 'confirming' && (
+              <div className="inline-confirm-box">
+                <p>💡 Lời khuyên: Bạn nên thử tự viết câu trả lời trước khi xem đáp án mẫu để luyện tập hiệu quả nhất.</p>
+                <p style={{ fontWeight: 600 }}>Bạn có chắc chắn muốn xem đáp án không?</p>
+                <div className="inline-confirm-actions">
+                  <button 
+                    className="btn-confirm-yes"
+                    onClick={() => setAnswerStatus(prev => ({ ...prev, [q.questionId]: 'revealed' }))}
+                  >
+                    Chắc chắn
+                  </button>
+                  <button 
+                    className="btn-confirm-no"
+                    onClick={() => {
+                      setAnswerStatus(prev => {
+                        const newState = { ...prev };
+                        delete newState[q.questionId];
+                        return newState;
+                      });
+                    }}
+                  >
+                    Quay lại
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 3. Hiện đáp án */}
+            {currentStatus === 'revealed' && (
+              <div className="model-answer-box">
+                <strong>Đáp án mẫu:</strong>
+                <p style={{ margin: 0, lineHeight: 1.5 }}>{q.answer}</p>
+              </div>
+            )}
+
+            {/* KHU VỰC FEEDBACK TỪ AI */}
+            {evalData && evalData.analysis && (
+              <div className="mini-feedback-box">
+                <strong className="mini-feedback-title">Nhận xét từ AI:</strong>
+                {evalData.analysis.smartSuggestions && evalData.analysis.smartSuggestions.length > 0 && (
+                  <ul className="mini-feedback-list">
+                    {evalData.analysis.smartSuggestions.map((sug, i) => (
+                      <li key={i}>{sug}</li>
+                    ))}
+                  </ul>
+                )}
+                
+                <div className="mini-feedback-metrics" style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "8px" }}>
+                  <span>🎯 Độ sâu: <span className="metric-score">{evalData.analysis.depth?.rating || "N/A"}</span></span>
+                  
+                  <span>🔍 Bám sát: <span className="metric-score">{evalData.analysis.relevance?.status || "N/A"}</span> 
+                  {evalData.analysis.relevance ? ` (Khớp ${evalData.analysis.relevance.matchedKeywords}/${evalData.analysis.relevance.totalKeywords} keywords)` : ""}</span>
+                  
+                  <span>💪 Tự tin: <span className="metric-score">{evalData.analysis.confidence?.status || "N/A"}</span></span>
+                  
+                  <span>📝 Độ dài: <span className="metric-score">{evalData.analysis.comparison?.status || "N/A"}</span> 
+                  {evalData.analysis.comparison ? ` (${evalData.analysis.comparison.avgWords} words)` : ""}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {!evaluationResults && (
+        <button
+          className="btn-mini-primary"
+          onClick={handleEvaluate}
+          disabled={!isAllAnswered || isEvaluating}
+        >
+          {isEvaluating ? "Đang chấm điểm..." : "Nộp bài & Đánh giá"}
+        </button>
+      )}
+    </div>
+  );
+};
+
+// ==========================================
 // COMPONENT: LUỒNG TÌM KIẾM LỊCH (SCHEDULE)
 // ==========================================
-const MiniScheduleFlow = ({ interviewers }) => {
+const MiniScheduleFlow = ({ interviewers, onBookClick }) => {
   if (!interviewers || interviewers.length === 0) {
-    return <p style={{ margin: 0 }}>Rất tiếc, hiện tại không có lịch trống nào phù hợp với yêu cầu của bạn.</p>;
+    return <p style={{ margin: 0, color: "#94a3b8" }}>Rất tiếc, hiện tại không có lịch trống nào phù hợp với yêu cầu của bạn.</p>;
   }
 
   return (
@@ -112,88 +252,27 @@ const MiniScheduleFlow = ({ interviewers }) => {
               </div>
             ))}
           </div>
+
           <button 
             className="btn-mini-primary" 
             style={{ width: "100%", marginTop: "12px", background: "#4f46e5" }}
-            onClick={() => onBookClick({
-              // Định dạng lại data mentor cho khớp với yêu cầu của BookingConfirmPopup
-              id: interviewer.interviewer_id,
-              name: interviewer.fullName,
-              email: interviewer.email,
-              price: "$10/ session", // Hoặc lấy từ interviewer.price nếu có
-              position: "SOFTWARE ENGINEER" // Hoặc lấy từ interviewer.position
-            })}
+            onClick={() => {
+              if (onBookClick) {
+                onBookClick({
+                  id: interviewer.interviewer_id,
+                  name: interviewer.fullName,
+                  email: interviewer.email,
+                  price: "$10/ session", 
+                  position: "SOFTWARE ENGINEER" 
+                });
+              }
+            }}
           >
             Book Interview
           </button>
+
         </div>
       ))}
-    </div>
-  );
-};
-
-  if (!isStarted) {
-    return (
-      <div className="mini-interview-intro">
-        <p>Tôi đã tìm thấy {questions.length} câu hỏi. Bạn đã sẵn sàng bắt đầu trả lời chưa?</p>
-        <button className="btn-mini-primary" onClick={() => setIsStarted(true)}>
-          Sẵn sàng
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mini-interview-list">
-      {questions.map((q, index) => {
-        const evalData = evaluationResults?.find((res) => res.questionId === q.questionId);
-
-        return (
-          <div key={q.questionId} className="mini-question-item">
-            <p className="mini-question-text">
-              {index + 1}. {q.content} 
-              <span className="mini-question-diff">({q.difficulty})</span>
-            </p>
-            
-            <textarea
-              className="mini-answer-input"
-              placeholder="Nhập câu trả lời của bạn..."
-              value={userAnswers[q.questionId] || ""}
-              onChange={(e) => handleAnswerChange(q.questionId, e.target.value)}
-              disabled={evaluationResults !== null}
-            />
-
-            {evalData && evalData.analysis && (
-              <div className="mini-feedback-box">
-                <strong className="mini-feedback-title">Nhận xét từ AI:</strong>
-                {evalData.analysis.smartSuggestions?.length > 0 && (
-                  <ul className="mini-feedback-list">
-                    {evalData.analysis.smartSuggestions.map((sug, i) => (
-                      <li key={i}>{sug}</li>
-                    ))}
-                  </ul>
-                )}
-                <div className="mini-feedback-metrics" style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "8px" }}>
-                  <span>🎯 Độ sâu: <span className="metric-score">{evalData.analysis.depth?.rating}</span></span>
-                  <span>🔍 Bám sát: <span className="metric-score">{evalData.analysis.relevance?.status}</span> (Khớp {evalData.analysis.relevance?.matchedKeywords}/{evalData.analysis.relevance?.totalKeywords} keywords)</span>
-                  <span>💪 Tự tin: <span className="metric-score">{evalData.analysis.confidence?.status}</span></span>
-                  <span>📝 Độ dài: <span className="metric-score">{evalData.analysis.comparison?.status}</span> ({evalData.analysis.comparison?.avgWords} words)</span>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
-
-      {!evaluationResults && (
-        <button
-          className="btn-mini-primary"
-          onClick={handleEvaluate}
-          disabled={!isAllAnswered || isEvaluating}
-        >
-          {isEvaluating ? "Đang chấm điểm..." : "Nộp bài & Đánh giá"}
-        </button>
-      )}
     </div>
   );
 };
@@ -201,7 +280,7 @@ const MiniScheduleFlow = ({ interviewers }) => {
 // ==========================================
 // COMPONENT CHÍNH: CHAT PANEL
 // ==========================================
-const ChatPanel = ({ isCollapsed }) => {
+const ChatPanel = ({ isCollapsed, onBookFromChat }) => {
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -213,8 +292,7 @@ const ChatPanel = ({ isCollapsed }) => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
-  const [selectedMentor, setSelectedMentor] = useState(null); 
-  const [showBookingPopup, setShowBookingPopup] = useState(false);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -232,31 +310,6 @@ const ChatPanel = ({ isCollapsed }) => {
     setInput("");
     setLoading(true);
 
-    // Hàm mở popup khi bấm nút "Book"
-  const handleOpenBooking = (mentorData) => {
-    setSelectedMentor(mentorData);
-    setShowBookingPopup(true);
-  };
-
-  // Hàm đóng popup
-  const handleCloseBooking = () => {
-    setShowBookingPopup(false);
-    setSelectedMentor(null);
-  };
-
-  // Hàm xử lý sau khi thanh toán Stripe thành công
-  const handleBookingConfirm = (result) => {
-    console.log("Đặt lịch & thanh toán thành công!", result);
-    setShowBookingPopup(false);
-    
-    // Tạo tin nhắn thông báo thành công trong khung chat
-    const successMsg = {
-      id: Date.now(),
-      sender: "agent",
-      type: "text",
-      text: `✅ Chúc mừng! Đặt lịch phỏng vấn thành công với ${selectedMentor.name}.\nMã booking: ${result.booking?.bookingId}\nBạn vui lòng kiểm tra email hoặc xem lại lịch sử booking nhé!`
-    };
-    setMessages(prev => [...prev, successMsg]);};
     try {
       const token = getAccessToken();
       const headers = { "Content-Type": "application/json" };
@@ -275,7 +328,6 @@ const ChatPanel = ({ isCollapsed }) => {
 
       const data = await res.json();
 
-      // KIỂM TRA ĐIỀU KIỆN TOOL USED
       if (data?.toolUsed === "searchQuestions" && Array.isArray(data?.answer)) {
         const agentQuizMsg = {
           id: Date.now() + 1,
@@ -284,17 +336,17 @@ const ChatPanel = ({ isCollapsed }) => {
           questions: data.answer,
         };
         setMessages((prev) => [...prev, agentQuizMsg]);
-      }
-      else if (data?.toolUsed === "availableSchedule" && Array.isArray(data?.answer)) {
-        // ===> NHÁNH MỚI CHO LỊCH PHỎNG VẤN <===
+
+      } else if (data?.toolUsed === "availableSchedule" && Array.isArray(data?.answer)) {
         const agentScheduleMsg = {
           id: Date.now() + 1,
           sender: "agent",
           type: "schedule",
           interviewers: data.answer,
         };
-        setMessages((prev) => [...prev, agentScheduleMsg]);} 
-      else {
+        setMessages((prev) => [...prev, agentScheduleMsg]);
+
+      } else {
         let replyText = "Đã thực hiện xong yêu cầu của bạn!";
         if (typeof data === "string") replyText = data;
         else if (data?.answer) {
@@ -324,24 +376,21 @@ const ChatPanel = ({ isCollapsed }) => {
   };
 
   return (
-    <>
     <aside className={`chat-panel ${isCollapsed ? "collapsed" : ""}`}>
       <div className="chat-messages">
         {messages.map((msg) => (
           <div key={msg.id} className={`message-row ${msg.sender}`}>
             <div className="message-bubble">
               
-              {/* RENDER TEXT */}
               {msg.type === "text" &&
                 msg.text.split("\n").map((line, index) => (
                   <p key={index} style={{ margin: "0 0 4px 0" }}>{line}</p>
                 ))}
 
-              {/* RENDER LUỒNG CÂU HỎI */}
               {msg.type === "quiz" && <MiniInterviewFlow questions={msg.questions} />}
 
-              {/* RENDER LUỒNG LỊCH PHỎNG VẤN */}
-              {msg.type === "schedule" && <MiniScheduleFlow interviewers={msg.interviewers} />}
+              {msg.type === "schedule" && <MiniScheduleFlow interviewers={msg.interviewers} onBookClick={onBookFromChat} />}
+
             </div>
           </div>
         ))}
@@ -368,17 +417,7 @@ const ChatPanel = ({ isCollapsed }) => {
         />
       </div>
     </aside>
-    {/* ===> HIỂN THỊ BOOKING POPUP KHI ĐƯỢC KÍCH HOẠT <=== */}
-      {showBookingPopup && selectedMentor && (
-        <BookingConfirmPopup
-          mentor={selectedMentor}
-          onConfirm={handleBookingConfirm}
-          onCancel={handleCloseBooking}
-        />
-      )}
-    </>
   );
 };
 
 export default ChatPanel;
-

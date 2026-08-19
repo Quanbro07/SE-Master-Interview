@@ -155,7 +155,18 @@ const BookingPage = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [notice, setNotice] = useState(null);
   const noticeTimeoutRef = useRef(null);
+  const [showPopup, setShowPopup] = useState(false);
 
+
+ const handleBookFromChat = (mentorData) => {
+    setSelectedMentor(mentorData); 
+    setShowPopup(true);           
+  };
+
+  const handleClosePopup = () => {
+    setShowPopup(false);
+    setSelectedMentor(null);
+  };
   useEffect(() => {
     const user = getStoredUser();
     if (user) {
@@ -212,8 +223,19 @@ const BookingPage = () => {
         onToggleChat={() => setChatCollapsed((prev) => !prev)}
       />
 
-      <ChatPanel isCollapsed={chatCollapsed} />
-
+      <ChatPanel 
+      isCollapsed={chatCollapsed}
+      onBookFromChat={handleBookFromChat} />
+      {showPopup && selectedMentor && (
+        <BookingConfirmPopup
+          mentor={selectedMentor}
+          onConfirm={(result) => {
+             console.log("Booking thành công!", result);
+             handleCloseBookingFromChat();
+          }}
+          onCancel={() => setShowPopup(false)}
+        />
+      )}
       {activePopup === "profile" && (
         <ProfilePopup
           mentor={selectedMentor}
