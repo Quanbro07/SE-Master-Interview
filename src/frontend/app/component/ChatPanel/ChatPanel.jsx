@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import "./ChatPanel.css";
-
+import BookingConfirmPopup from "../BookingPage/BookingConfirmPopup";
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
@@ -46,9 +46,9 @@ const MiniInterviewFlow = ({ questions }) => {
     try {
       const token = getAccessToken();
       const payload = {
-        answers: questions.map((q) => ({
+        answer_list: questions.map((q) => ({
           questionId: q.questionId,
-          userAnswer: userAnswers[q.questionId],
+          answer: userAnswers[q.questionId],
         }))
       };
 
@@ -64,6 +64,7 @@ const MiniInterviewFlow = ({ questions }) => {
       if (!res.ok) throw new Error("Lỗi khi chấm điểm!");
       
       const data = await res.json();
+      console.log("📦 [EVALUATE] Dữ liệu Backend trả về:", data);
       setEvaluationResults(data);
     } catch (error) {
       console.error(error);
@@ -72,6 +73,64 @@ const MiniInterviewFlow = ({ questions }) => {
       setIsEvaluating(false);
     }
   };
+
+  // ==========================================
+// COMPONENT: LUỒNG TÌM KIẾM LỊCH (SCHEDULE)
+// ==========================================
+const MiniScheduleFlow = ({ interviewers }) => {
+  if (!interviewers || interviewers.length === 0) {
+    return <p style={{ margin: 0 }}>Rất tiếc, hiện tại không có lịch trống nào phù hợp với yêu cầu của bạn.</p>;
+  }
+
+  return (
+    <div className="mini-schedule-container">
+      <p style={{ margin: "0 0 4px 0", color: "#e2e8f0" }}>Tôi đã tìm thấy {interviewers.length} người phù hợp:</p>
+      
+      {interviewers.map((interviewer, idx) => (
+        <div key={interviewer.interviewer_id || idx} className="mini-schedule-card">
+          <div className="mini-schedule-header">
+            <div className="mini-schedule-info">
+              <h4>{interviewer.fullName}</h4>
+              <p>{interviewer.email}</p>
+            </div>
+            <div className="mini-schedule-rating">
+              ⭐ {Number(interviewer.overall_rating).toFixed(1)}
+            </div>
+          </div>
+          
+          <div className="mini-schedule-body">
+            {interviewer.available_schedules?.schedules?.map((schedule, sIdx) => (
+              <div key={sIdx}>
+                <p className="mini-schedule-date">📅 Ngày: {schedule.date}</p>
+                <div className="mini-time-slots">
+                  {schedule.schedule_times?.map((time, tIdx) => (
+                    <span key={tIdx} className="mini-time-slot">
+                      {time.start_time.substring(0, 5)} - {time.end_time.substring(0, 5)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <button 
+            className="btn-mini-primary" 
+            style={{ width: "100%", marginTop: "12px", background: "#4f46e5" }}
+            onClick={() => onBookClick({
+              // Định dạng lại data mentor cho khớp với yêu cầu của BookingConfirmPopup
+              id: interviewer.interviewer_id,
+              name: interviewer.fullName,
+              email: interviewer.email,
+              price: "$10/ session", // Hoặc lấy từ interviewer.price nếu có
+              position: "SOFTWARE ENGINEER" // Hoặc lấy từ interviewer.position
+            })}
+          >
+            Book Interview
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+};
 
   if (!isStarted) {
     return (
@@ -114,9 +173,11 @@ const MiniInterviewFlow = ({ questions }) => {
                     ))}
                   </ul>
                 )}
-                <div className="mini-feedback-metrics">
-                  <span>Độ sâu: <span className="metric-score">{evalData.analysis.depth?.score || "0"}</span>/10</span>
-                  <span>Độ bám sát: <span className="metric-score">{evalData.analysis.relevance?.score || "0"}</span>/10</span>
+                <div className="mini-feedback-metrics" style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "8px" }}>
+                  <span>🎯 Độ sâu: <span className="metric-score">{evalData.analysis.depth?.rating}</span></span>
+                  <span>🔍 Bám sát: <span className="metric-score">{evalData.analysis.relevance?.status}</span> (Khớp {evalData.analysis.relevance?.matchedKeywords}/{evalData.analysis.relevance?.totalKeywords} keywords)</span>
+                  <span>💪 Tự tin: <span className="metric-score">{evalData.analysis.confidence?.status}</span></span>
+                  <span>📝 Độ dài: <span className="metric-score">{evalData.analysis.comparison?.status}</span> ({evalData.analysis.comparison?.avgWords} words)</span>
                 </div>
               </div>
             )}
@@ -152,7 +213,8 @@ const ChatPanel = ({ isCollapsed }) => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
-
+  const [selectedMentor, setSelectedMentor] = useState(null); 
+  const [showBookingPopup, setShowBookingPopup] = useState(false);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -170,6 +232,31 @@ const ChatPanel = ({ isCollapsed }) => {
     setInput("");
     setLoading(true);
 
+    // Hàm mở popup khi bấm nút "Book"
+  const handleOpenBooking = (mentorData) => {
+    setSelectedMentor(mentorData);
+    setShowBookingPopup(true);
+  };
+
+  // Hàm đóng popup
+  const handleCloseBooking = () => {
+    setShowBookingPopup(false);
+    setSelectedMentor(null);
+  };
+
+  // Hàm xử lý sau khi thanh toán Stripe thành công
+  const handleBookingConfirm = (result) => {
+    console.log("Đặt lịch & thanh toán thành công!", result);
+    setShowBookingPopup(false);
+    
+    // Tạo tin nhắn thông báo thành công trong khung chat
+    const successMsg = {
+      id: Date.now(),
+      sender: "agent",
+      type: "text",
+      text: `✅ Chúc mừng! Đặt lịch phỏng vấn thành công với ${selectedMentor.name}.\nMã booking: ${result.booking?.bookingId}\nBạn vui lòng kiểm tra email hoặc xem lại lịch sử booking nhé!`
+    };
+    setMessages(prev => [...prev, successMsg]);};
     try {
       const token = getAccessToken();
       const headers = { "Content-Type": "application/json" };
@@ -197,8 +284,17 @@ const ChatPanel = ({ isCollapsed }) => {
           questions: data.answer,
         };
         setMessages((prev) => [...prev, agentQuizMsg]);
-      } else {
-        // TRẢ LỜI BẰNG VĂN BẢN THƯỜNG
+      }
+      else if (data?.toolUsed === "availableSchedule" && Array.isArray(data?.answer)) {
+        // ===> NHÁNH MỚI CHO LỊCH PHỎNG VẤN <===
+        const agentScheduleMsg = {
+          id: Date.now() + 1,
+          sender: "agent",
+          type: "schedule",
+          interviewers: data.answer,
+        };
+        setMessages((prev) => [...prev, agentScheduleMsg]);} 
+      else {
         let replyText = "Đã thực hiện xong yêu cầu của bạn!";
         if (typeof data === "string") replyText = data;
         else if (data?.answer) {
@@ -228,6 +324,7 @@ const ChatPanel = ({ isCollapsed }) => {
   };
 
   return (
+    <>
     <aside className={`chat-panel ${isCollapsed ? "collapsed" : ""}`}>
       <div className="chat-messages">
         {messages.map((msg) => (
@@ -243,6 +340,8 @@ const ChatPanel = ({ isCollapsed }) => {
               {/* RENDER LUỒNG CÂU HỎI */}
               {msg.type === "quiz" && <MiniInterviewFlow questions={msg.questions} />}
 
+              {/* RENDER LUỒNG LỊCH PHỎNG VẤN */}
+              {msg.type === "schedule" && <MiniScheduleFlow interviewers={msg.interviewers} />}
             </div>
           </div>
         ))}
@@ -269,7 +368,17 @@ const ChatPanel = ({ isCollapsed }) => {
         />
       </div>
     </aside>
+    {/* ===> HIỂN THỊ BOOKING POPUP KHI ĐƯỢC KÍCH HOẠT <=== */}
+      {showBookingPopup && selectedMentor && (
+        <BookingConfirmPopup
+          mentor={selectedMentor}
+          onConfirm={handleBookingConfirm}
+          onCancel={handleCloseBooking}
+        />
+      )}
+    </>
   );
 };
 
 export default ChatPanel;
+
