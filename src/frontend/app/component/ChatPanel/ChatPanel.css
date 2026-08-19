@@ -194,3 +194,84 @@
 .metric-score {
   color: #4ade80;
 }
+
+/* =========================================
+   MINI SCHEDULE FLOW STYLES
+   ========================================= */
+.mini-schedule-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.mini-schedule-card {
+  background: #1e1e2d;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mini-schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 10px;
+}
+
+.mini-schedule-info h4 {
+  margin: 0 0 4px 0;
+  color: #e2e8f0;
+  font-size: 14px;
+}
+
+.mini-schedule-info p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.mini-schedule-rating {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mini-schedule-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mini-schedule-date {
+  font-size: 12px;
+  color: #cbd5e1;
+  font-weight: 600;
+  margin: 0 0 6px 0;
+}
+
+.mini-time-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mini-time-slot {
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #818cf8;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 500;
+}
