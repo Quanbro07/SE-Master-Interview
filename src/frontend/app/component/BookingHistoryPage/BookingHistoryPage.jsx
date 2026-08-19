@@ -24,10 +24,10 @@ const authHeaders = () => {
   if (!token) return {};
   return {
     Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
+    "Content-Type": "application/json",
   };
 };
 
-// Map backend booking status to frontend status
 const mapBookingStatus = (status) => {
   switch (status) {
     case "ACCEPTED":
@@ -44,7 +44,6 @@ const mapBookingStatus = (status) => {
   }
 };
 
-// Convert backend booking object to candidate dashboard row
 const convertBookingToDashboardRow = (booking) => {
   if (!booking) return null;
 
@@ -69,24 +68,27 @@ const convertBookingToDashboardRow = (booking) => {
     interviewerDTO?.interviewer_name ||
     "Interviewer";
 
+  const rawStatus =
+    booking.bookingStatus || booking.booking_status || booking.status;
+
+  const cleanId = booking.bookingId ?? booking.booking_id;
+
   return {
-    id: `booking-${booking.bookingId || booking.booking_id}`,
-    bookingId: booking.bookingId || booking.booking_id,
+    id: `booking-${cleanId}`,
+    bookingId: Number(cleanId),
     date: dateStr,
     time: timeStr,
     interviewer: interviewerName,
     about: booking.positionName || "Mock Interview",
-    rawStatus:
-      booking.bookingStatus || booking.booking_status || booking.status,
-    status: mapBookingStatus(
-      booking.bookingStatus || booking.booking_status || booking.status,
-    ),
-    // Lấy join_url cho Candidate
+    rawStatus: rawStatus,
+    status: mapBookingStatus(rawStatus),
     joinUrl:
       booking.joinUrl ||
       booking.join_url ||
       booking.meetingUrl ||
       booking.meeting_url,
+    feedback: booking.reviewResponseDTO?.overallComment || "",
+    isReviewed: Boolean(booking.reviewResponseDTO || booking.isReviewed),
     rawBooking: booking,
   };
 };
@@ -104,7 +106,6 @@ const toTimestamp = (dateStr, timeStr) => {
   return new Date(year, month - 1, day, hour, minute).getTime();
 };
 
-// Hàm kiểm tra xem đã tới giờ vào phỏng vấn chưa (Cho phép vào trước 15 phút)
 const isMeetingTimeValid = (dateStr, timeStr) => {
   if (!dateStr || !timeStr) return false;
   const meetingTime = toTimestamp(dateStr, timeStr);
@@ -122,31 +123,22 @@ const BookingHistoryPage = () => {
   const [expandedId, setExpandedId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [submittedReviews, setSubmittedReviews] = useState([]);
+
+  const [feedbackDrafts, setFeedbackDrafts] = useState({});
+  const [ratingDrafts, setRatingDrafts] = useState({});
+  const [submittingId, setSubmittingId] = useState(null);
 
   const loadBookings = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/booking/my-bookings`, {
+      const res = await fetch(`${API_BASE}/api/v1/booking/all-bookings`, {
         headers: authHeaders(),
       });
 
       if (!res.ok) {
-        // Fallback endpoint nếu backend dùng chung api all-bookings
-        const fallbackRes = await fetch(
-          `${API_BASE}/api/v1/booking/all-bookings`,
-          {
-            headers: authHeaders(),
-          },
-        );
-        if (!fallbackRes.ok)
-          throw new Error(`Failed to load booking data (${res.status})`);
-        const bookings = await fallbackRes.json();
-        const dashboardBookings = (Array.isArray(bookings) ? bookings : [])
-          .map((b) => convertBookingToDashboardRow(b))
-          .filter((r) => r !== null);
-        setRequests(dashboardBookings);
-        return;
+        throw new Error(`Failed to load booking data (${res.status})`);
       }
 
       const bookings = await res.json();
@@ -171,9 +163,7 @@ const BookingHistoryPage = () => {
     if (joinUrl) {
       window.open(joinUrl, "_blank", "noopener,noreferrer");
     } else {
-      alert(
-        "Chưa tìm thấy link Zoom cho buổi phỏng vấn này. Vui lòng thử lại sau!",
-      );
+      alert("Chưa tìm thấy link Zoom cho buổi phỏng vấn này!");
     }
   };
 
@@ -181,11 +171,70 @@ const BookingHistoryPage = () => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
 
+  const updateFeedbackDraft = (id, value) => {
+    setFeedbackDrafts((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const updateRatingDraft = (id, value) => {
+    setRatingDrafts((prev) => ({ ...prev, [id]: Number(value) }));
+  };
+
+  const handleSubmitReview = async (req) => {
+    const rawBookingId = req.bookingId;
+    const comment = feedbackDrafts[req.id] || "";
+    const rating = ratingDrafts[req.id] || 5;
+
+    if (!comment.trim()) {
+      alert("Vui lòng nhập nội dung đánh giá trước khi gửi.");
+      return;
+    }
+
+    setSubmittingId(req.id);
+    try {
+      const payload = {
+        booking_id: Number(rawBookingId),
+        rate: Number(rating),
+        comment: comment.trim(),
+      };
+
+      const res = await fetch(`${API_BASE}/api/v1/booking/review-interviewer`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || `Request failed status ${res.status}`);
+      }
+
+      // Đánh dấu đã submit ngay ở client-side
+      setSubmittedReviews((prev) => [...prev, Number(rawBookingId)]);
+
+      alert("Đã gửi đánh giá thành công!");
+      loadBookings();
+    } catch (err) {
+      console.error("Submit review error:", err);
+      alert("Gửi đánh giá thất bại: " + err.message);
+    } finally {
+      setSubmittingId(null);
+    }
+  };
+
   const sortedRequests = useMemo(() => {
+    const getStatusPriority = (item) => {
+      if (item.rawStatus === "AWAIT_REVIEW") return 1;
+      if (item.status === "in-progress") return 2;
+      return 3;
+    };
+
     return [...requests].sort((a, b) => {
-      const aGroup = a.status === "in-progress" ? 0 : 1;
-      const bGroup = b.status === "in-progress" ? 0 : 1;
-      if (aGroup !== bGroup) return aGroup - bGroup;
+      const priorityA = getStatusPriority(a);
+      const priorityB = getStatusPriority(b);
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
 
       const aTime = toTimestamp(a.date, a.time);
       const bTime = toTimestamp(b.date, b.time);
@@ -219,7 +268,15 @@ const BookingHistoryPage = () => {
               <AnimatePresence initial={false}>
                 {sortedRequests.map((req) => {
                   const isOpen = expandedId === req.id;
-                  const isReadyToJoin = isMeetingTimeValid(req.date, req.time);
+                  const isAwaitingReview = req.rawStatus === "AWAIT_REVIEW";
+                  const isReadyToJoin =
+                    !isAwaitingReview && isMeetingTimeValid(req.date, req.time);
+
+                  // 🟢 Kiểm tra xem cuộc phỏng vấn đã được review chưa
+                  const isAlreadyReviewed =
+                    req.isReviewed ||
+                    req.rawStatus === "COMPLETED" ||
+                    submittedReviews.includes(Number(req.bookingId));
 
                   return (
                     <motion.div
@@ -241,15 +298,18 @@ const BookingHistoryPage = () => {
                         </span>
                         <span className="cell-about">{req.about}</span>
                         <span className={`cell-status status-${req.status}`}>
-                          {STATUS_LABEL[req.status]}
+                          {isAwaitingReview
+                            ? "Await Review"
+                            : STATUS_LABEL[req.status]}
                         </span>
 
-                        {/* Cột Join Meeting */}
                         <span className="cell-meeting">
-                          {req.status === "in-progress" ? (
+                          {req.status === "in-progress" && !isAwaitingReview ? (
                             <button
                               type="button"
-                              className={`join-meeting-btn ${!isReadyToJoin ? "btn-disabled" : ""}`}
+                              className={`join-meeting-btn ${
+                                !isReadyToJoin ? "btn-disabled" : ""
+                              }`}
                               disabled={!isReadyToJoin || !req.joinUrl}
                               title={
                                 !isReadyToJoin
@@ -261,11 +321,17 @@ const BookingHistoryPage = () => {
                               Join meeting
                             </button>
                           ) : (
-                            <span className="cell-meeting-disabled">-</span>
+                            <button
+                              type="button"
+                              className="join-meeting-btn btn-disabled"
+                              disabled={true}
+                              title="Buổi phỏng vấn đã kết thúc"
+                            >
+                              Ended
+                            </button>
                           )}
                         </span>
 
-                        {/* Nút Xem Chi Tiết */}
                         <span className="cell-action">
                           <button
                             type="button"
@@ -277,7 +343,6 @@ const BookingHistoryPage = () => {
                         </span>
                       </div>
 
-                      {/* Panel Chi Tiết Buổi Phỏng Vấn */}
                       <AnimatePresence initial={false}>
                         {isOpen && (
                           <motion.div
@@ -305,17 +370,92 @@ const BookingHistoryPage = () => {
                                 <div className="details-value">{req.about}</div>
                               </div>
 
-                              {req.rawBooking?.reviewResponseDTO && (
-                                <div className="details-field">
-                                  <span className="details-label">
-                                    Interviewer's Feedback
-                                  </span>
+                              <div className="details-field">
+                                <span className="details-label">
+                                  Review Interviewer
+                                </span>
+
+                                {req.feedback ? (
                                   <div className="feedback-box">
-                                    {req.rawBooking.reviewResponseDTO
-                                      .overallComment || "No comment provided."}
+                                    {req.feedback}
                                   </div>
-                                </div>
-                              )}
+                                ) : (
+                                  <div className="review-input-container">
+                                    <div className="rating-select-row">
+                                      <span className="rating-label">
+                                        Rating:
+                                      </span>
+                                      <select
+                                        className="rating-select"
+                                        disabled={isAlreadyReviewed}
+                                        value={ratingDrafts[req.id] || 5}
+                                        onChange={(e) =>
+                                          updateRatingDraft(
+                                            req.id,
+                                            e.target.value,
+                                          )
+                                        }
+                                      >
+                                        <option value={5}>
+                                          5 ★ - Excellent
+                                        </option>
+                                        <option value={4}>
+                                          4 ★ - Very Good
+                                        </option>
+                                        <option value={3}>3 ★ - Good</option>
+                                        <option value={2}>2 ★ - Fair</option>
+                                        <option value={1}>1 ★ - Poor</option>
+                                      </select>
+                                    </div>
+
+                                    <textarea
+                                      className="feedback-textarea"
+                                      rows={3}
+                                      disabled={isAlreadyReviewed}
+                                      readOnly={isAlreadyReviewed}
+                                      placeholder={
+                                        isAlreadyReviewed
+                                          ? "Đã gửi đánh giá"
+                                          : "Write your review for the interviewer..."
+                                      }
+                                      value={feedbackDrafts[req.id] || ""}
+                                      onChange={(e) =>
+                                        updateFeedbackDraft(
+                                          req.id,
+                                          e.target.value,
+                                        )
+                                      }
+                                    />
+
+                                    <div className="submit-btn-row">
+                                      <button
+                                        type="button"
+                                        className="submit-review-btn"
+                                        disabled={
+                                          isAlreadyReviewed ||
+                                          submittingId === req.id
+                                        }
+                                        style={
+                                          isAlreadyReviewed
+                                            ? {
+                                                backgroundColor: "#6b7280",
+                                                cursor: "not-allowed",
+                                                opacity: 0.6,
+                                              }
+                                            : {}
+                                        }
+                                        onClick={() => handleSubmitReview(req)}
+                                      >
+                                        {isAlreadyReviewed
+                                          ? "SUBMITTED"
+                                          : submittingId === req.id
+                                            ? "SUBMITTING..."
+                                            : "SUBMIT REVIEW"}
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </motion.div>
                         )}

@@ -27,7 +27,6 @@ const authHeaders = () => {
   };
 };
 
-// Map backend booking status to frontend status
 const mapBookingStatus = (status) => {
   switch (status) {
     case "ACCEPTED":
@@ -43,7 +42,6 @@ const mapBookingStatus = (status) => {
   }
 };
 
-// Convert backend booking object to frontend structure
 const convertBookingToDashboardRow = (booking) => {
   if (!booking) return null;
 
@@ -68,22 +66,24 @@ const convertBookingToDashboardRow = (booking) => {
     bookerDTO?.full_name ||
     "Unknown Candidate";
 
+  const rawStatus =
+    booking.bookingStatus || booking.booking_status || booking.status;
+
+  const cleanId = booking.bookingId ?? booking.booking_id;
+
   return {
-    id: `booking-${booking.bookingId || booking.booking_id}`,
-    bookingId: booking.bookingId || booking.booking_id,
+    id: `booking-${cleanId}`,
+    bookingId: Number(cleanId),
     date: dateStr,
     time: timeStr,
     interviewee: intervieweeName,
     about: booking.positionName || "Mock Interview",
-    rawStatus:
-      booking.bookingStatus || booking.booking_status || booking.status,
-    status: mapBookingStatus(
-      booking.bookingStatus || booking.booking_status || booking.status,
-    ),
+    rawStatus: rawStatus,
+    status: mapBookingStatus(rawStatus),
     feedback: "",
     money: `$${booking.totalAmount || 5}`,
     meetingUrl: booking.meetingUrl || booking.meeting_url,
-    startUrl: booking.startUrl || booking.start_url, // Map start_url từ response DTO
+    startUrl: booking.startUrl || booking.start_url,
     rawBooking: booking,
   };
 };
@@ -102,13 +102,14 @@ const toTimestamp = (dateStr, timeStr) => {
 };
 
 const RDashboard = () => {
+  const [submittedBookings, setSubmittedBookings] = useState([]);
   const [requests, setRequests] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [feedbackDrafts, setFeedbackDrafts] = useState({});
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [joiningId, setJoiningId] = useState(null); // Trạng thái loading khi click Go to meeting
+  const [joiningId, setJoiningId] = useState(null);
 
   const loadBookings = useCallback(async () => {
     setLoading(true);
@@ -131,27 +132,9 @@ const RDashboard = () => {
         .filter((r) => r !== null);
 
       setRequests(dashboardBookings);
-      localStorage.setItem("interviewerBookings", JSON.stringify(bookings));
     } catch (err) {
       console.error("Error loading dashboard bookings:", err);
       setError(err.message || "Could not load interview sessions.");
-
-      try {
-        const cached = localStorage.getItem("interviewerBookings");
-        if (cached) {
-          const bookings = JSON.parse(cached);
-          const dashboardBookings = bookings
-            .filter((b) => {
-              const st = b.bookingStatus || b.booking_status || b.status;
-              return st !== "PENDING";
-            })
-            .map((b) => convertBookingToDashboardRow(b))
-            .filter((r) => r !== null);
-          setRequests(dashboardBookings);
-        }
-      } catch (e) {
-        console.warn("Could not load from cache:", e);
-      }
     } finally {
       setLoading(false);
     }
@@ -161,7 +144,6 @@ const RDashboard = () => {
     loadBookings();
   }, [loadBookings]);
 
-  // Hàm xử lý lấy start_url tươi từ Controller và mở meeting
   const handleGoToMeeting = async (bookingId, defaultStartUrl) => {
     setJoiningId(bookingId);
     try {
@@ -180,13 +162,10 @@ const RDashboard = () => {
         }
       }
 
-      // Fallback nếu có sẵn startUrl trong record
       if (defaultStartUrl) {
         window.open(defaultStartUrl, "_blank", "noopener,noreferrer");
       } else {
-        alert(
-          "Không thể khởi tạo link Zoom. Vui lòng kiểm tra lại trạng thái!",
-        );
+        alert("Không thể khởi tạo link Zoom. Vui lòng kiểm tra lại!");
       }
     } catch (err) {
       console.error("Lỗi khi lấy start-url:", err);
@@ -223,20 +202,30 @@ const RDashboard = () => {
 
     if (target && target.bookingId) {
       try {
-        const rawId = String(target.bookingId).replace("booking-", "");
-        const cleanBookingId = Number(rawId);
+        const cleanBookingId = Number(target.bookingId);
 
         if (isNaN(cleanBookingId)) {
           throw new Error("Mã Booking không hợp lệ.");
         }
 
+        // 🟢 Cắt bớt feedback nếu dài hơn 500 ký tự (tránh vượt giới hạn 512 ký tự của DB)
+        const safeComment = feedbackText.slice(0, 500);
+
+        // 🟢 Khởi tạo Payload CHÍNH XÁC theo DTO & Enum Backend
         const payload = {
-          bookingId: cleanBookingId,
-          technicalScore: 8,
-          communicationScore: 8,
-          preparationLevel: 8,
-          overallComment: feedbackText,
+          booking_id: cleanBookingId,
+          technical_score: 8, // Kiểu số Long (1-100)
+          communication_score: 8, // Kiểu số Long (1-100)
+
+          // 🛑 ĐÃ SỬA: Dùng 1 trong 3 giá trị Enum: "WELL_PREPARED", "MODERATE", hoặc "UNDER_PREPARED"
+          preparation_level: "WELL_PREPARED",
+
+          overall_comment: safeComment,
         };
+
+        // 🔍 Console log kiểm tra Payload trước khi gửi
+        console.log("====================");
+        console.log("📤 Sending Payload to /api/v1/booking/complete:", payload);
 
         const res = await fetch(`${API_BASE}/api/v1/booking/complete`, {
           method: "POST",
@@ -247,10 +236,20 @@ const RDashboard = () => {
           body: JSON.stringify(payload),
         });
 
+        console.log("📥 Response Status:", res.status);
+
         if (!res.ok) {
           const errText = await res.text();
+          console.error("❌ Backend Error Details:", errText);
           throw new Error(errText || `Failed with status ${res.status}`);
         }
+
+        const resData = await res.json();
+        console.log("✅ Response Data from Backend:", resData);
+        console.log("====================");
+
+        // Đánh dấu đã submit thành công
+        setSubmittedBookings((prev) => [...prev, cleanBookingId]);
 
         setRequests((prev) =>
           prev.map((r) =>
@@ -258,6 +257,7 @@ const RDashboard = () => {
               ? {
                   ...r,
                   status: finalStatus,
+                  rawStatus: "COMPLETED",
                   feedback: feedbackText,
                 }
               : r,
@@ -278,10 +278,19 @@ const RDashboard = () => {
   };
 
   const sortedRequests = useMemo(() => {
+    const getStatusPriority = (item) => {
+      if (item.rawStatus === "AWAIT_REVIEW") return 1;
+      if (item.status === "in-progress") return 2;
+      return 3;
+    };
+
     return [...requests].sort((a, b) => {
-      const aGroup = a.status === "in-progress" ? 0 : 1;
-      const bGroup = b.status === "in-progress" ? 0 : 1;
-      if (aGroup !== bGroup) return aGroup - bGroup;
+      const priorityA = getStatusPriority(a);
+      const priorityB = getStatusPriority(b);
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
 
       const aTime = toTimestamp(a.date, a.time);
       const bTime = toTimestamp(b.date, b.time);
@@ -303,15 +312,24 @@ const RDashboard = () => {
               <span>INTERVIEWEE</span>
               <span>ABOUT</span>
               <span>STATUS</span>
-              <span>MEETING</span> {/* Thêm Cột Meeting */}
+              <span>MEETING</span>
               <span className="cell-action-header">ACTION</span>
             </div>
 
             <AnimatePresence initial={false}>
               {sortedRequests.map((req) => {
                 const isOpen = expandedId === req.id;
-                const isFinalized = req.status !== "in-progress";
-                const isReadyToComplete = req.rawStatus === "AWAIT_REVIEW";
+
+                // 🟢 KIỂM TRA XEM ĐÃ HOÀN THÀNH HOẶC VỪA SUBMIT CHƯA
+                const isSubmittedLocally = submittedBookings.includes(
+                  req.bookingId,
+                );
+                const isFinalized =
+                  req.status !== "in-progress" ||
+                  req.rawStatus === "COMPLETED" ||
+                  isSubmittedLocally;
+
+                const isAwaitingReview = req.rawStatus === "AWAIT_REVIEW";
 
                 return (
                   <motion.div
@@ -333,12 +351,15 @@ const RDashboard = () => {
                       </span>
                       <span className="cell-about">{req.about}</span>
                       <span className={`cell-status status-${req.status}`}>
-                        {STATUS_LABEL[req.status]}
+                        {isAwaitingReview && !isSubmittedLocally
+                          ? "Await Review"
+                          : STATUS_LABEL[req.status]}
                       </span>
 
-                      {/* Cột hiển thị Button Go to Meeting */}
                       <span className="cell-meeting">
-                        {req.status === "in-progress" ? (
+                        {req.status === "in-progress" &&
+                        !isAwaitingReview &&
+                        !isSubmittedLocally ? (
                           <button
                             type="button"
                             className="go-meeting-btn"
@@ -352,24 +373,39 @@ const RDashboard = () => {
                               : "Go to meeting"}
                           </button>
                         ) : (
-                          <span className="cell-meeting-disabled">-</span>
+                          <button
+                            type="button"
+                            className="go-meeting-btn btn-disabled"
+                            disabled={true}
+                            style={{ opacity: 0.5, cursor: "not-allowed" }}
+                          >
+                            Ended
+                          </button>
                         )}
                       </span>
 
                       <span className="cell-action">
+                        {/* Khi đã finalized thì nút Update đổi sang xám/disabled */}
                         <button
                           type="button"
-                          className={`update-btn ${isOpen ? "is-open" : ""} ${isFinalized ? "is-disabled" : ""}`}
+                          className={`update-btn ${isOpen ? "is-open" : ""} ${
+                            isFinalized ? "is-disabled" : ""
+                          }`}
                           onClick={() => !isFinalized && toggleExpand(req.id)}
                           disabled={isFinalized}
+                          style={
+                            isFinalized
+                              ? { opacity: 0.5, cursor: "not-allowed" }
+                              : {}
+                          }
                         >
-                          {isFinalized ? STATUS_LABEL[req.status] : "Update"}
+                          {isFinalized ? "Done" : "Update"}
                         </button>
                       </span>
                     </div>
 
                     <AnimatePresence initial={false}>
-                      {isOpen && !isFinalized && (
+                      {isOpen && (
                         <motion.div
                           key="update-panel"
                           initial={{ height: 0, opacity: 0 }}
@@ -388,11 +424,14 @@ const RDashboard = () => {
 
                             <div className="update-field">
                               <span className="update-label">Feedback</span>
+                              {/* 🟢 Khóa ô nhập liệu khi đã COMPLETED hoặc đã Submit */}
                               <textarea
                                 className="update-feedback-box"
                                 rows={4}
                                 placeholder="Write feedback about the candidate's performance..."
                                 value={feedbackDrafts[req.id] ?? ""}
+                                disabled={isFinalized}
+                                readOnly={isFinalized}
                                 onChange={(e) =>
                                   updateFeedbackDraft(req.id, e.target.value)
                                 }
@@ -410,32 +449,39 @@ const RDashboard = () => {
                             <div className="update-decision-row">
                               <button
                                 type="button"
+                                disabled={isFinalized}
                                 className="decision-btn no-show-btn"
+                                style={
+                                  isFinalized
+                                    ? { opacity: 0.5, cursor: "not-allowed" }
+                                    : {}
+                                }
                                 onClick={() =>
                                   finalizeStatus(req.id, "no-show")
                                 }
                               >
                                 No-show
                               </button>
+
+                              {/* 🟢 Vô hiệu hóa nút DONE nếu không trong trạng thái AWAIT_REVIEW hoặc đã Finalized */}
                               <button
                                 type="button"
-                                disabled={!isReadyToComplete}
+                                disabled={!isAwaitingReview || isFinalized}
                                 className={`decision-btn done-btn ${
-                                  !isReadyToComplete
+                                  !isAwaitingReview || isFinalized
                                     ? "opacity-50 cursor-not-allowed"
                                     : ""
                                 }`}
+                                style={
+                                  !isAwaitingReview || isFinalized
+                                    ? { opacity: 0.5, cursor: "not-allowed" }
+                                    : {}
+                                }
                                 onClick={() => finalizeStatus(req.id, "done")}
                               >
-                                Done
+                                {isFinalized ? "Completed" : "Done"}
                               </button>
                             </div>
-                            {!isReadyToComplete && (
-                              <p className="text-xs text-yellow-500 mt-1">
-                                Cần kết thúc cuộc họp Zoom để chuyển sang trạng
-                                thái AWAIT_REVIEW trước khi đánh giá.
-                              </p>
-                            )}
                           </div>
                         </motion.div>
                       )}

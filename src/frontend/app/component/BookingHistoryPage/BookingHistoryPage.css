@@ -1,31 +1,45 @@
+/* Container chính dùng flexbox để nằm cạnh NavigationBar */
 .booking-history-root {
+  display: flex;
   min-height: 100vh;
-  background-color: #0b0f19;
-  color: #f3f4f6;
+  background: #0f0f13; /* Trùng với rdashboard-root */
+  color: #f4f4f5;
   font-family: inherit;
 }
 
+/* Phần Main chiếm hết diện tích còn lại và căn giữa phần inner */
 .booking-history-main {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 20px;
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px;
+}
+
+/* Card chứa thông tin chính (khung bao ngoài) */
+.booking-history-inner {
+  width: 100%;
+  max-width: 1040px;
+  padding: 40px 48px;
+  border-radius: 20px;
+  background: #18181c; /* Trùng với màu card rdashboard-inner */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
 }
 
 .booking-history-title {
   text-align: center;
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: 2px;
-  margin-bottom: 30px;
-  color: #ffffff;
+  margin: 0 0 32px;
+  font-size: 28px;
+  letter-spacing: 0.06em;
+  color: #e4e4e7;
+  font-weight: 900;
 }
 
 .booking-history-table {
-  background: #111827;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-  border: 1px solid #1f2937;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .booking-history-row {
@@ -33,40 +47,70 @@
   grid-template-columns: 1fr 1fr 1.3fr 1.3fr 1fr 1.2fr 1fr;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
-  font-size: 0.9rem;
 }
 
 .booking-history-header {
-  font-weight: 600;
-  color: #9ca3af;
-  border-bottom: 1px solid #1f2937;
-  letter-spacing: 0.5px;
+  padding: 0 16px 10px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9c9ca8;
+  font-style: italic;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.booking-history-row-wrap {
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .booking-history-data-row {
-  border-bottom: 1px solid #1f2937;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   transition: background-color 0.2s ease;
 }
 
 .booking-history-data-row:hover {
-  background-color: #1f2937;
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.cell-status.status-in-progress {
-  color: #f59e0b;
+.cell-date,
+.cell-time {
+  font-size: 14px;
+  color: #d4d4d8;
 }
 
-.cell-status.status-done {
-  color: #10b981;
+.cell-interviewer {
+  font-weight: 600;
+  color: #f4f4f5;
 }
 
-.cell-status.status-cancelled {
+.cell-about {
+  font-style: italic;
+  color: #a1a1aa;
+}
+
+.cell-status {
+  font-size: 13px;
+  font-style: italic;
+}
+
+.status-in-progress {
+  color: #eab308;
+}
+
+.status-done {
+  color: #22c55e;
+}
+
+.status-cancelled {
   color: #ef4444;
 }
 
 /* ========================================================= */
-/* BUTTON JOIN MEETING - PURPLE GRADIENT (Tone Tím)          */
+/* BUTTONS - GIỮ NGUYÊN TONE TÍM GRADIENT THEO YÊU CẦU       */
 /* ========================================================= */
 .join-meeting-btn {
   background: linear-gradient(
@@ -108,9 +152,6 @@
   transform: none !important;
 }
 
-/* ========================================================= */
-/* BUTTON DETAILS - PURPLE GRADIENT đồng bộ Dashboard         */
-/* ========================================================= */
 .details-btn {
   padding: 8px 18px;
   border-radius: 8px;
@@ -137,18 +178,19 @@
 }
 
 .cell-meeting-disabled {
-  color: #6b7280;
+  color: #71717a;
   font-size: 0.875rem;
 }
 
 /* ========================================================= */
-/* PANEL VIEW DETAILS                                        */
+/* DETAILS PANEL                                             */
 /* ========================================================= */
 .details-panel-wrap {
   overflow: hidden;
   background: rgba(147, 51, 234, 0.03);
   border-bottom: 1px solid rgba(168, 85, 247, 0.15);
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 10px 10px;
+  margin-top: 2px;
 }
 
 .details-panel {
@@ -173,7 +215,7 @@
 }
 
 .feedback-box {
-  background: rgba(17, 24, 39, 0.8);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(168, 85, 247, 0.2);
   padding: 12px 16px;
   border-radius: 8px;
@@ -183,8 +225,110 @@
 }
 
 .booking-history-empty {
+  padding: 32px 16px;
   text-align: center;
-  padding: 40px;
-  color: #9ca3af;
+  color: #71717a;
   font-style: italic;
+}
+
+@media (max-width: 900px) {
+  .booking-history-main {
+    padding: 20px;
+  }
+  .booking-history-inner {
+    padding: 24px;
+  }
+}
+
+/* Màu sắc trạng thái */
+.status-accepted {
+  color: #22c55e; /* Green */
+  font-weight: 600;
+}
+
+.status-pending {
+  color: #f59e0b; /* Amber/Orange */
+  font-weight: 500;
+}
+
+.status-done {
+  color: #a1a1aa; /* Muted gray */
+}
+
+.status-cancelled {
+  color: #ef4444; /* Red */
+}
+
+/* Tùy chỉnh vùng nhập Review cho Interviewee */
+.review-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.rating-select-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rating-label {
+  font-size: 0.85rem;
+  color: #a1a1aa;
+}
+
+.rating-select {
+  background: #18181c;
+  color: #fbbf24;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.feedback-textarea {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #f4f4f5;
+  font-size: 0.875rem;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+}
+
+.feedback-textarea:focus {
+  border-color: #a855f7;
+}
+
+.submit-btn-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.submit-review-btn {
+  background: linear-gradient(90deg, #10b981, #059669);
+  color: #ffffff;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.submit-review-btn:hover:not(:disabled) {
+  background: linear-gradient(90deg, #34d399, #10b981);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  transform: translateY(-1px);
+}
+
+.submit-review-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

@@ -164,6 +164,8 @@ public class BookingController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasRole('Interviewee')")
+    @PostMapping("/review-interviewer")
     public ResponseEntity<Void> reviewInterviewer(
             @RequestBody ReviewInterviewerRequest request,
             @AuthenticationPrincipal CustomUserDetail userDetail) {

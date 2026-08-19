@@ -280,8 +280,9 @@
     rgba(14, 90, 138, 1) 100%
   );
   color: #ffffff;
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 9px 20px;
+  border-radius: 8px;
+  width: 120px;
   font-size: 0.825rem;
   font-weight: 600;
   border: none;
