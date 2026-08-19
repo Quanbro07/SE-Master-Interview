@@ -238,3 +238,45 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Khống chế kích thước tối đa của Popup và thêm cuộn dọc */
+.popup-content.payment-popup-box {
+  max-height: 90vh;
+  max-width: 900px;
+  width: 95%;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* Căn lề phía trên cho Grid và giữ chiều cao tự nhiên của 2 cột */
+.payment-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start; /* Giữ cột Calendar không bị giãn dài theo cột Payment */
+}
+
+/* Cho phép cột bên phải (Payment Form) cuộn nội dung nếu dài hơn */
+.payment-form-details {
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+}
+
+/* Đảm bảo Form chứa Stripe Payment luôn hiện nút confirm rõ ràng */
+.stripe-payment-form,
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Tùy chỉnh thanh cuộn đẹp mắt cho Popup */
+.popup-content.payment-popup-box::-webkit-scrollbar {
+  width: 6px;
+}
+
+.popup-content.payment-popup-box::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}

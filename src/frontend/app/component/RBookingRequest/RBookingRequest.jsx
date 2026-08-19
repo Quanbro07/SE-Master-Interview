@@ -4,19 +4,18 @@ import { AnimatePresence, motion } from "framer-motion";
 import RNavigationBar from "../RNavigationBar/RNavigationBar";
 import "./RBookingRequest.css";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+const API_BASE = "http://localhost:8080";
 
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
-  return (
+  const token =
     localStorage.getItem("accessToken") ||
     localStorage.getItem("token") ||
     localStorage.getItem("jwt") ||
     localStorage.getItem("authToken") ||
     localStorage.getItem("access_token") ||
-    ""
-  );
+    "";
+  return token;
 };
 
 const authHeaders = () => {
@@ -27,41 +26,94 @@ const authHeaders = () => {
   };
 };
 
-// Convert backend booking to frontend format
 const convertBookingToRequest = (booking) => {
-  if (!booking || booking.booking_status !== "PENDING") return null;
+  if (!booking) return null;
 
-  const startTime = new Date(booking.start_time);
-  const dateStr = startTime.toLocaleDateString("en-GB"); // DD/MM/YYYY
-  const timeStr = startTime.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  // 📝 LOG FULL BOOKING RESPONSE CHUẨN THEO DTO BACKEND
+  console.log(
+    `📋 [FULL BOOKING RESPONSE - ID #${booking.booking_id || booking.bookingId}]:`,
+    {
+      booking_id: booking.booking_id || booking.bookingId,
+      booker: booking.booker || booking.bookerResponseDTO,
+      interviewer: booking.interviewer || booking.interviewerResponseDTO,
+      booking_status: booking.booking_status || booking.bookingStatus,
+      meeting_id: booking.meeting_id || booking.meetingId,
+      meeting_url: booking.meeting_url || booking.meetingUrl,
+      meeting_password: booking.meeting_password || booking.meetingPassword,
+      start_time: booking.start_time || booking.startTime,
+      end_time: booking.end_time || booking.endTime,
+      cv_url: booking.cv_url || booking.cvUrl,
+    },
+  );
+
+  const bookingId = booking.booking_id || booking.bookingId;
+
+  // 1. Đọc cv_url từ backend response
+  let rawCvUrl =
+    booking.cv_url ||
+    booking.cvUrl ||
+    booking.booker?.cv_url ||
+    booking.booker?.cvUrl ||
+    null;
+
+  // 2. Chuyển thành URL hoàn chỉnh
+  let fullCvUrl = null;
+  if (rawCvUrl && typeof rawCvUrl === "string" && rawCvUrl.trim() !== "") {
+    if (rawCvUrl.startsWith("http://") || rawCvUrl.startsWith("https://")) {
+      fullCvUrl = rawCvUrl;
+    } else {
+      const cleanPath = rawCvUrl.startsWith("/") ? rawCvUrl : `/${rawCvUrl}`;
+      fullCvUrl = `${API_BASE}${cleanPath}`;
+    }
+  }
+
+  // 3. Tách tên file
+  let fileName = "Candidate_CV.pdf";
+  if (fullCvUrl) {
+    const segments = fullCvUrl.split("/");
+    const lastSegment = segments[segments.length - 1].split("?")[0];
+    if (lastSegment) fileName = decodeURIComponent(lastSegment);
+  }
+
+  const candidateName =
+    booking.booker?.bookerName ||
+    booking.booker?.booker_name ||
+    booking.booker?.fullName ||
+    booking.booker?.full_name ||
+    booking.booker?.name ||
+    `Candidate #${booking.booker?.booker_id || bookingId}`;
+
+  const rawStartTime = booking.start_time || booking.startTime;
+  const startTime = rawStartTime ? new Date(rawStartTime) : new Date();
 
   return {
-    id: `booking-${booking.booking_id}`,
-    bookingId: booking.booking_id,
-    date: dateStr,
-    time: timeStr,
-    interviewee: booking.booker?.full_name || "Unknown",
-    about: booking.booker?.position || "Interview",
+    id: `booking-${bookingId}`,
+    bookingId: bookingId,
+    date: startTime.toLocaleDateString("en-GB"),
+    time: startTime.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    interviewee: candidateName,
+    about: "Interview Request",
     detail: {
-      candidate: booking.booker?.full_name || "Unknown",
+      candidate: candidateName,
       requestDate: startTime.toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
       }),
       requestTime: `${startTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} (GMT +7)`,
-      message: booking.booker?.bio || "Interview request",
-      cvFileName: booking.cv_url ? booking.cv_url.split("/").pop() : "CV.pdf",
-      cvFileSize: "N/A",
+      message: "Interview booking request",
+      cvUrl: fullCvUrl,
+      cvFileName: fileName,
+      meetingUrl: booking.meeting_url || booking.meetingUrl,
     },
   };
 };
 
-const BADGE_HOLD = 500; // ms the ACCEPTED/DENIED badge stays visible before swiping out
-const EXIT_DURATION = 320; // ms swipe-left/fade duration
+const BADGE_HOLD = 500;
+const EXIT_DURATION = 320;
 
 const RBookingRequest = () => {
   const [requests, setRequests] = useState([]);
@@ -70,45 +122,63 @@ const RBookingRequest = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load pending booking requests from backend
   const loadBookingRequests = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch(
-        `${API_BASE}/api/v1/booking/all-bookings?filter=PENDING`,
-        {
-          headers: authHeaders(),
-        },
-      );
-      if (!res.ok) throw new Error(`Failed to load requests (${res.status})`);
-      const bookings = await res.json();
+    const headers = {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    };
 
-      const convertedRequests = (Array.isArray(bookings) ? bookings : [])
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/booking/all-bookings`, {
+        headers,
+      });
+
+      if (!res.ok) {
+        throw new Error(`Server returned status ${res.status}`);
+      }
+
+      const responseData = await res.json();
+
+      // 📝 LOG TOÀN BỘ MẢNG BOOKING RESPONSE NHẬN VỀ TỪ API
+      console.log("📦 [RAW API RESPONSE FROM /all-bookings]:", responseData);
+
+      const bookingsArray = Array.isArray(responseData)
+        ? responseData
+        : responseData.data ||
+          responseData.content ||
+          responseData.bookings ||
+          [];
+
+      if (!Array.isArray(bookingsArray)) {
+        setRequests([]);
+        return;
+      }
+
+      const validBookings = bookingsArray.filter((b) => {
+        const status = (b.booking_status || b.bookingStatus || b.status || "")
+          .toString()
+          .toUpperCase();
+
+        return (
+          !status ||
+          status === "PENDING" ||
+          status === "PAID" ||
+          status === "WAITING" ||
+          status === "CONFIRMED" ||
+          status === "CREATED"
+        );
+      });
+
+      const convertedRequests = validBookings
         .map((b) => convertBookingToRequest(b))
         .filter((r) => r !== null);
 
       setRequests(convertedRequests);
-      localStorage.setItem("interviewerBookings", JSON.stringify(bookings));
     } catch (err) {
-      console.error("Error loading requests:", err);
+      console.error("❌ [FETCH ERROR]:", err);
       setError(err.message || "Failed to load requests");
-
-      try {
-        const cached = localStorage.getItem("interviewerBookings");
-        if (cached) {
-          const bookings = JSON.parse(cached);
-          const pending = bookings.filter(
-            (b) => b.booking_status === "PENDING",
-          );
-          const convertedRequests = pending
-            .map((b) => convertBookingToRequest(b))
-            .filter((r) => r !== null);
-          setRequests(convertedRequests);
-        }
-      } catch (e) {
-        console.warn("Could not load from cache:", e);
-      }
     } finally {
       setLoading(false);
     }
@@ -150,13 +220,18 @@ const RBookingRequest = () => {
             ? `${API_BASE}/api/v1/booking/${bookingId}/confirm`
             : `${API_BASE}/api/v1/booking/${bookingId}/reject`;
 
+          const payload = isAccept
+            ? { note: "Accepted by interviewer" }
+            : undefined;
+          const headers = {
+            "Content-Type": "application/json",
+            ...authHeaders(),
+          };
+
           const res = await fetch(endpoint, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...authHeaders(),
-            },
-            body: isAccept ? JSON.stringify({}) : undefined,
+            headers,
+            body: payload ? JSON.stringify(payload) : undefined,
           });
 
           if (!res.ok) {
@@ -167,7 +242,7 @@ const RBookingRequest = () => {
             setTimeout(() => loadBookingRequests(), 500);
           }
         } catch (err) {
-          console.error("Error updating booking status:", err);
+          console.error("❌ [DECISION ERROR]:", err);
           setError(err.message);
           setTimeout(() => loadBookingRequests(), 500);
         }
@@ -281,7 +356,6 @@ const RBookingRequest = () => {
                         </span>
                       </div>
 
-                      {/* Dropdown detail panel */}
                       <AnimatePresence initial={false}>
                         {isOpen && (
                           <motion.div
@@ -335,15 +409,41 @@ const RBookingRequest = () => {
                                     {req.detail.message}
                                   </div>
                                 </div>
-                                <div className="detail-cv-card">
-                                  <span className="cv-icon">PDF</span>
-                                  <span className="cv-filename">
-                                    {req.detail.cvFileName}
-                                  </span>
-                                  <span className="cv-filesize">
-                                    {req.detail.cvFileSize}
-                                  </span>
-                                </div>
+
+                                {req.detail.cvUrl ? (
+                                  <a
+                                    href={req.detail.cvUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="detail-cv-card"
+                                    style={{
+                                      textDecoration: "none",
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    <span className="cv-icon">PDF</span>
+                                    <span
+                                      className="cv-filename"
+                                      title={req.detail.cvFileName}
+                                    >
+                                      {req.detail.cvFileName}
+                                    </span>
+                                    <span
+                                      className="cv-filesize"
+                                      style={{ color: "#4caf50" }}
+                                    >
+                                      Click to View CV ↗
+                                    </span>
+                                  </a>
+                                ) : (
+                                  <div className="detail-cv-card">
+                                    <span className="cv-icon">PDF</span>
+                                    <span className="cv-filename">
+                                      No CV Uploaded
+                                    </span>
+                                    <span className="cv-filesize">N/A</span>
+                                  </div>
+                                )}
                               </div>
 
                               <p className="detail-note">
