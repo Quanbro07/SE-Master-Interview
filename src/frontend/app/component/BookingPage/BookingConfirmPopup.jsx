@@ -13,7 +13,9 @@ import "./BookingConfirmPopup.css";
 const API_BASE = "http://localhost:8080";
 
 // Dùng hằng số key cấu hình chuẩn
-const STRIPE_PUBLIC_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISH_KEY;
+const STRIPE_PUBLIC_KEY =
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISH_KEY ||
+  "pk_test_51TjVlBJgJLPmlDt7xWK27l0viRZ4BKqExlAkxKGvnjQ2haeLprJETBNMTGCrzcchlGokUrspQUXwJOst5FYR7oox008y7MVjCc";
 const stripePromise = STRIPE_PUBLIC_KEY ? loadStripe(STRIPE_PUBLIC_KEY) : null;
 
 const monthNames = [

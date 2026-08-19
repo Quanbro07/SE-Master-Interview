@@ -261,3 +261,51 @@
     font-size: 12px;
   }
 }
+
+/* Sửa grid-template-columns thành 7 cột */
+.r-dashboard-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.3fr 1.3fr 1fr 1.2fr 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Style cho nút Go to meeting */
+.go-meeting-btn {
+  background: #40b5c7;
+  background: linear-gradient(
+    90deg,
+    rgba(64, 181, 199, 1) 0%,
+    rgba(77, 143, 209, 1) 51%,
+    rgba(14, 90, 138, 1) 100%
+  );
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.825rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
+}
+
+.go-meeting-btn:hover:not(:disabled) {
+  background: linear-gradient(
+    90deg,
+    rgb(75, 211, 232) 0%,
+    rgb(85, 158, 232) 51%,
+    rgb(18, 118, 180) 100%
+  );
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+
+.go-meeting-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cell-meeting-disabled {
+  color: #6b7280;
+  font-size: 0.875rem;
+}

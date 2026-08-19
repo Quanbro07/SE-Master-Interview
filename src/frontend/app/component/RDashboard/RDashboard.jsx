@@ -83,6 +83,7 @@ const convertBookingToDashboardRow = (booking) => {
     feedback: "",
     money: `$${booking.totalAmount || 5}`,
     meetingUrl: booking.meetingUrl || booking.meeting_url,
+    startUrl: booking.startUrl || booking.start_url, // Map start_url từ response DTO
     rawBooking: booking,
   };
 };
@@ -107,6 +108,7 @@ const RDashboard = () => {
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [joiningId, setJoiningId] = useState(null); // Trạng thái loading khi click Go to meeting
 
   const loadBookings = useCallback(async () => {
     setLoading(true);
@@ -158,6 +160,45 @@ const RDashboard = () => {
   useEffect(() => {
     loadBookings();
   }, [loadBookings]);
+
+  // Hàm xử lý lấy start_url tươi từ Controller và mở meeting
+  const handleGoToMeeting = async (bookingId, defaultStartUrl) => {
+    setJoiningId(bookingId);
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/v1/booking/${bookingId}/start-url`,
+        {
+          headers: authHeaders(),
+        },
+      );
+
+      if (res.ok) {
+        const freshStartUrl = await res.text();
+        if (freshStartUrl) {
+          window.open(freshStartUrl, "_blank", "noopener,noreferrer");
+          return;
+        }
+      }
+
+      // Fallback nếu có sẵn startUrl trong record
+      if (defaultStartUrl) {
+        window.open(defaultStartUrl, "_blank", "noopener,noreferrer");
+      } else {
+        alert(
+          "Không thể khởi tạo link Zoom. Vui lòng kiểm tra lại trạng thái!",
+        );
+      }
+    } catch (err) {
+      console.error("Lỗi khi lấy start-url:", err);
+      if (defaultStartUrl) {
+        window.open(defaultStartUrl, "_blank", "noopener,noreferrer");
+      } else {
+        alert("Có lỗi xảy ra khi kết nối máy chủ.");
+      }
+    } finally {
+      setJoiningId(null);
+    }
+  };
 
   const toggleExpand = (id) => {
     setExpandedId((prev) => {
@@ -262,6 +303,7 @@ const RDashboard = () => {
               <span>INTERVIEWEE</span>
               <span>ABOUT</span>
               <span>STATUS</span>
+              <span>MEETING</span> {/* Thêm Cột Meeting */}
               <span className="cell-action-header">ACTION</span>
             </div>
 
@@ -293,6 +335,27 @@ const RDashboard = () => {
                       <span className={`cell-status status-${req.status}`}>
                         {STATUS_LABEL[req.status]}
                       </span>
+
+                      {/* Cột hiển thị Button Go to Meeting */}
+                      <span className="cell-meeting">
+                        {req.status === "in-progress" ? (
+                          <button
+                            type="button"
+                            className="go-meeting-btn"
+                            disabled={joiningId === req.bookingId}
+                            onClick={() =>
+                              handleGoToMeeting(req.bookingId, req.startUrl)
+                            }
+                          >
+                            {joiningId === req.bookingId
+                              ? "Starting..."
+                              : "Go to meeting"}
+                          </button>
+                        ) : (
+                          <span className="cell-meeting-disabled">-</span>
+                        )}
+                      </span>
+
                       <span className="cell-action">
                         <button
                           type="button"
