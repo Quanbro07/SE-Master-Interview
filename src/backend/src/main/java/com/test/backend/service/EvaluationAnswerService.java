@@ -2,9 +2,11 @@ package com.test.backend.service;
 
 import com.test.backend.dto.evaluation.*;
 import com.test.backend.entity.answerKeyword.AnswerKeyword;
+import com.test.backend.entity.question.Question;
 import com.test.backend.repository.AnswerKeywordRepository;
 import com.test.backend.repository.QuestionRepository;
 import jakarta.annotation.PostConstruct;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +28,10 @@ import java.util.stream.Collectors;
 public class EvaluationAnswerService {
 
     private final AnswerKeywordRepository answerKeywordRepository;
+
+    private final QuestionRepository questionRepository;
+
+    private static final int DEFAULT_BENCHMARK_WORDS = 60;
 
     private final Set<String> UNCERTAIN_WORD = Set.of(
             "maybe", "might", "think", "probably", "hopefully", "umm", "um", "uh"
@@ -69,14 +75,19 @@ public class EvaluationAnswerService {
         int wordCount = answerWords.length;
 
         // 2. Lấy dữ liệu từ DB và phân tích các chỉ số
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new EntityNotFoundException("Question not found"));
+
         List<AnswerKeyword> keywordList = answerKeywordRepository.findAllByQuestion_QuestionId(questionId);
 
-        RelevanceDTO relevance = getIndustryRelevant(answerWords, keywordList);
-        ConfidenceDTO confidence = getConfidentLevel(answerWords);
-        DepthDTO depth = getAnswerDepth(originalAnswer.toLowerCase(), wordCount); // Dùng originalAnswer để giữ lại dấu câu/số
+        int benchmarkWords = resolveBenchmarkWords(question.getSuggestionAnswer());
+        Set<String> keywordWordSet = buildKeywordWordSet(keywordList);
 
-        boolean isEnglishValid = checkEnglishValidation(answerWords);
-        ComparisonDTO comparison = getCompareStatus(wordCount);
+        RelevanceDTO relevance = getIndustryRelevant(originalAnswer.toLowerCase(), keywordList);
+        ConfidenceDTO confidence = getConfidentLevel(answerWords);
+        DepthDTO depth = getAnswerDepth(originalAnswer.toLowerCase(), wordCount);
+        boolean isEnglishValid = checkEnglishValidation(answerWords, keywordWordSet);
+        ComparisonDTO comparison = getCompareStatus(wordCount, benchmarkWords);
 
         // Phân tích Pattern
         // 3. Phân tích Patterns & Đưa ra Suggestion
@@ -118,34 +129,25 @@ public class EvaluationAnswerService {
 
     }
 
-    private RelevanceDTO getIndustryRelevant(String[] answerWord, List<AnswerKeyword> keywordList) {
-        BigDecimal totalWeight = BigDecimal.valueOf(0);
-        Map<String, BigDecimal> keywordMap = new HashMap<>();
-
-        for(AnswerKeyword keyword : keywordList) {
-            keywordMap.put(keyword.getKeyword(), keyword.getWeight());
-            keywordMap.put(keyword.getKeyword().toLowerCase(), keyword.getWeight());
-
-            totalWeight = totalWeight.add(keyword.getWeight());
-        }
-
-        BigDecimal answerWeightMatch = BigDecimal.ZERO;
-        Set<String> matchedKeywords = new HashSet<>();
-        int matchedWordCount = 0;
-
+    private RelevanceDTO getIndustryRelevant(String originalAnswerLower, List<AnswerKeyword> keywordList) {
+        BigDecimal totalWeight = BigDecimal.ZERO;
+        BigDecimal matchedWeight = BigDecimal.ZERO;
         int matchedCount = 0;
 
-        for (String word : answerWord) {
-            if (keywordMap.containsKey(word) && !matchedKeywords.contains(word)) {
-                answerWeightMatch = answerWeightMatch.add(keywordMap.get(word));
-                matchedKeywords.add(word);
+        for (AnswerKeyword keyword : keywordList) {
+            BigDecimal weight = keyword.getWeight();
+            totalWeight = totalWeight.add(weight);
+
+            String kw = keyword.getKeyword().toLowerCase();
+            if (containsWholeWord(originalAnswerLower, kw)) {
+                matchedWeight = matchedWeight.add(weight);
                 matchedCount++;
             }
         }
 
         BigDecimal scorePercentage = (totalWeight.compareTo(BigDecimal.ZERO) == 0)
                 ? BigDecimal.ZERO
-                : answerWeightMatch.divide(totalWeight, 2, RoundingMode.HALF_UP);
+                : matchedWeight.divide(totalWeight, 2, RoundingMode.HALF_UP);
 
         String status = "Low Relevance";
         if (scorePercentage.doubleValue() >= 0.7) status = "High Relevance";
@@ -156,7 +158,12 @@ public class EvaluationAnswerService {
                 .totalKeywords(keywordList.size())
                 .status(status)
                 .build();
+    }
 
+    // match theo cụm từ, có word-boundary, không phân biệt hoa/thường
+    private boolean containsWholeWord(String text, String phrase) {
+        String regex = "\\b" + Pattern.quote(phrase) + "\\b";
+        return Pattern.compile(regex).matcher(text).find();
     }
 
     private ConfidenceDTO getConfidentLevel(String[] answerWord) {
@@ -206,27 +213,30 @@ public class EvaluationAnswerService {
                 .build();
     }
 
-    // Hàm check tỷ lệ tiếng Anh
-    private boolean checkEnglishValidation(String[] answerWords) {
+    private boolean checkEnglishValidation(String[] answerWords, Set<String> industryKeywordsLower) {
         if (answerWords.length == 0) return false;
 
         int validWordCount = 0;
+        int checkedWordCount = 0;
+
         for (String word : answerWords) {
+            if (industryKeywordsLower.contains(word)) {
+                // từ chuyên ngành -> không tính vào tử số kiểm tra "tiếng Anh"
+                continue;
+            }
+            checkedWordCount++;
             if (englishDictionary.contains(word)) {
                 validWordCount++;
             }
         }
 
-        // Tính tỷ lệ từ hợp lệ
-        double validRatio = (double) validWordCount / answerWords.length;
-
-        // Nếu tỷ lệ từ tiếng Anh chuẩn > 50%, coi như câu trả lời hợp lệ
+        if (checkedWordCount == 0) return true; // toàn bộ là thuật ngữ ngành -> coi như hợp lệ
+        double validRatio = (double) validWordCount / checkedWordCount;
         return validRatio > 0.5;
     }
 
     // CompareStatus
-    private ComparisonDTO getCompareStatus(int wordCount) {
-        int benchmarkWords = 60;
+    private ComparisonDTO getCompareStatus(int wordCount, int benchmarkWords) {
         String compareStatus;
         if (wordCount < benchmarkWords * 0.5) {
             compareStatus = "Below Average";
@@ -243,5 +253,28 @@ public class EvaluationAnswerService {
                 .build();
     }
 
+    // Lấy số từ trong suggestion_answer làm chuẩn so sánh.
+    // Nếu câu hỏi chưa có suggestion_answer thì fallback về số mặc định.
+
+    private int resolveBenchmarkWords(String suggestionAnswer) {
+        if (suggestionAnswer == null || suggestionAnswer.isBlank()) {
+            return DEFAULT_BENCHMARK_WORDS;
+        }
+        return suggestionAnswer.trim().split("\\s+").length;
+    }
+
+    // Tách các keyword (có thể là cụm nhiều từ) thành tập từ đơn, lowercase,
+    // dùng để loại trừ thuật ngữ chuyên ngành khỏi phép kiểm tra "tiếng Anh"
+
+    private Set<String> buildKeywordWordSet(List<AnswerKeyword> keywordList) {
+        Set<String> result = new HashSet<>();
+        for (AnswerKeyword keyword : keywordList) {
+            String kw = keyword.getKeyword().toLowerCase();
+            for (String w : kw.split("\\s+")) {
+                result.add(w);
+            }
+        }
+        return result;
+    }
 
 }
