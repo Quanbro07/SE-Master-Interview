@@ -28,6 +28,12 @@ public record BookingResponse(
         @JsonProperty("meeting_url")
         String meetingUrl,
 
+        @JsonProperty("start_url")
+        String startUrl,
+
+        @JsonProperty("join_url")
+        String joinUrl,
+
         @JsonProperty("meeting_password")
         String meetingPassword,
 
