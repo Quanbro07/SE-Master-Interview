@@ -255,15 +255,42 @@ public class BookingService {
     }
 
     // Hoàn tất buổi interview
+    @Transactional
     public void completeInterview(Long interviewerId, InterviewResultRequest request) {
         Booking booking = bookingRepository
-                .findByBookingIdAndInterviewer_InterviewerId(request.bookingId(), interviewerId)
-                .orElseThrow(() -> new NotFoundException("Booking not found"));
+        .findByBookingIdAndInterviewer_InterviewerId(request.bookingId(), interviewerId)
+        .orElseGet(() -> bookingRepository
+            .findByBookingIdAndInterviewer_User_UserId(request.bookingId(), interviewerId)
+            .orElseThrow(() -> new NotFoundException("Booking not found for this interviewer")));
 
-        if(!BookingStatus.AWAIT_REVIEW.equals(booking.getStatus())) {
-            throw new ForbiddenOperationException("Meeting still int Progress. Cannot complete before ending Zoom Meeting");
+        // 2. Validate trạng thái AWAIT_REVIEW[cite: 20]
+        if (!BookingStatus.AWAIT_REVIEW.equals(booking.getStatus())) {
+            throw new ForbiddenOperationException("Meeting still in Progress. Cannot complete before ending Zoom Meeting");
         }
 
+        if (!booking.getInterviewer().getUser().getUserId().equals(interviewerId)) {
+            throw new ForbiddenOperationException("You are not the interviewer for this booking");
+        }
+
+        // 3. Xử lý Stripe Capture[cite: 20]
+        String paymentIntentId = booking.getPaymentIntentId();
+        if (paymentIntentId != null && !paymentIntentId.isBlank()) {
+            try {
+                PaymentIntent intent = PaymentIntent.retrieve(paymentIntentId);
+                
+                if ("requires_capture".equals(intent.getStatus())) {
+                    PaymentIntent capturedIntent = intent.capture();
+                    log.info("Payment captured successfully for booking {}: {}", booking.getBookingId(), capturedIntent.getId());
+                } else if ("succeeded".equals(intent.getStatus())) {
+                    log.info("PaymentIntent {} already captured/succeeded.", paymentIntentId);
+                }
+            } catch (StripeException e) {
+                log.error("Stripe Capture Error: {}", e.getMessage());
+                throw new StripeIntegrationException("Error withdraw money: " + e.getMessage());
+            }
+        }
+
+        // 4. Lưu kết quả phỏng vấn[cite: 20]
         InterviewResult interviewResult = InterviewResult.builder()
                 .technicalScore(request.technicalScore())
                 .communicationScore(request.communicationScore())
@@ -272,18 +299,10 @@ public class BookingService {
                 .build();
 
         booking.setInterviewResult(interviewResult);
+
+        // 5. Cập nhật trạng thái Booking sang COMPLETED[cite: 20]
+        booking.setStatus(BookingStatus.COMPLETED);
         bookingRepository.save(booking);
-
-        // Capture Payment
-        try {
-            PaymentIntent intent = PaymentIntent.retrieve(booking.getPaymentIntentId());
-
-            intent.capture();
-        } catch (StripeException e) {
-            log.info("Error Capture Payment!", e);
-            throw new StripeIntegrationException("Error withdraw money" + e.getMessage());
-        }
-
     }
 
     public void reviewBooking(Long bookerId, ReviewInterviewerRequest request) {
@@ -417,7 +436,6 @@ public class BookingService {
                 .interviewerName(interviewerUser.getFullName())
                 .interviewerAvatar(interviewerUser.getAvatar())
                 .build();
-
         // Khởi tạo Builder
         BookingResponse.BookingResponseBuilder responseBuilder = BookingResponse.builder()
                 .bookingId(newBooking.getBookingId())
@@ -427,7 +445,8 @@ public class BookingService {
                 .endTime(newBooking.getEndTime())
                 .cvUrl(newBooking.getCvUrl())
                 .bookingStatus(newBooking.getStatus());
-
+        
+        
         // Nếu status là ACCEPTED thì mới trả về link (tùy logic nghiệp vụ của bạn)
         if (newBooking.getStatus() == BookingStatus.ACCEPTED) {
             // Nếu người đang gọi API là Booker -> Trả về joinUrl và password
@@ -438,7 +457,7 @@ public class BookingService {
 
             // Nếu người đang gọi API là Interviewer -> KHÔNG trả URL, chỉ trả Password nếu cần
             else if (currentUserId.equals(interviewer.getInterviewerId())) {
-                responseBuilder.meetingUrl(null);
+                responseBuilder.startUrl(newBooking.getStartUrl());
                 responseBuilder.meetingPassword(newBooking.getMeetingPassword());
             }
         }

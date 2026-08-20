@@ -40,6 +40,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     Optional<Booking> findByBookingIdFetchInterviewer(@Param("bookingId") Long bookingId);
 
     Optional<Booking> findByBookingIdAndInterviewer_InterviewerId(Long bookingId, Long interviewerId);
+    
+    Optional<Booking> findByBookingIdAndInterviewer_User_UserId(Long bookingId, Long userId);
 
     @Query("""
         SELECT b
