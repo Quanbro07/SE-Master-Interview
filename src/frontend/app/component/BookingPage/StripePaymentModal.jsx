@@ -8,14 +8,14 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 
-// Khởi tạo Stripe Client
-const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISH_KEY;
+const stripePublishableKey =
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
+  "pk_test_51U22Dq5vVlPlCYoNSnjHXsKpOa34pBmtoTjATptxfcbwFQV6e3fahRStILOao5UfpHb5AjZggQy9PvUinKmGsIAq00UDoVOCKB";
 const stripePromise = stripePublishableKey
   ? loadStripe(stripePublishableKey)
   : null;
 
-// Form xử lý Submit thanh toán Stripe
-const PaymentForm = ({ onPaid, onCancel }) => {
+const PaymentForm = ({ bookingId, onPaid, onCancel }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -23,32 +23,95 @@ const PaymentForm = ({ onPaid, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!stripe || !elements) {
+      console.warn("⚠️ Stripe JS or Elements not yet loaded");
       return;
     }
 
     setProcessing(true);
     setPayError(null);
 
-    // Thực hiện xác nhận thanh toán qua Stripe Elements
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      redirect: "if_required", // Không tự động chuyển trang nếu thanh toán thành công ngay
-    });
+    console.log("🚀 Submitting Stripe Confirm Payment...");
 
-    if (error) {
-      setPayError(error.message || "Thanh toán thất bại. Vui lòng thử lại.");
+    try {
+      const result = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: window.location.href,
+        },
+        redirect: "if_required",
+      });
+
+      console.log("📩 Raw Stripe Result:", result);
+
+      if (result.error) {
+        console.error("❌ Stripe Payment Error:", result.error);
+        setPayError(
+          result.error.message || "Payment failed. Please check card details.",
+        );
+        setProcessing(false);
+        return;
+      }
+
+      const { paymentIntent } = result;
+
+      if (paymentIntent) {
+        console.log("✅ PaymentIntent Status:", paymentIntent.status);
+
+        if (
+          paymentIntent.status === "succeeded" ||
+          paymentIntent.status === "processing" ||
+          paymentIntent.status === "requires_capture"
+        ) {
+          // BỔ SUNG: Gọi API Backend để sync trạng thái PAID vào Postgres DB
+          try {
+            const token = localStorage.getItem("token"); // Lấy JWT Token từ Auth state
+            const targetBookingId =
+              bookingId || paymentIntent.metadata?.bookingId;
+
+            if (targetBookingId) {
+              console.log(
+                "🔄 Syncing PAID status for Booking ID:",
+                targetBookingId,
+              );
+              await fetch(
+                `http://localhost:8080/api/v1/stripe/${targetBookingId}/confirm-hold`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                  },
+                },
+              );
+            }
+          } catch (syncError) {
+            console.error(
+              "⚠️ Failed to sync status with DB, continuing UI flow...",
+              syncError,
+            );
+          }
+
+          console.log("🎉 Payment Authorized/Succeeded! Calling onPaid()...");
+          onPaid(paymentIntent);
+        } else if (paymentIntent.status === "requires_action") {
+          setPayError("Payment requires extra authentication step.");
+        } else {
+          setPayError(
+            `Payment status: ${paymentIntent.status}. Please try again.`,
+          );
+        }
+      } else {
+        setPayError("Payment incomplete. No intent returned from Stripe.");
+      }
+    } catch (err) {
+      console.error("💥 Unexpected Payment Exception:", err);
+      setPayError(
+        err.message || "An unexpected error occurred during payment.",
+      );
+    } finally {
       setProcessing(false);
-      return;
     }
-
-    if (paymentIntent && paymentIntent.status === "succeeded") {
-      onPaid(paymentIntent);
-    } else {
-      setPayError("Thanh toán chưa hoàn tất. Vui lòng kiểm tra lại.");
-    }
-    setProcessing(false);
   };
 
   return (
@@ -57,7 +120,15 @@ const PaymentForm = ({ onPaid, onCancel }) => {
       {payError && (
         <div
           className="booking-error"
-          style={{ color: "red", marginTop: "10px" }}
+          style={{
+            color: "#EF4444",
+            backgroundColor: "#FEF2F2",
+            padding: "8px 12px",
+            borderRadius: "6px",
+            marginTop: "12px",
+            fontSize: "14px",
+            fontWeight: "500",
+          }}
         >
           {payError}
         </div>
@@ -71,31 +142,50 @@ const PaymentForm = ({ onPaid, onCancel }) => {
           type="submit"
           className="popup-btn btn-book"
           disabled={!stripe || processing}
+          style={{
+            flex: 1,
+            padding: "10px",
+            backgroundColor: "#4C1D95",
+            color: "#FFF",
+            borderRadius: "6px",
+            fontWeight: "600",
+            cursor: "pointer",
+          }}
         >
-          {processing ? "ĐANG XỬ LÝ..." : "XÁC NHẬN THANH TOÁN"}
+          {processing ? "PROCESSING..." : "CONFIRM PAYMENT"}
         </button>
         <button
           type="button"
           className="popup-btn btn-cancel"
           onClick={onCancel}
           disabled={processing}
+          style={{
+            padding: "10px 20px",
+            backgroundColor: "#374151",
+            color: "#FFF",
+            borderRadius: "6px",
+            cursor: "pointer",
+          }}
         >
-          HỦY BỎ
+          CANCEL
         </button>
       </div>
     </form>
   );
 };
 
-// Popup chính bọc Elements provider từ Stripe
-const StripePaymentModal = ({ clientSecret, mentor, onPaid, onCancel }) => {
+const StripePaymentModal = ({
+  clientSecret,
+  bookingId,
+  mentor,
+  onPaid,
+  onCancel,
+}) => {
   if (!clientSecret) return null;
 
   const options = {
     clientSecret,
-    appearance: {
-      theme: "night", // Tùy chỉnh theme giao diện Stripe
-    },
+    appearance: { theme: "night" },
   };
 
   return (
@@ -106,7 +196,6 @@ const StripePaymentModal = ({ clientSecret, mentor, onPaid, onCancel }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="popup-title">Stripe Payment</h3>
-
         <div className="booking-summary" style={{ marginBottom: "16px" }}>
           <div className="summary-row">
             <span className="summary-label">Interviewer: </span>
@@ -124,11 +213,15 @@ const StripePaymentModal = ({ clientSecret, mentor, onPaid, onCancel }) => {
 
         {stripePromise ? (
           <Elements stripe={stripePromise} options={options}>
-            <PaymentForm onPaid={onPaid} onCancel={onCancel} />
+            <PaymentForm
+              bookingId={bookingId}
+              onPaid={onPaid}
+              onCancel={onCancel}
+            />
           </Elements>
         ) : (
           <p style={{ color: "red" }}>
-            Thiếu cấu hình NEXT_PUBLISHES_STRIPE_PUBLISHABLE_KEY trong .env
+            Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY configuration in .env
           </p>
         )}
       </div>

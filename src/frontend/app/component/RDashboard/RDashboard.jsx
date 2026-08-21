@@ -28,8 +28,12 @@ const authHeaders = () => {
 };
 
 const mapBookingStatus = (status) => {
-  switch (status) {
+  const upperStatus = (status || "").toUpperCase();
+  switch (upperStatus) {
+    case "PAID":
+      return "paid";
     case "ACCEPTED":
+      return "accepted";
     case "IN_PROGRESS":
       return "in-progress";
     case "AWAIT_REVIEW":
@@ -46,7 +50,9 @@ const mapBookingStatus = (status) => {
 
 const STATUS_LABEL = {
   pending: "Pending",
-  "in-progress": "Accepted",
+  accepted: "Accepted",
+  paid: "Paid",
+  "in-progress": "In Progress",
   "await-review": "Await Review",
   done: "Completed",
   rejected: "Rejected",
@@ -76,8 +82,12 @@ const convertBookingToDashboardRow = (booking) => {
     bookerDTO?.full_name ||
     "Unknown Candidate";
 
-  const rawStatus =
-    booking.bookingStatus || booking.booking_status || booking.status;
+  const rawStatus = (
+    booking.bookingStatus ||
+    booking.booking_status ||
+    booking.status ||
+    ""
+  ).toUpperCase();
 
   const cleanId = booking.bookingId ?? booking.booking_id;
 
@@ -91,7 +101,7 @@ const convertBookingToDashboardRow = (booking) => {
     rawStatus: rawStatus,
     status: mapBookingStatus(rawStatus),
     feedback: "",
-    money: `$${booking.totalAmount || 5}`,
+    money: `$${booking.totalAmount || 10}`,
     meetingUrl: booking.meetingUrl || booking.meeting_url,
     startUrl: booking.startUrl || booking.start_url,
     rawBooking: booking,
@@ -103,6 +113,21 @@ const toTimestamp = (dateStr, timeStr) => {
   const [day, month, year] = dateStr.split("/").map(Number);
   const [hour, minute] = timeStr.split(":").map(Number);
   return new Date(year, month - 1, day, hour, minute).getTime();
+};
+
+const isMeetingTimeValid = (dateStr, timeStr) => {
+  const meetingTimestamp = toTimestamp(dateStr, timeStr);
+  if (!meetingTimestamp) return false;
+
+  const now = Date.now();
+  const TEN_MINUTES = 10 * 60 * 1000;
+  const SIXTY_MINUTES = 60 * 60 * 1000;
+
+  // Cho phép start từ 10 phút trước giờ hẹn đến 60 phút sau giờ hẹn
+  return (
+    now >= meetingTimestamp - TEN_MINUTES &&
+    now <= meetingTimestamp + SIXTY_MINUTES
+  );
 };
 
 const RDashboard = () => {
@@ -129,7 +154,12 @@ const RDashboard = () => {
 
       const dashboardBookings = (Array.isArray(bookings) ? bookings : [])
         .filter((b) => {
-          const st = b.bookingStatus || b.booking_status || b.status;
+          const st = (
+            b.bookingStatus ||
+            b.booking_status ||
+            b.status ||
+            ""
+          ).toUpperCase();
           return st !== "PENDING";
         })
         .map((b) => convertBookingToDashboardRow(b))
@@ -151,6 +181,15 @@ const RDashboard = () => {
   const handleGoToMeeting = async (bookingId, defaultStartUrl) => {
     setJoiningId(bookingId);
     try {
+      // 1. Gửi request cập nhật trạng thái sang IN_PROGRESS nếu đang là PAID
+      await fetch(`${API_BASE}/api/v1/booking/${bookingId}/start-meeting`, {
+        method: "POST",
+        headers: authHeaders(),
+      }).catch((err) =>
+        console.log("Start meeting status update ignored/handled:", err),
+      );
+
+      // 2. Lấy link meeting mới nhất
       const res = await fetch(
         `${API_BASE}/api/v1/booking/${bookingId}/start-url`,
         {
@@ -163,6 +202,7 @@ const RDashboard = () => {
         const freshStartUrl = await res.text();
         if (freshStartUrl) {
           window.open(freshStartUrl, "_blank", "noopener,noreferrer");
+          loadBookings();
           return;
         }
       } else if (res.status === 401) {
@@ -172,13 +212,15 @@ const RDashboard = () => {
 
       if (defaultStartUrl) {
         window.open(defaultStartUrl, "_blank", "noopener,noreferrer");
+        loadBookings();
       } else {
-        alert("Không thể khởi tạo link Zoom. Vui lòng kiểm tra lại!");
+        alert("Không thể khởi tạo link Meeting. Vui lòng kiểm tra lại!");
       }
     } catch (err) {
-      console.error("Lỗi khi lấy start-url:", err);
+      console.error("Lỗi khi mở meeting:", err);
       if (defaultStartUrl) {
         window.open(defaultStartUrl, "_blank", "noopener,noreferrer");
+        loadBookings();
       } else {
         alert("Có lỗi xảy ra khi kết nối máy chủ.");
       }
@@ -264,11 +306,15 @@ const RDashboard = () => {
     }
   };
 
-  // 🟢 Sắp xếp thứ tự ưu tiên giảm dần: Accepted -> Pending -> Completed -> Rejected
   const sortedRequests = useMemo(() => {
     const getStatusPriority = (item) => {
       const st = item.rawStatus;
-      if (st === "ACCEPTED" || st === "IN_PROGRESS" || st === "AWAIT_REVIEW")
+      if (
+        st === "PAID" ||
+        st === "ACCEPTED" ||
+        st === "IN_PROGRESS" ||
+        st === "AWAIT_REVIEW"
+      )
         return 1;
       if (st === "PENDING") return 2;
       if (st === "COMPLETED") return 3;
@@ -323,6 +369,14 @@ const RDashboard = () => {
                   req.rawStatus === "CANCELLED" ||
                   isSubmittedLocally;
 
+                const isTimeValid = isMeetingTimeValid(req.date, req.time);
+
+                const canStartMeeting =
+                  (req.rawStatus === "PAID" ||
+                    req.rawStatus === "IN_PROGRESS") &&
+                  !isSubmittedLocally &&
+                  isTimeValid;
+
                 return (
                   <motion.div
                     key={req.id}
@@ -347,9 +401,7 @@ const RDashboard = () => {
                       </span>
 
                       <span className="cell-meeting">
-                        {(req.rawStatus === "ACCEPTED" ||
-                          req.rawStatus === "IN_PROGRESS") &&
-                        !isSubmittedLocally ? (
+                        {canStartMeeting ? (
                           <button
                             type="button"
                             className="go-meeting-btn"
@@ -368,7 +420,11 @@ const RDashboard = () => {
                             className="go-meeting-btn btn-disabled"
                             disabled={true}
                           >
-                            Ended
+                            {!isTimeValid &&
+                            (req.rawStatus === "PAID" ||
+                              req.rawStatus === "IN_PROGRESS")
+                              ? "Not In Time"
+                              : "Ended"}
                           </button>
                         )}
                       </span>

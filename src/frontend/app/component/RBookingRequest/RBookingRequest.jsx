@@ -220,18 +220,23 @@ const RBookingRequest = () => {
             ? `${API_BASE}/api/v1/booking/${bookingId}/confirm`
             : `${API_BASE}/api/v1/booking/${bookingId}/reject`;
 
-          const payload = isAccept
-            ? { note: "Accepted by interviewer" }
-            : undefined;
           const headers = {
             "Content-Type": "application/json",
             ...authHeaders(),
           };
 
+          // Đảm bảo luôn gửi một JSON object hợp lệ cho ConfirmBookingRequest
+          const bodyData = isAccept
+            ? JSON.stringify({
+                meeting_topic: "Interview",
+                meeting_password: "123",
+              })
+            : undefined;
+
           const res = await fetch(endpoint, {
             method: "POST",
             headers,
-            body: payload ? JSON.stringify(payload) : undefined,
+            body: bodyData,
           });
 
           if (!res.ok) {

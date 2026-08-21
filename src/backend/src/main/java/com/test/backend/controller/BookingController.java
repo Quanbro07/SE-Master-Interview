@@ -26,7 +26,7 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("api/v1/booking")
+@RequestMapping("/api/v1/booking")
 public class BookingController {
 
     private final BookingService bookingService;
@@ -45,7 +45,7 @@ public class BookingController {
     }
 
     // Lấy các review của 1 interiviewer
-    @GetMapping("interviewer/{interviewerId}/review")
+    @GetMapping("/interviewer/{interviewerId}/review")
     public ResponseEntity<Page<InterviewerReviewResponse>> getInterviewerReview(
             @RequestParam("page") int page,
             @RequestParam("size") int size,
