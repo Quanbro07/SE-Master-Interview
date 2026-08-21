@@ -26,29 +26,38 @@ const authHeaders = () => {
   };
 };
 
+// 🛠️ Helper map địa chỉ Docker/MinIO về localhost để Trình duyệt mở trực tiếp được
+const getBrowserCvUrl = (rawUrl) => {
+  if (!rawUrl || typeof rawUrl !== "string" || rawUrl.trim() === "")
+    return null;
+
+  let formattedUrl = rawUrl.trim();
+
+  // 1. Chuyển host Docker thành localhost
+  formattedUrl = formattedUrl
+    .replace("host.docker.internal", "localhost")
+    .replace("minio:9000", "localhost:9000");
+
+  // 2. Nếu là đường dẫn tương đối từ backend thì đính kèm API_BASE
+  if (
+    !formattedUrl.startsWith("http://") &&
+    !formattedUrl.startsWith("https://")
+  ) {
+    const cleanPath = formattedUrl.startsWith("/")
+      ? formattedUrl
+      : `/${formattedUrl}`;
+    formattedUrl = `${API_BASE}${cleanPath}`;
+  }
+
+  return formattedUrl;
+};
+
 const convertBookingToRequest = (booking) => {
   if (!booking) return null;
 
-  // 📝 LOG FULL BOOKING RESPONSE CHUẨN THEO DTO BACKEND
-  console.log(
-    `📋 [FULL BOOKING RESPONSE - ID #${booking.booking_id || booking.bookingId}]:`,
-    {
-      booking_id: booking.booking_id || booking.bookingId,
-      booker: booking.booker || booking.bookerResponseDTO,
-      interviewer: booking.interviewer || booking.interviewerResponseDTO,
-      booking_status: booking.booking_status || booking.bookingStatus,
-      meeting_id: booking.meeting_id || booking.meetingId,
-      meeting_url: booking.meeting_url || booking.meetingUrl,
-      meeting_password: booking.meeting_password || booking.meetingPassword,
-      start_time: booking.start_time || booking.startTime,
-      end_time: booking.end_time || booking.endTime,
-      cv_url: booking.cv_url || booking.cvUrl,
-    },
-  );
-
   const bookingId = booking.booking_id || booking.bookingId;
 
-  // 1. Đọc cv_url từ backend response
+  // 1. Lấy cv_url từ các thuộc tính có thể trả về của DTO Backend
   let rawCvUrl =
     booking.cv_url ||
     booking.cvUrl ||
@@ -56,18 +65,10 @@ const convertBookingToRequest = (booking) => {
     booking.booker?.cvUrl ||
     null;
 
-  // 2. Chuyển thành URL hoàn chỉnh
-  let fullCvUrl = null;
-  if (rawCvUrl && typeof rawCvUrl === "string" && rawCvUrl.trim() !== "") {
-    if (rawCvUrl.startsWith("http://") || rawCvUrl.startsWith("https://")) {
-      fullCvUrl = rawCvUrl;
-    } else {
-      const cleanPath = rawCvUrl.startsWith("/") ? rawCvUrl : `/${rawCvUrl}`;
-      fullCvUrl = `${API_BASE}${cleanPath}`;
-    }
-  }
+  // 2. Chuyển đổi thành URL truy cập được trên browser
+  const fullCvUrl = getBrowserCvUrl(rawCvUrl);
 
-  // 3. Tách tên file
+  // 3. Tách tên file hiển thị
   let fileName = "Candidate_CV.pdf";
   if (fullCvUrl) {
     const segments = fullCvUrl.split("/");
@@ -140,9 +141,6 @@ const RBookingRequest = () => {
       }
 
       const responseData = await res.json();
-
-      // 📝 LOG TOÀN BỘ MẢNG BOOKING RESPONSE NHẬN VỀ TỪ API
-      console.log("📦 [RAW API RESPONSE FROM /all-bookings]:", responseData);
 
       const bookingsArray = Array.isArray(responseData)
         ? responseData
@@ -225,7 +223,6 @@ const RBookingRequest = () => {
             ...authHeaders(),
           };
 
-          // Đảm bảo luôn gửi một JSON object hợp lệ cho ConfirmBookingRequest
           const bodyData = isAccept
             ? JSON.stringify({
                 meeting_topic: "Interview",

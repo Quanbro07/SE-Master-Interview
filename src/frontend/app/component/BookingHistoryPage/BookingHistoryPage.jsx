@@ -3,6 +3,8 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import NavigationBar from "../NavigationBar/NavigationBar";
 import StripePaymentModal from "../BookingPage/StripePaymentModal";
+import UserHeader from "../UserHeader/UserHeader";
+import ChatPanel from "../ChatPanel/ChatPanel";
 import "./BookingHistoryPage.css";
 
 const API_BASE =
@@ -158,6 +160,8 @@ const convertBookingToDashboardRow = (booking) => {
 };
 
 const BookingHistoryPage = () => {
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [requests, setRequests] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -170,6 +174,23 @@ const BookingHistoryPage = () => {
 
   const [paymentTarget, setPaymentTarget] = useState(null);
   const [creatingIntent, setCreatingIntent] = useState(false);
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) setCurrentUser(JSON.parse(userStr));
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const handleToggleChat = () => {
+    setIsChatOpen((prev) => !prev);
+  };
+
+  const handleBookFromChat = (data) => {
+    console.log("Book from chat action:", data);
+  };
 
   const loadBookings = useCallback(async () => {
     setLoading(true);
@@ -297,8 +318,24 @@ const BookingHistoryPage = () => {
   };
 
   return (
-    <div className="booking-history-root">
+    <div
+      className="booking-history-root"
+      style={{
+        paddingRight: isChatOpen ? "320px" : "0px",
+        transition: "padding-right 0.3s ease",
+      }}
+    >
       <NavigationBar />
+      <UserHeader
+        user={currentUser}
+        isChatOpen={isChatOpen}
+        onToggleChat={handleToggleChat}
+      />
+      <ChatPanel
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        onBookFromChat={handleBookFromChat}
+      />
       <main className="booking-history-main">
         <section className="booking-history-inner">
           <h1 className="booking-history-title">-----BOOKING HISTORY-----</h1>
@@ -557,7 +594,6 @@ const BookingHistoryPage = () => {
           </div>
         </section>
       </main>
-
       {paymentTarget && (
         <StripePaymentModal
           clientSecret={paymentTarget.clientSecret}

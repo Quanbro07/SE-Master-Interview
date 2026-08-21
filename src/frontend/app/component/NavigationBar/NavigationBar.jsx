@@ -9,7 +9,6 @@ const navItems = [
   { label: "Mock interview", href: "/mock-interview" },
   { label: "Self-practice", href: "/self-practice" },
   { label: "CV assessment", href: "/cv-assessment" },
-  { label: "Feedback", href: "/feedback" },
   { label: "Booking history", href: "/booking-history" },
 ];
 
@@ -21,8 +20,7 @@ const NavigationBar = () => {
     setIsCollapsed(!isCollapsed);
   };
 
-  const isActive = (href) =>
-    pathname === href || (href === "/feedback" && pathname === "/");
+  const isActive = (href) => pathname === href;
 
   return (
     <aside className={`navigation-bar ${isCollapsed ? "collapsed" : ""}`}>

@@ -242,16 +242,22 @@ public class BookingService {
                 .orElseThrow(() -> new NotFoundException("Booking not found"));
 
         // 1. Kiểm tra bảo mật: Chỉ Interviewer của buổi này mới được lấy startUrl
-        if (!booking.getInterviewer().getInterviewerId().equals(userId)) {
+        if (!booking.getInterviewer().getUser().getUserId().equals(userId)) {
             throw new ForbiddenOperationException("Only the designated interviewer can start this meeting");
         }
 
+        LocalDateTime now = LocalDateTime.now();
         LocalDateTime startTime = booking.getStartTime();
+        LocalDateTime endTime = booking.getEndTime();
 
         Duration duration = Duration.between(LocalDateTime.now(), startTime);
 
-        if(duration.toMinutes() > 60) {
-            throw new ForbiddenOperationException("You can only get start URL within one hour after the start time");
+        if (now.isBefore(startTime.minusMinutes(60))) {
+            throw new ForbiddenOperationException("You can only get the start URL starting 15 minutes before the interview time.");
+        }
+
+        if (now.isAfter(endTime)) {
+            throw new ForbiddenOperationException("This meeting has already ended.");
         }
 
         String freshStartUrl = zoomService.getFreshStartUrl(booking.getMeetingId());

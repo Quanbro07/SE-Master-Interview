@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import NavigationBar from "../NavigationBar/NavigationBar";
+import UserHeader from "../UserHeader/UserHeader";
+import ChatPanel from "../ChatPanel/ChatPanel";
 import "./MockInterviewPage.css";
 
 const API_BASE =
@@ -8,7 +10,6 @@ const API_BASE =
 
 const POOL_SIZE = 10;
 
-// Helper lấy Clean Authorization Token
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
   const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
@@ -28,6 +29,8 @@ const getAccessToken = () => {
 };
 
 const MockInterviewPage = () => {
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [positionQuery, setPositionQuery] = useState("");
   const [positionSuggestions, setPositionSuggestions] = useState([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
@@ -49,7 +52,7 @@ const MockInterviewPage = () => {
   const audioChunksRef = useRef([]);
 
   const [history, setHistory] = useState([]);
-  const [evaluations, setEvaluations] = useState([]); // Chứa kết quả đánh giá từ backend
+  const [evaluations, setEvaluations] = useState([]);
   const [reviewMode, setReviewMode] = useState(false);
   const [reviewIndex, setReviewIndex] = useState(0);
 
@@ -57,7 +60,19 @@ const MockInterviewPage = () => {
   const hasMoreInPool = poolIndex < pool.length - 1;
   const showCard = selectedField && !loading && currentQuestion && !reviewMode;
 
-  // Lấy gợi ý Vị trí (Position) từ Backend
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) setCurrentUser(JSON.parse(userStr));
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const handleToggleChat = () => {
+    setIsChatOpen((prev) => !prev);
+  };
+
   useEffect(() => {
     if (!positionQuery.trim()) {
       setPositionSuggestions([]);
@@ -110,7 +125,6 @@ const MockInterviewPage = () => {
     setSelectedField("");
   };
 
-  // 1. Tải danh sách câu hỏi từ Postgres DB thông qua API Backend
   const startSession = async (position) => {
     setSelectedField(position);
     setSuggestionsOpen(false);
@@ -190,7 +204,6 @@ const MockInterviewPage = () => {
     }
   };
 
-  // 2. Kết thúc phỏng vấn và gửi toàn bộ câu trả lời lên Backend để đánh giá
   const endInterview = async () => {
     if (!currentQuestion) return;
 
@@ -306,8 +319,20 @@ const MockInterviewPage = () => {
   );
 
   return (
-    <div className="mock-page-root">
+    <div
+      className="mock-page-root"
+      style={{
+        paddingRight: isChatOpen ? "320px" : "0px",
+        transition: "padding-right 0.3s ease",
+      }}
+    >
       <NavigationBar />
+      <UserHeader
+        user={currentUser}
+        isChatOpen={isChatOpen}
+        onToggleChat={handleToggleChat}
+      />
+      <ChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       <main className="mock-main">
         <section className="mock-inner">
           <h1 className="mockinterview-title">MOCK INTERVIEW</h1>
