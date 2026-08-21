@@ -203,7 +203,7 @@ services:
 
       context: ./core_ai
 
-      dockerfile: dockerfile
+      dockerfile: Dockerfile
 
     container_name: master-interview-ai
 
