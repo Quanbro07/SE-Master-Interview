@@ -246,12 +246,17 @@ public class BookingService {
             throw new ForbiddenOperationException("Only the designated interviewer can start this meeting");
         }
 
+        // 2. Kiểm tra trạng thái Booking (Chỉ cho phép PAID hoặc IN_PROGRESS)
+        if (booking.getStatus() != BookingStatus.PAID && booking.getStatus() != BookingStatus.IN_PROGRESS) {
+            throw new ForbiddenOperationException("Meeting is not available to start. Current status: " + booking.getStatus());
+        }
+
         LocalDateTime startTime = booking.getStartTime();
 
         Duration duration = Duration.between(LocalDateTime.now(), startTime);
 
         if(duration.toMinutes() > 60) {
-            throw new ForbiddenOperationException("You can only get start URL within one hour after the start time");
+            throw new ForbiddenOperationException("You can only get the start URL up to one hour before the start time");
         }
 
         String freshStartUrl = zoomService.getFreshStartUrl(booking.getMeetingId());
