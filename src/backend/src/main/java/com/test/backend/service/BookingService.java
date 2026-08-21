@@ -242,6 +242,13 @@ public class BookingService {
             throw new ForbiddenOperationException("Only the designated interviewer can start this meeting");
         }
 
+        LocalDateTime startTime = booking.getStartTime();
+
+        Duration duration = Duration.between(LocalDateTime.now(), startTime);
+
+        if(duration.toMinutes() > 60) {
+            throw new ForbiddenOperationException("You can only get start URL within one hour after the start time");
+        }
 
         String freshStartUrl = zoomService.getFreshStartUrl(booking.getMeetingId());
 
