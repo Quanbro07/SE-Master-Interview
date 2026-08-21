@@ -85,6 +85,10 @@ public class BookingService {
             String position,
             LocalDate date,
             int page, int size) {
+        if(date.isBefore(LocalDate.now())) {
+            throw new ForbiddenOperationException("You cannot book in the past");
+        }
+
         Pageable pageable = PageRequest.of(page, size);
 
         Page<InterviewerExpertise> expertisePage = interviewerExpertiseRepository
@@ -242,6 +246,13 @@ public class BookingService {
             throw new ForbiddenOperationException("Only the designated interviewer can start this meeting");
         }
 
+        LocalDateTime startTime = booking.getStartTime();
+
+        Duration duration = Duration.between(LocalDateTime.now(), startTime);
+
+        if(duration.toMinutes() > 60) {
+            throw new ForbiddenOperationException("You can only get start URL within one hour after the start time");
+        }
 
         String freshStartUrl = zoomService.getFreshStartUrl(booking.getMeetingId());
 
