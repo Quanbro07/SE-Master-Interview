@@ -255,6 +255,8 @@ public class BookingService {
 
         Duration duration = Duration.between(LocalDateTime.now(), startTime);
 
+        log.info("Thời gian " + duration.toMinutes());
+
         if(duration.toMinutes() > 60) {
             throw new ForbiddenOperationException("You can only get the start URL up to one hour before the start time");
         }
