@@ -85,6 +85,10 @@ public class BookingService {
             String position,
             LocalDate date,
             int page, int size) {
+        if(date.isBefore(LocalDate.now())) {
+            throw new ForbiddenOperationException("You cannot book in the past");
+        }
+
         Pageable pageable = PageRequest.of(page, size);
 
         Page<InterviewerExpertise> expertisePage = interviewerExpertiseRepository
