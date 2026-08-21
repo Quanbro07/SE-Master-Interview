@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.test.backend.entity.booking.BookingStatus;
 import lombok.Builder;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -36,6 +37,9 @@ public record BookingResponse(
 
         @JsonProperty("end_time")
         LocalDateTime endTime,
+
+        @JsonProperty("total_amount")
+        BigDecimal totalAmount,
 
         @JsonProperty("cv_url")
         String cvUrl

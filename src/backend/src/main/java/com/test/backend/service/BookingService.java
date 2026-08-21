@@ -426,6 +426,7 @@ public class BookingService {
                 .startTime(newBooking.getStartTime())
                 .endTime(newBooking.getEndTime())
                 .cvUrl(newBooking.getCvUrl())
+                .totalAmount(newBooking.getTotalAmount())
                 .bookingStatus(newBooking.getStatus());
 
         // Nếu status là ACCEPTED thì mới trả về link (tùy logic nghiệp vụ của bạn)
