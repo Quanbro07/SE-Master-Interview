@@ -4,60 +4,44 @@ import { AnimatePresence, motion } from "framer-motion";
 import RNavigationBar from "../RNavigationBar/RNavigationBar";
 import "./RBookingRequest.css";
 
-const API_BASE = "http://localhost:8080";
-
-const getAccessToken = () => {
-  if (typeof window === "undefined") return "";
-  const token =
-    localStorage.getItem("accessToken") ||
-    localStorage.getItem("token") ||
-    localStorage.getItem("jwt") ||
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("access_token") ||
-    "";
-  return token;
-};
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+const getAccessToken = () =>
+  typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
 
 const authHeaders = () => {
   const token = getAccessToken();
-  if (!token) return {};
-  return {
-    Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
-  };
-};
-
-// 🛠️ Helper map địa chỉ Docker/MinIO về localhost để Trình duyệt mở trực tiếp được
-const getBrowserCvUrl = (rawUrl) => {
-  if (!rawUrl || typeof rawUrl !== "string" || rawUrl.trim() === "")
-    return null;
-
-  let formattedUrl = rawUrl.trim();
-
-  // 1. Chuyển host Docker thành localhost
-  formattedUrl = formattedUrl
-    .replace("host.docker.internal", "localhost")
-    .replace("minio:9000", "localhost:9000");
-
-  // 2. Nếu là đường dẫn tương đối từ backend thì đính kèm API_BASE
-  if (
-    !formattedUrl.startsWith("http://") &&
-    !formattedUrl.startsWith("https://")
-  ) {
-    const cleanPath = formattedUrl.startsWith("/")
-      ? formattedUrl
-      : `/${formattedUrl}`;
-    formattedUrl = `${API_BASE}${cleanPath}`;
-  }
-
-  return formattedUrl;
+  return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
 const convertBookingToRequest = (booking) => {
   if (!booking) return null;
 
   const bookingId = booking.booking_id || booking.bookingId;
+  const rawStatus = (
+    booking.booking_status ||
+    booking.bookingStatus ||
+    booking.status ||
+    ""
+  )
+    .toString()
+    .toUpperCase();
 
-  // 1. Lấy cv_url từ các thuộc tính có thể trả về của DTO Backend
+  // 📝 LOG FULL BOOKING RESPONSE CHUẨN THEO DTO BACKEND
+  console.log(`📋 [FULL BOOKING RESPONSE - ID #${bookingId}]:`, {
+    booking_id: bookingId,
+    booker: booking.booker || booking.bookerResponseDTO,
+    interviewer: booking.interviewer || booking.interviewerResponseDTO,
+    booking_status: rawStatus,
+    meeting_id: booking.meeting_id || booking.meetingId,
+    meeting_url: booking.meeting_url || booking.meetingUrl,
+    meeting_password: booking.meeting_password || booking.meetingPassword,
+    start_time: booking.start_time || booking.startTime,
+    end_time: booking.end_time || booking.endTime,
+    cv_url: booking.cv_url || booking.cvUrl,
+  });
+
+  // 1. Đọc cv_url từ backend response
   let rawCvUrl =
     booking.cv_url ||
     booking.cvUrl ||
@@ -65,10 +49,18 @@ const convertBookingToRequest = (booking) => {
     booking.booker?.cvUrl ||
     null;
 
-  // 2. Chuyển đổi thành URL truy cập được trên browser
-  const fullCvUrl = getBrowserCvUrl(rawCvUrl);
+  // 2. Chuyển thành URL hoàn chỉnh
+  let fullCvUrl = null;
+  if (rawCvUrl && typeof rawCvUrl === "string" && rawCvUrl.trim() !== "") {
+    if (rawCvUrl.startsWith("http://") || rawCvUrl.startsWith("https://")) {
+      fullCvUrl = rawCvUrl;
+    } else {
+      const cleanPath = rawCvUrl.startsWith("/") ? rawCvUrl : `/${rawCvUrl}`;
+      fullCvUrl = `${API_BASE}${cleanPath}`;
+    }
+  }
 
-  // 3. Tách tên file hiển thị
+  // 3. Tách tên file
   let fileName = "Candidate_CV.pdf";
   if (fullCvUrl) {
     const segments = fullCvUrl.split("/");
@@ -90,6 +82,7 @@ const convertBookingToRequest = (booking) => {
   return {
     id: `booking-${bookingId}`,
     bookingId: bookingId,
+    status: rawStatus,
     date: startTime.toLocaleDateString("en-GB"),
     time: startTime.toLocaleTimeString("en-GB", {
       hour: "2-digit",
@@ -132,15 +125,21 @@ const RBookingRequest = () => {
     };
 
     try {
-      const res = await fetch(`${API_BASE}/api/v1/booking/all-bookings`, {
-        headers,
-      });
+      // SỬA ĐỔI: Gọi filter=PENDING để chỉ lấy các Yêu cầu đang đợi Confirm/Reject
+      const res = await fetch(
+        `${API_BASE}/api/v1/booking/all-bookings?filter=PENDING`,
+        {
+          headers,
+        },
+      );
 
       if (!res.ok) {
         throw new Error(`Server returned status ${res.status}`);
       }
 
       const responseData = await res.json();
+
+      console.log("📦 [RAW API RESPONSE FROM /all-bookings]:", responseData);
 
       const bookingsArray = Array.isArray(responseData)
         ? responseData
@@ -154,19 +153,12 @@ const RBookingRequest = () => {
         return;
       }
 
+      // SỬA ĐỔI: Lọc chỉ lấy các Booking có trạng thái PENDING
       const validBookings = bookingsArray.filter((b) => {
         const status = (b.booking_status || b.bookingStatus || b.status || "")
           .toString()
           .toUpperCase();
-
-        return (
-          !status ||
-          status === "PENDING" ||
-          status === "PAID" ||
-          status === "WAITING" ||
-          status === "CONFIRMED" ||
-          status === "CREATED"
-        );
+        return status === "PENDING";
       });
 
       const convertedRequests = validBookings
@@ -218,9 +210,14 @@ const RBookingRequest = () => {
             ? `${API_BASE}/api/v1/booking/${bookingId}/confirm`
             : `${API_BASE}/api/v1/booking/${bookingId}/reject`;
 
+          const token = getAccessToken();
+          if (!token) {
+            throw new Error("Missing access token. Please login again.");
+          }
+
           const headers = {
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
-            ...authHeaders(),
           };
 
           const bodyData = isAccept
@@ -228,7 +225,7 @@ const RBookingRequest = () => {
                 meeting_topic: "Interview",
                 meeting_password: "123",
               })
-            : undefined;
+            : JSON.stringify({});
 
           const res = await fetch(endpoint, {
             method: "POST",
@@ -237,8 +234,15 @@ const RBookingRequest = () => {
           });
 
           if (!res.ok) {
+            const errorRes = await res.json().catch(() => ({}));
+            console.error(
+              "❌ Response error from backend:",
+              res.status,
+              errorRes,
+            );
             setError(
-              `Failed to ${isAccept ? "confirm" : "reject"} booking (${res.status})`,
+              errorRes.message ||
+                `Failed to ${isAccept ? "confirm" : "reject"} booking (${res.status})`,
             );
           } else {
             setTimeout(() => loadBookingRequests(), 500);

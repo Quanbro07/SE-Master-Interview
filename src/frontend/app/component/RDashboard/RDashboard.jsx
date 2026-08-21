@@ -9,14 +9,14 @@ const API_BASE =
 
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
-  const token =
+  return (
     localStorage.getItem("accessToken") ||
     localStorage.getItem("token") ||
     localStorage.getItem("jwt") ||
     localStorage.getItem("authToken") ||
     localStorage.getItem("access_token") ||
-    "";
-  return token;
+    ""
+  );
 };
 
 const authHeaders = () => {
@@ -91,15 +91,6 @@ const convertBookingToDashboardRow = (booking) => {
 
   const cleanId = booking.bookingId ?? booking.booking_id;
 
-  // ƯU TIÊN startUrl -> joinUrl / meetingUrl
-  const preferredMeetingUrl =
-    booking.startUrl ||
-    booking.start_url ||
-    booking.joinUrl ||
-    booking.join_url ||
-    booking.meetingUrl ||
-    booking.meeting_url;
-
   return {
     id: `booking-${cleanId}`,
     bookingId: Number(cleanId),
@@ -111,7 +102,8 @@ const convertBookingToDashboardRow = (booking) => {
     status: mapBookingStatus(rawStatus),
     feedback: "",
     money: `$${booking.totalAmount || 10}`,
-    startUrl: preferredMeetingUrl,
+    meetingUrl: booking.meetingUrl || booking.meeting_url,
+    startUrl: booking.startUrl || booking.start_url,
     rawBooking: booking,
   };
 };
@@ -131,6 +123,7 @@ const isMeetingTimeValid = (dateStr, timeStr) => {
   const TEN_MINUTES = 10 * 60 * 1000;
   const SIXTY_MINUTES = 60 * 60 * 1000;
 
+  // Cho phép start từ 10 phút trước giờ hẹn đến 60 phút sau giờ hẹn
   return (
     now >= meetingTimestamp - TEN_MINUTES &&
     now <= meetingTimestamp + SIXTY_MINUTES
@@ -185,81 +178,51 @@ const RDashboard = () => {
     loadBookings();
   }, [loadBookings]);
 
-  const handleGoToMeeting = async (bookingId, fallbackUrl) => {
-    const cleanBookingId = Number(bookingId);
-    if (!cleanBookingId) {
-      console.error("❌ [Start Meeting] Booking ID không hợp lệ:", bookingId);
-      alert("Booking ID không hợp lệ!");
-      return;
-    }
-
-    setJoiningId(cleanBookingId);
-    const headers = authHeaders();
-
-    // 🔍 LOG DEBUG: Kiểm tra Token & Request
-    console.group(
-      `🚀 [Start Meeting] Requesting Zoom URL for Booking #${cleanBookingId}`,
-    );
-    console.log("📌 Request Headers Sent:", headers);
-    console.log("📌 Fallback URL Available:", fallbackUrl);
-
+  const handleGoToMeeting = async (bookingId, defaultStartUrl) => {
+    setJoiningId(bookingId);
     try {
+      // 1. Gửi request cập nhật trạng thái sang IN_PROGRESS nếu đang là PAID
+      await fetch(`${API_BASE}/api/v1/booking/${bookingId}/start-meeting`, {
+        method: "POST",
+        headers: authHeaders(),
+      }).catch((err) =>
+        console.log("Start meeting status update ignored/handled:", err),
+      );
+
+      // 2. Lấy link meeting mới nhất
       const res = await fetch(
-        `${API_BASE}/api/v1/booking/${cleanBookingId}/start-url`,
+        `${API_BASE}/api/v1/booking/${bookingId}/start-url`,
         {
           method: "GET",
-          headers: headers,
+          headers: authHeaders(),
         },
       );
 
-      console.log(`📡 Response Status: ${res.status} ${res.statusText}`);
-
       if (res.ok) {
         const freshStartUrl = await res.text();
-        console.log("✅ Received Fresh Start URL:", freshStartUrl);
-
-        if (freshStartUrl && freshStartUrl.trim() !== "") {
-          console.groupEnd();
+        if (freshStartUrl) {
           window.open(freshStartUrl, "_blank", "noopener,noreferrer");
           loadBookings();
           return;
         }
-      } else {
-        // 🚨 Đọc chi tiết lỗi từ Backend trả về
-        const errorDetail = await res.text().catch(() => "No response body");
-        console.error("❌ Backend Error Details:", {
-          status: res.status,
-          statusText: res.statusText,
-          message: errorDetail,
-        });
-
-        if (res.status === 401 || res.status === 403) {
-          alert(
-            `Lỗi ${res.status}: Bạn không có quyền hoặc phiên đăng nhập hết hạn! Chi tiết: ${errorDetail}`,
-          );
-        }
+      } else if (res.status === 401) {
+        alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+        return;
       }
 
-      // 🔄 THỬ FALLBACK LINK
-      if (fallbackUrl) {
-        console.warn("⚠️ Using Fallback URL instead:", fallbackUrl);
-        console.groupEnd();
-        window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+      if (defaultStartUrl) {
+        window.open(defaultStartUrl, "_blank", "noopener,noreferrer");
         loadBookings();
       } else {
-        console.error("❌ No Fallback URL available!");
-        console.groupEnd();
-        alert(
-          "Không thể lấy link Zoom meeting. Vui lòng kiểm tra lại Console!",
-        );
+        alert("Không thể khởi tạo link Meeting. Vui lòng kiểm tra lại!");
       }
     } catch (err) {
-      console.error("🔥 Exception during fetch:", err);
-      console.groupEnd();
-
-      if (fallbackUrl) {
-        window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+      console.error("Lỗi khi mở meeting:", err);
+      if (defaultStartUrl) {
+        window.open(defaultStartUrl, "_blank", "noopener,noreferrer");
         loadBookings();
+      } else {
+        alert("Có lỗi xảy ra khi kết nối máy chủ.");
       }
     } finally {
       setJoiningId(null);

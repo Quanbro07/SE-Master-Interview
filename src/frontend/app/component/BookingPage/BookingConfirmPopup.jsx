@@ -95,33 +95,6 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
     return day === 0 ? 8 : day + 1;
   };
 
-  const getCleanToken = () => {
-    if (typeof window === "undefined") return "";
-    const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
-    let token = "";
-    for (const key of keys) {
-      const val = localStorage.getItem(key);
-      if (val) {
-        token = val;
-        break;
-      }
-    }
-    if (!token) {
-      try {
-        const userObj = JSON.parse(localStorage.getItem("user") || "{}");
-        token = userObj.token || userObj.accessToken || userObj.jwt || "";
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return token
-      ? token
-          .replace(/^"(.*)"$/, "$1")
-          .replace(/^Bearer\s+/i, "")
-          .trim()
-      : "";
-  };
-
   useEffect(() => {
     if (!mentor?.id) return;
 
@@ -130,7 +103,13 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
       setSelectedSlot(null);
       try {
         const dateStr = formatDateForBackend(selectedDate);
-        const cleanToken = getCleanToken();
+        const rawToken =
+          localStorage.getItem("accessToken") ||
+          localStorage.getItem("token") ||
+          localStorage.getItem("jwt");
+        const cleanToken = rawToken
+          ? rawToken.trim().replace(/^Bearer\s+/i, "")
+          : "";
 
         const res = await fetch(
           `${API_BASE}/api/v1/schedule/get?interviewerId=${mentor.id}&dateInWeek=${dateStr}`,
@@ -215,12 +194,15 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
     setSubmitting(true);
 
     try {
-      const cleanToken = getCleanToken();
-      if (!cleanToken) {
-        throw new Error("Session expired. Please log in again.");
-      }
-
+      const rawToken =
+        localStorage.getItem("accessToken") ||
+        localStorage.getItem("token") ||
+        localStorage.getItem("jwt");
+      const cleanToken = rawToken
+        ? rawToken.trim().replace(/^Bearer\s+/i, "")
+        : "";
       const authHeader = `Bearer ${cleanToken}`;
+
       const formattedDate = formatDateForBackend(selectedDate);
       const startDateTime = `${formattedDate} ${selectedSlot.start}:00`;
       const endDateTime = `${formattedDate} ${selectedSlot.end}:00`;
@@ -234,7 +216,6 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
         note: "Interview Booking",
       };
 
-      // 1. Tạo lượt Booking
       const res = await fetch(
         `${API_BASE}/api/v1/booking/booking-interviewer`,
         {
@@ -249,13 +230,11 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
 
       if (!res.ok) throw new Error("Booking creation failed");
       const booking = await res.json();
-      const bookingId = booking?.booking_id || booking?.bookingId;
-      if (!bookingId) throw new Error("Booking ID not returned from server!");
+      const bookingId = booking?.booking_id;
+      if (!bookingId) throw new Error("bookingId not found!");
 
-      // 2. Upload CV theo bookingId vừa khởi tạo
       const uploadedCvUrl = await uploadCvBooking(bookingId, cvFile);
-      if (!uploadedCvUrl)
-        throw new Error("CV upload failed. Please try again.");
+      if (!uploadedCvUrl) throw new Error("CV upload failed.");
 
       if (onConfirm) {
         onConfirm({ ...booking, bookingId, cvUrl: uploadedCvUrl });

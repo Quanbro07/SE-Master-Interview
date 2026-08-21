@@ -12,8 +12,8 @@ import {
 import RNavigationBar from "../RNavigationBar/RNavigationBar";
 import "./RCalendar.css";
 
-// Thời gian từ 0h đến 23h (mỗi bước 1h)
-const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0 -> 23
+// Thời gian từ 9h đến 22h (mỗi bước 1h)
+const HOURS = Array.from({ length: 14 }, (_, i) => i + 9); // 9 -> 22
 const WEEKDAY_LABELS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
 const API_BASE =
@@ -25,25 +25,12 @@ const repeatKey = (weekdayIndex, hour) => `${weekdayIndex}-${hour}`;
 const weekdayIndexToDayOfWeek = (weekdayIndex) => weekdayIndex + 2;
 const dayOfWeekToWeekdayIndex = (dayOfWeek) => dayOfWeek - 2;
 
-const getAccessToken = () => {
-  if (typeof window === "undefined") return "";
-  return (
-    localStorage.getItem("accessToken") ||
-    localStorage.getItem("token") ||
-    localStorage.getItem("jwt") ||
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("access_token") ||
-    ""
-  );
-};
+const getAccessToken = () =>
+  typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
 
 const authHeaders = () => {
   const token = getAccessToken();
-  if (!token) return {};
-  return {
-    Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
-    "Content-Type": "application/json",
-  };
+  return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
 const mergeHoursIntoRanges = (hours) => {
@@ -66,10 +53,8 @@ const mergeHoursIntoRanges = (hours) => {
   return ranges;
 };
 
-const formatHourAsTime = (hour) => {
-  if (hour === 24) return "23:59:59";
-  return `${String(hour).padStart(2, "0")}:00:00`;
-};
+const formatHourAsTime = (hour) => `${String(hour).padStart(2, "0")}:00:00`;
+
 const parseHourFromTimeString = (value) => {
   if (!value) return null;
   const [hourStr] = value.split(":");
