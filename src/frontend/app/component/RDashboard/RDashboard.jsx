@@ -110,7 +110,29 @@ const convertBookingToDashboardRow = (booking) => {
 
 const toTimestamp = (dateStr, timeStr) => {
   if (!dateStr || !timeStr) return 0;
-  const [day, month, year] = dateStr.split("/").map(Number);
+
+  // Tách an toàn hỗ trợ cả dạng DD/MM/YYYY lẫn YYYY-MM-DD
+  let day, month, year;
+  if (dateStr.includes("/")) {
+    const parts = dateStr.split("/").map(Number);
+    // Nếu năm nằm ở cuối (DD/MM/YYYY)
+    if (parts[2] > 1000) {
+      [day, month, year] = parts;
+    } else {
+      // Trường hợp MM/DD/YYYY
+      [month, day, year] = parts;
+    }
+  } else if (dateStr.includes("-")) {
+    const parts = dateStr.split("-").map(Number);
+    if (parts[0] > 1000) {
+      [year, month, day] = parts;
+    } else {
+      [day, month, year] = parts;
+    }
+  } else {
+    return 0;
+  }
+
   const [hour, minute] = timeStr.split(":").map(Number);
   return new Date(year, month - 1, day, hour, minute).getTime();
 };
@@ -120,16 +142,15 @@ const isMeetingTimeValid = (dateStr, timeStr) => {
   if (!meetingTimestamp) return false;
 
   const now = Date.now();
-  const TEN_MINUTES = 10 * 60 * 1000;
-  const SIXTY_MINUTES = 60 * 60 * 1000;
+  // Cho phép Interviewer vào phòng trước 30 phút và kéo dài tối đa 120 phút sau giờ hẹn
+  const THIRTY_MINUTES = 30 * 60 * 1000;
+  const TWO_HOURS = 60 * 60 * 1000;
 
-  // Cho phép start từ 10 phút trước giờ hẹn đến 60 phút sau giờ hẹn
   return (
-    now >= meetingTimestamp - TEN_MINUTES &&
-    now <= meetingTimestamp + SIXTY_MINUTES
+    now >= meetingTimestamp - THIRTY_MINUTES &&
+    now <= meetingTimestamp + TWO_HOURS
   );
 };
-
 const RDashboard = () => {
   const [submittedBookings, setSubmittedBookings] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -181,7 +202,7 @@ const RDashboard = () => {
   const handleGoToMeeting = async (bookingId, defaultStartUrl) => {
     setJoiningId(bookingId);
     try {
-      // 1. Gửi request cập nhật trạng thái sang IN_PROGRESS nếu đang là PAID
+      // 1. Gửi request cập nhật trạng thái sang IN_PROGRESS
       await fetch(`${API_BASE}/api/v1/booking/${bookingId}/start-meeting`, {
         method: "POST",
         headers: authHeaders(),
@@ -189,7 +210,7 @@ const RDashboard = () => {
         console.log("Start meeting status update ignored/handled:", err),
       );
 
-      // 2. Lấy link meeting mới nhất
+      // 2. Gọi Backend lấy Zoom Meeting Start URL mới nhất từ Zoom API
       const res = await fetch(
         `${API_BASE}/api/v1/booking/${bookingId}/start-url`,
         {
@@ -199,8 +220,14 @@ const RDashboard = () => {
       );
 
       if (res.ok) {
-        const freshStartUrl = await res.text();
+        let freshStartUrl = await res.text();
+
+        // Làm sạch chuỗi URL nếu Backend trả về dạng "https://..." (bị dính dấu quote)
         if (freshStartUrl) {
+          freshStartUrl = freshStartUrl.trim().replace(/^"+|"+$/g, "");
+        }
+
+        if (freshStartUrl && freshStartUrl.startsWith("http")) {
           window.open(freshStartUrl, "_blank", "noopener,noreferrer");
           loadBookings();
           return;
@@ -210,19 +237,21 @@ const RDashboard = () => {
         return;
       }
 
+      // 3. Fallback dùng defaultStartUrl nếu có
       if (defaultStartUrl) {
-        window.open(defaultStartUrl, "_blank", "noopener,noreferrer");
+        const cleanDefaultUrl = defaultStartUrl.trim().replace(/^"+|"+$/g, "");
+        window.open(cleanDefaultUrl, "_blank", "noopener,noreferrer");
         loadBookings();
       } else {
-        alert("Không thể khởi tạo link Meeting. Vui lòng kiểm tra lại!");
+        alert("Không thể lấy link Zoom từ hệ thống. Vui lòng thử lại sau!");
       }
     } catch (err) {
-      console.error("Lỗi khi mở meeting:", err);
+      console.error("Lỗi khi kết nối lấy start-url:", err);
       if (defaultStartUrl) {
         window.open(defaultStartUrl, "_blank", "noopener,noreferrer");
         loadBookings();
       } else {
-        alert("Có lỗi xảy ra khi kết nối máy chủ.");
+        alert("Có lỗi xảy ra khi kết nối máy chủ Zoom.");
       }
     } finally {
       setJoiningId(null);
