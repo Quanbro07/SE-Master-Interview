@@ -2,8 +2,14 @@ package com.test.backend.dto.booking.bookingResponse;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.test.backend.entity.bookingReview.BookingReview;
+import com.test.backend.dto.interview.InterviewResultResponse;
+import com.test.backend.entity.booking.Booking;
+
 import com.test.backend.entity.booking.BookingStatus;
 import lombok.Builder;
+import java.math.BigDecimal;
+
 
 import java.time.LocalDateTime;
 
@@ -44,5 +50,15 @@ public record BookingResponse(
         LocalDateTime endTime,
 
         @JsonProperty("cv_url")
-        String cvUrl
+        String cvUrl,
+
+        @JsonProperty("booking_review")
+        BookingReviewResponse bookingReview,
+
+        @JsonProperty("total_amount")
+        BigDecimal totalAmount,
+
+        @JsonProperty("interview_result")
+        InterviewResultResponse interviewResult
+        
 ) {}

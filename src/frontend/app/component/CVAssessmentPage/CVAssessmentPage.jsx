@@ -199,7 +199,7 @@ const CVAssessmentPage = () => {
       <ChatPanel isCollapsed={!isChatOpen} onBookFromChat={() => {}} />
       <main className={`cv-main ${isChatOpen ? "with-chat" : ""}`}>
         <section className="cv-inner">
-          <h1 className="cvassessment-title">-----CV ASSESSMENT-----</h1>
+          <h1 className="cvassessment-title">CV ASSESSMENT</h1>
 
           <div
             className="cv-position-picker"

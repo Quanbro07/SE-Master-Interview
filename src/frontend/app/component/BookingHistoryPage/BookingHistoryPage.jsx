@@ -32,7 +32,8 @@ const authHeaders = () => {
 };
 
 const mapBookingStatus = (status) => {
-  switch (status) {
+  const upperStatus = (status || "").toUpperCase();
+  switch (upperStatus) {
     case "PENDING":
       return "pending";
     case "ACCEPTED":
@@ -46,6 +47,7 @@ const mapBookingStatus = (status) => {
     case "COMPLETED":
       return "done";
     case "REJECTED":
+      return "rejected";
     case "CANCELLED":
       return "cancelled";
     default:
@@ -60,26 +62,47 @@ const STATUS_LABEL = {
   "in-progress": "In Progress",
   "await-review": "Await Review",
   done: "Completed",
-  cancelled: "Rejected",
+  rejected: "Rejected",
+  cancelled: "Cancelled",
 };
 
 const toTimestamp = (dateStr, timeStr) => {
   if (!dateStr || !timeStr) return 0;
-  const [day, month, year] = dateStr.split("/").map(Number);
+
+  let day, month, year;
+  if (dateStr.includes("/")) {
+    const parts = dateStr.split("/").map(Number);
+    if (parts[2] > 1000) {
+      [day, month, year] = parts;
+    } else {
+      [month, day, year] = parts;
+    }
+  } else if (dateStr.includes("-")) {
+    const parts = dateStr.split("-").map(Number);
+    if (parts[0] > 1000) {
+      [year, month, day] = parts;
+    } else {
+      [day, month, year] = parts;
+    }
+  } else {
+    return 0;
+  }
+
   const [hour, minute] = timeStr.split(":").map(Number);
   return new Date(year, month - 1, day, hour, minute).getTime();
 };
 
-const isMeetingTimeValid = (dateStr, timeStr) => {
+// Kiếm tra tới trước meeting 5 phút
+const isWithin5MinutesBeforeMeeting = (dateStr, timeStr) => {
   const meetingTimestamp = toTimestamp(dateStr, timeStr);
   if (!meetingTimestamp) return false;
 
   const now = Date.now();
-  const TEN_MINUTES = 10 * 60 * 1000;
+  const FIVE_MINUTES = 5 * 60 * 1000;
   const SIXTY_MINUTES = 60 * 60 * 1000;
 
   return (
-    now >= meetingTimestamp - TEN_MINUTES &&
+    now >= meetingTimestamp - FIVE_MINUTES &&
     now <= meetingTimestamp + SIXTY_MINUTES
   );
 };
@@ -118,11 +141,13 @@ const convertBookingToDashboardRow = (booking) => {
 
   const cleanId = booking.bookingId ?? booking.booking_id;
 
-  const reviewData = booking.booking_review || booking.bookingReviewDTO;
+  const reviewData = booking.booking_review || booking.bookingReview;
   const existingComment = reviewData?.comment || "";
-  const existingRating = reviewData?.rating || 5;
-  const isReviewed = Boolean(reviewData);
-
+  const existingRating = reviewData?.rate ?? reviewData?.rating ?? 5;
+  const isReviewed = Boolean(
+    reviewData &&
+    (reviewData.review_id || reviewData.comment || reviewData.rate),
+  );
   const rawAmount =
     booking.totalAmount ??
     booking.total_amount ??
@@ -167,6 +192,7 @@ const BookingHistoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submittedReviews, setSubmittedReviews] = useState([]);
+  const [submittedReviewsMap, setSubmittedReviewsMap] = useState({});
 
   const [feedbackDrafts, setFeedbackDrafts] = useState({});
   const [ratingDrafts, setRatingDrafts] = useState({});
@@ -234,7 +260,6 @@ const BookingHistoryPage = () => {
       );
 
       if (!intentRes.ok) {
-        const errText = await intentRes.text();
         throw new Error(`Stripe initialization failed (${intentRes.status})`);
       }
 
@@ -306,6 +331,14 @@ const BookingHistoryPage = () => {
         throw new Error(errText || `Request failed status ${res.status}`);
       }
 
+      setSubmittedReviewsMap((prev) => ({
+        ...prev,
+        [Number(rawBookingId)]: {
+          rating: Number(rating),
+          comment: comment.trim(),
+        },
+      }));
+
       setSubmittedReviews((prev) => [...prev, Number(rawBookingId)]);
       alert("Review submitted successfully!");
       loadBookings();
@@ -325,8 +358,7 @@ const BookingHistoryPage = () => {
         className={`booking-history-main ${!chatCollapsed ? "with-chat" : ""}`}
       >
         <section className="booking-history-inner">
-          <h1 className="booking-history-title">-----BOOKING HISTORY-----</h1>
-
+          <h1 className="booking-history-title">BOOKING HISTORY</h1>
           <div className="booking-history-table">
             <div className="booking-history-row booking-history-header">
               <span>DATE</span>
@@ -354,16 +386,28 @@ const BookingHistoryPage = () => {
                   const isAwaitReview = req.rawStatus === "AWAIT_REVIEW";
                   const isCompleted = req.rawStatus === "COMPLETED";
 
-                  const isTimeValid = isMeetingTimeValid(req.date, req.time);
+                  const is5MinBefore = isWithin5MinutesBeforeMeeting(
+                    req.date,
+                    req.time,
+                  );
+                  const hasStartUrl = Boolean(req.startUrl);
 
+                  // 🟢 Nút Join Meeting Enable khi: Có start_url HOẶC Tới trước 5 phút
                   const canJoinMeeting =
-                    (isPaid || isInProgress) &&
+                    (isPaid || isInProgress || isAwaitReview) &&
                     Boolean(req.joinUrl) &&
-                    isTimeValid;
+                    (hasStartUrl || is5MinBefore);
 
+                  const localSubmitted =
+                    submittedReviewsMap[Number(req.bookingId)];
                   const isAlreadyReviewed =
-                    req.isReviewed ||
-                    submittedReviews.includes(Number(req.bookingId));
+                    req.isReviewed || Boolean(localSubmitted);
+                  const displayRating = localSubmitted
+                    ? localSubmitted.rating
+                    : req.rating;
+                  const displayComment = localSubmitted
+                    ? localSubmitted.comment
+                    : req.feedback;
 
                   return (
                     <motion.div
@@ -388,21 +432,26 @@ const BookingHistoryPage = () => {
                         <span className="cell-meeting">
                           <button
                             type="button"
-                            className={`join-meeting-btn ${!canJoinMeeting ? "btn-disabled" : ""}`}
+                            className={`join-meeting-btn ${
+                              !canJoinMeeting ? "btn-disabled" : ""
+                            }`}
                             disabled={!canJoinMeeting}
                             onClick={() => handleJoinMeeting(req.joinUrl)}
                           >
                             {canJoinMeeting
-                              ? "Join meeting"
+                              ? "Join Meeting"
                               : isPending || isAccepted
                                 ? "Not Ready"
-                                : !isTimeValid && (isPaid || isInProgress)
+                                : !hasStartUrl &&
+                                    !is5MinBefore &&
+                                    (isPaid || isInProgress)
                                   ? "Not In Time"
                                   : "Ended"}
                           </button>
                         </span>
 
                         <span className="cell-action">
+                          {/* 🟢 Nút View LUÔN ENABLE ở mọi status */}
                           <button
                             type="button"
                             className={`details-btn ${isOpen ? "is-open" : ""}`}
@@ -463,6 +512,7 @@ const BookingHistoryPage = () => {
                                 </div>
                               )}
 
+                              {/* 🟢 Khối review xuất hiện ở Await Review HOẶC Completed */}
                               {(isAwaitReview || isCompleted) && (
                                 <div
                                   className="details-field"
@@ -476,12 +526,12 @@ const BookingHistoryPage = () => {
                                       className="existing-review-box p-3 bg-gray-100 rounded text-sm"
                                       style={{ marginTop: "8px" }}
                                     >
-                                      <div className="font-semibold text-yellow-600 mb-1">
-                                        Rating: {req.rating} ★
+                                      <div className="font-semibold text-yellow-500 mb-1">
+                                        Rating: {displayRating} ★
                                       </div>
-                                      <div className="text-gray-700">
-                                        {req.feedback
-                                          ? req.feedback
+                                      <div className="text-gray-300">
+                                        {displayComment
+                                          ? displayComment
                                           : "No comment provided."}
                                       </div>
                                     </div>

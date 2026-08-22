@@ -6,6 +6,7 @@
   background-color: #0b0b0e;
   overflow: hidden; /* Triệt tiêu hoàn toàn scroll tổng của cả trang */
   position: relative;
+  z-index: 1;
 }
 
 /* KHUNG CHÍNH Ở GIỮA chứa List Đóng vai trò là một viewport độc lập */
@@ -19,36 +20,36 @@
 }
 
 /* NÚT TRIGGER HEADER - SỬA LẠI ĐỊNH VỊ FIXED */
-.chat-trigger-header {
-  position: fixed; /* Thay đổi từ absolute sang fixed để không bị cuộn trôi */
+/* .chat-trigger-header {
+  position: fixed; 
   top: 16px;
   right: 24px;
   display: flex;
   align-items: center;
   gap: 12px;
   cursor: pointer;
-  z-index: 999; /* Đảm bảo luôn nổi lên trên tất cả các box card */
+  z-index: 999; 
   padding: 8px 16px;
-  background-color: #18181c; /* Đổ lại màu đặc để không bị lộ card xuyên qua */
+  background-color: #18181c; 
   border-radius: 30px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   transition:
     transform 0.2s ease,
     background-color 0.2s ease;
-}
+}  */
 
 .chat-trigger-header:hover {
   transform: scale(1.05);
   background-color: #27272a;
 }
 
-.chat-trigger-header .chatbot-icon {
+/* .chat-trigger-header .chatbot-icon {
   width: 32px;
   height: 32px;
   display: flex;
   align-items: center;
-}
+} */
 
 .chat-trigger-header .chatbot-icon img {
   width: 100%;
@@ -56,19 +57,19 @@
   object-fit: contain;
 }
 
-.chat-trigger-header .user-name {
+/* .chat-trigger-header .user-name {
   color: #e4e4e7;
   font-weight: 600;
   font-size: 14px;
   white-space: nowrap;
-}
+} */
 
-.chat-trigger-header .user-avatar {
+/* .chat-trigger-header .user-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
   overflow: hidden;
-}
+} */
 
 .chat-trigger-header .user-avatar img {
   width: 100%;

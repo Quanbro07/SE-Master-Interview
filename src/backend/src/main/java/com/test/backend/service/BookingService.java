@@ -11,6 +11,7 @@ import com.test.backend.dto.booking.bookingResponse.BookingResponse;
 import com.test.backend.dto.booking.FilterInterviewerPositionResponse;
 import com.test.backend.dto.booking.bookingResponse.InterviewerResponseDTO;
 import com.test.backend.dto.interview.InterviewResultRequest;
+import com.test.backend.dto.booking.bookingResponse.BookingReviewResponse;
 import com.test.backend.dto.interview.InterviewerReviewResponse;
 import com.test.backend.dto.interview.ReviewInterviewerRequest;
 import com.test.backend.dto.schedule.AddBlockedScheduleRequest;
@@ -66,6 +67,8 @@ public class BookingService {
     private final PositionRepository positionRepository;
 
     private final InterviewerRepository interviewerRepository;
+
+    private BigDecimal totalAmount;
 
     private final IntervieweeRepository intervieweeRepository;
 
@@ -246,14 +249,6 @@ public class BookingService {
         // 1. Kiểm tra bảo mật: Chỉ Interviewer của buổi này mới được lấy startUrl
         if (!booking.getInterviewer().getInterviewerId().equals(userId)) {
             throw new ForbiddenOperationException("Only the designated interviewer can start this meeting");
-        }
-
-        LocalDateTime startTime = booking.getStartTime();
-
-        Duration duration = Duration.between(LocalDateTime.now(), startTime);
-
-        if(duration.toMinutes() > 60) {
-            throw new ForbiddenOperationException("You can only get start URL within one hour after the start time");
         }
 
         String freshStartUrl = zoomService.getFreshStartUrl(booking.getMeetingId());
@@ -450,6 +445,16 @@ public class BookingService {
                 .interviewerAvatar(interviewerUser.getAvatar())
                 .build();
         // Khởi tạo Builder
+
+        BookingReviewResponse reviewDto = null;
+        if (newBooking.getBookingReview() != null) {
+            BookingReview review = newBooking.getBookingReview();
+            reviewDto = BookingReviewResponse.builder()
+                    .reviewId(review.getReviewId())
+                    .rating(review.getRating())
+                    .comment(review.getComment())
+                    .build();
+        }
         BookingResponse.BookingResponseBuilder responseBuilder = BookingResponse.builder()
                 .bookingId(newBooking.getBookingId())
                 .bookerResponseDTO(bookerDTO)
@@ -457,6 +462,8 @@ public class BookingService {
                 .startTime(newBooking.getStartTime())
                 .endTime(newBooking.getEndTime())
                 .cvUrl(newBooking.getCvUrl())
+                .bookingReview(reviewDto)
+                .totalAmount(newBooking.getTotalAmount())
                 .bookingStatus(newBooking.getStatus());
         
         
@@ -491,6 +498,5 @@ public class BookingService {
                 .createdAt(review.getCreatedAt())
                 .build();
     }
-
 
 }
