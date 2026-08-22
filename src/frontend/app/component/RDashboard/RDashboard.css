@@ -78,25 +78,34 @@
   color: #a1a1aa;
 }
 
-/* 🟢 MÀU SẮC STATUS THỐNG NHẤT */
+/* 🟢 MÀU SẮC STATUS THỐNG NHẤT - mỗi trạng thái 1 màu riêng biệt */
 .cell-status {
   font-size: 13px;
   font-style: italic;
   font-weight: 600;
 }
+.status-pending {
+  color: #f97316; /* Cam - Pending (chờ interviewer duyệt) */
+}
+.status-accepted {
+  color: #a855f7; /* Tím - Accepted (interviewer đã duyệt, chờ thanh toán) */
+}
+.status-paid {
+  color: #06b6d4; /* Xanh cyan - Paid (đã thanh toán, chờ tới giờ) */
+}
 .status-in-progress,
 .status-await-review {
-  color: #3b82f6; /* Xanh biển (Accepted / Await Review) */
-}
-.status-pending {
-  color: #f97316; /* Cam (Pending) */
+  color: #3b82f6; /* Xanh biển - In Progress / Await Review */
 }
 .status-done {
-  color: #22c55e; /* Xanh lá (Completed) */
+  color: #22c55e; /* Xanh lá - Completed */
 }
 .status-rejected,
 .status-no-show {
-  color: #ef4444; /* Đỏ (Rejected / Cancelled / No-show) */
+  color: #ef4444; /* Đỏ - Rejected / No-show (interviewer chủ động từ chối) */
+}
+.status-cancelled {
+  color: #f43f5e; /* Đỏ hồng (rose) - Cancelled: quá giờ mà không ai xác nhận hoàn tất */
 }
 
 .cell-action {

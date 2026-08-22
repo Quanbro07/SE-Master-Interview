@@ -63,6 +63,7 @@ public class User {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
+    @Builder.Default
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<SocialAccount> socialAccountSet = new HashSet<>();
 

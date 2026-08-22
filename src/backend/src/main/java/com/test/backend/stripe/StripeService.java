@@ -1,6 +1,8 @@
 package com.test.backend.stripe;
 
 import com.stripe.exception.StripeException;
+import com.test.backend.entity.payment.Payment;
+import com.test.backend.repository.PaymentRepository;
 import com.stripe.model.Account;
 import com.stripe.model.AccountLink;
 import com.stripe.model.PaymentIntent;
@@ -44,6 +46,8 @@ public class StripeService {
     private final BookingRepository bookingRepository;
 
     private final PaymentAsyncService paymentAsyncService;
+
+    private final PaymentRepository paymentRepository;
 
     // Liên kết tài khoản
     public StripeLinkAccountResponse createAccountLink(Long userId) {
@@ -222,5 +226,30 @@ public class StripeService {
             log.error("Stripe error", e);
             throw new StripeIntegrationException("Unable to process Stripe request.");
         }
+    }
+
+    // Xác nhận thanh toán hold
+    public void confirmManualHoldPayment(Long userId, Long bookingId) {
+        Booking booking = bookingRepository.findByBookingIdFetchInterviewerAndBooker(bookingId)
+                .orElseThrow(() -> new NotFoundException("Booking Not Found"));
+    
+        if (userId != null && !userId.equals(booking.getBooker().getIntervieweeId())) {
+            throw new ForbiddenOperationException("You cannot confirm payment for another user's booking");
+        }
+    
+        // 1. Cập nhật trạng thái Booking
+        booking.setStatus(BookingStatus.PAID);
+        bookingRepository.save(booking);
+    
+        // 2. Tạo hoặc cập nhật Payment ở trạng thái AUTHORIZED
+        Payment payment = Payment.builder()
+                .booking(booking)
+                .amount(booking.getTotalAmount())
+                .currency(PaymentCurrency.USD)
+                .status(PaymentStatus.AUTHORIZED)
+                .build();
+        
+        paymentRepository.save(payment);
+        log.info("Successfully confirmed manual hold payment for Booking ID: {}", bookingId);
     }
 }

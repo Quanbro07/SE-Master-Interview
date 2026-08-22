@@ -28,8 +28,12 @@ const authHeaders = () => {
 };
 
 const mapBookingStatus = (status) => {
-  switch (status) {
+  const upperStatus = (status || "").toUpperCase();
+  switch (upperStatus) {
     case "ACCEPTED":
+      return "accepted";
+    case "PAID":
+      return "paid";
     case "IN_PROGRESS":
       return "in-progress";
     case "AWAIT_REVIEW":
@@ -37,8 +41,9 @@ const mapBookingStatus = (status) => {
     case "COMPLETED":
       return "done";
     case "REJECTED":
-    case "CANCELLED":
       return "rejected";
+    case "CANCELLED":
+      return "cancelled";
     default:
       return "pending";
   }
@@ -46,17 +51,22 @@ const mapBookingStatus = (status) => {
 
 const STATUS_LABEL = {
   pending: "Pending",
-  "in-progress": "Accepted",
+  accepted: "Accepted",
+  paid: "Paid",
+  "in-progress": "In Progress",
   "await-review": "Await Review",
   done: "Completed",
   rejected: "Rejected",
+  cancelled: "Cancelled",
 };
 
 const convertBookingToDashboardRow = (booking) => {
   if (!booking) return null;
 
   const startTimeStr = booking.startTime || booking.start_time;
+  const endTimeStr = booking.endTime || booking.end_time;
   const startTime = new Date(startTimeStr);
+  const endTime = new Date(endTimeStr);
 
   const dateStr = !isNaN(startTime)
     ? startTime.toLocaleDateString("en-GB")
@@ -76,8 +86,12 @@ const convertBookingToDashboardRow = (booking) => {
     bookerDTO?.full_name ||
     "Unknown Candidate";
 
-  const rawStatus =
-    booking.bookingStatus || booking.booking_status || booking.status;
+  const rawStatus = (
+    booking.bookingStatus ||
+    booking.booking_status ||
+    booking.status ||
+    ""
+  ).toUpperCase();
 
   const cleanId = booking.bookingId ?? booking.booking_id;
 
@@ -91,19 +105,73 @@ const convertBookingToDashboardRow = (booking) => {
     rawStatus: rawStatus,
     status: mapBookingStatus(rawStatus),
     feedback: "",
-    money: `$${booking.totalAmount || 5}`,
+    money: `$${booking.totalAmount || 10}`,
     meetingUrl: booking.meetingUrl || booking.meeting_url,
     startUrl: booking.startUrl || booking.start_url,
+    // Lưu lại giờ kết thúc thật (nếu có) để tính auto-cancel khi quá giờ
+    endDateTime: !isNaN(endTime) ? endTime : null,
     rawBooking: booking,
   };
 };
 
 const toTimestamp = (dateStr, timeStr) => {
   if (!dateStr || !timeStr) return 0;
-  const [day, month, year] = dateStr.split("/").map(Number);
+
+  // Tách an toàn hỗ trợ cả dạng DD/MM/YYYY lẫn YYYY-MM-DD
+  let day, month, year;
+  if (dateStr.includes("/")) {
+    const parts = dateStr.split("/").map(Number);
+    // Nếu năm nằm ở cuối (DD/MM/YYYY)
+    if (parts[2] > 1000) {
+      [day, month, year] = parts;
+    } else {
+      // Trường hợp MM/DD/YYYY
+      [month, day, year] = parts;
+    }
+  } else if (dateStr.includes("-")) {
+    const parts = dateStr.split("-").map(Number);
+    if (parts[0] > 1000) {
+      [year, month, day] = parts;
+    } else {
+      [day, month, year] = parts;
+    }
+  } else {
+    return 0;
+  }
+
   const [hour, minute] = timeStr.split(":").map(Number);
   return new Date(year, month - 1, day, hour, minute).getTime();
 };
+
+const isMeetingTimeValid = (dateStr, timeStr) => {
+  const meetingTimestamp = toTimestamp(dateStr, timeStr);
+  if (!meetingTimestamp) return false;
+
+  const now = Date.now();
+  // Cho phép Interviewer vào phòng trước 30 phút và kéo dài tối đa 120 phút sau giờ hẹn
+  const THIRTY_MINUTES = 30 * 60 * 1000;
+  const TWO_HOURS = 60 * 60 * 1000;
+
+  return (
+    now >= meetingTimestamp - THIRTY_MINUTES &&
+    now <= meetingTimestamp + TWO_HOURS
+  );
+};
+
+// Đã qua giờ kết thúc buổi phỏng vấn chưa. Ưu tiên dùng endDateTime thật
+// (từ booking.endTime); nếu thiếu, fallback coi buổi phỏng vấn kéo dài 1 tiếng
+// tính từ giờ bắt đầu.
+const isPastMeetingEnd = (dateStr, timeStr, endDateTime, now = Date.now()) => {
+  const endTimestamp = endDateTime
+    ? endDateTime.getTime()
+    : toTimestamp(dateStr, timeStr) + 60 * 60 * 1000;
+
+  if (!endTimestamp) return false;
+  return now > endTimestamp;
+};
+
+// Các trạng thái coi là đã "chốt", không thể tự động hủy nữa
+const TERMINAL_STATUSES = ["COMPLETED", "REJECTED", "CANCELLED"];
 
 const RDashboard = () => {
   const [submittedBookings, setSubmittedBookings] = useState([]);
@@ -114,6 +182,9 @@ const RDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [joiningId, setJoiningId] = useState(null);
+  // Tick để re-render mỗi phút, giúp trạng thái tự chuyển sang CANCELLED
+  // đúng lúc mà không cần người dùng reload trang
+  const [nowTick, setNowTick] = useState(() => Date.now());
 
   const loadBookings = useCallback(async () => {
     setLoading(true);
@@ -129,7 +200,12 @@ const RDashboard = () => {
 
       const dashboardBookings = (Array.isArray(bookings) ? bookings : [])
         .filter((b) => {
-          const st = b.bookingStatus || b.booking_status || b.status;
+          const st = (
+            b.bookingStatus ||
+            b.booking_status ||
+            b.status ||
+            ""
+          ).toUpperCase();
           return st !== "PENDING";
         })
         .map((b) => convertBookingToDashboardRow(b))
@@ -148,9 +224,23 @@ const RDashboard = () => {
     loadBookings();
   }, [loadBookings]);
 
+  useEffect(() => {
+    const interval = setInterval(() => setNowTick(Date.now()), 30 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleGoToMeeting = async (bookingId, defaultStartUrl) => {
     setJoiningId(bookingId);
     try {
+      // 1. Gửi request cập nhật trạng thái sang IN_PROGRESS
+      await fetch(`${API_BASE}/api/v1/booking/${bookingId}/start-meeting`, {
+        method: "POST",
+        headers: authHeaders(),
+      }).catch((err) =>
+        console.log("Start meeting status update ignored/handled:", err),
+      );
+
+      // 2. Gọi Backend lấy Zoom Meeting Start URL mới nhất từ Zoom API
       const res = await fetch(
         `${API_BASE}/api/v1/booking/${bookingId}/start-url`,
         {
@@ -160,9 +250,16 @@ const RDashboard = () => {
       );
 
       if (res.ok) {
-        const freshStartUrl = await res.text();
+        let freshStartUrl = await res.text();
+
+        // Làm sạch chuỗi URL nếu Backend trả về dạng "https://..." (bị dính dấu quote)
         if (freshStartUrl) {
+          freshStartUrl = freshStartUrl.trim().replace(/^"+|"+$/g, "");
+        }
+
+        if (freshStartUrl && freshStartUrl.startsWith("http")) {
           window.open(freshStartUrl, "_blank", "noopener,noreferrer");
+          loadBookings();
           return;
         }
       } else if (res.status === 401) {
@@ -170,17 +267,21 @@ const RDashboard = () => {
         return;
       }
 
+      // 3. Fallback dùng defaultStartUrl nếu có
       if (defaultStartUrl) {
-        window.open(defaultStartUrl, "_blank", "noopener,noreferrer");
+        const cleanDefaultUrl = defaultStartUrl.trim().replace(/^"+|"+$/g, "");
+        window.open(cleanDefaultUrl, "_blank", "noopener,noreferrer");
+        loadBookings();
       } else {
-        alert("Không thể khởi tạo link Zoom. Vui lòng kiểm tra lại!");
+        alert("Không thể lấy link Zoom từ hệ thống. Vui lòng thử lại sau!");
       }
     } catch (err) {
-      console.error("Lỗi khi lấy start-url:", err);
+      console.error("Lỗi khi kết nối lấy start-url:", err);
       if (defaultStartUrl) {
         window.open(defaultStartUrl, "_blank", "noopener,noreferrer");
+        loadBookings();
       } else {
-        alert("Có lỗi xảy ra khi kết nối máy chủ.");
+        alert("Có lỗi xảy ra khi kết nối máy chủ Zoom.");
       }
     } finally {
       setJoiningId(null);
@@ -264,11 +365,21 @@ const RDashboard = () => {
     }
   };
 
-  // 🟢 Sắp xếp thứ tự ưu tiên giảm dần: Accepted -> Pending -> Completed -> Rejected
   const sortedRequests = useMemo(() => {
     const getStatusPriority = (item) => {
       const st = item.rawStatus;
-      if (st === "ACCEPTED" || st === "IN_PROGRESS" || st === "AWAIT_REVIEW")
+      const autoCancelled =
+        !TERMINAL_STATUSES.includes(st) &&
+        !submittedBookings.includes(item.bookingId) &&
+        isPastMeetingEnd(item.date, item.time, item.endDateTime);
+
+      if (autoCancelled) return 4;
+      if (
+        st === "ACCEPTED" ||
+        st === "PAID" ||
+        st === "IN_PROGRESS" ||
+        st === "AWAIT_REVIEW"
+      )
         return 1;
       if (st === "PENDING") return 2;
       if (st === "COMPLETED") return 3;
@@ -288,7 +399,7 @@ const RDashboard = () => {
       const bTime = toTimestamp(b.date, b.time);
       return bTime - aTime;
     });
-  }, [requests]);
+  }, [requests, submittedBookings, nowTick]);
 
   return (
     <div className="r-dashboard-root">
@@ -317,11 +428,39 @@ const RDashboard = () => {
                 );
                 const isAwaitingReview = req.rawStatus === "AWAIT_REVIEW";
 
+                // eslint-disable-next-line no-unused-vars
+                const _tick = nowTick; // đảm bảo re-render mỗi khi tick đổi
+
+                // Quá giờ kết thúc buổi phỏng vấn mà vẫn chưa được chốt
+                // (chưa Done/No-show, chưa Rejected/Cancelled) -> tự động CANCELLED
+                const isAutoCancelled =
+                  !TERMINAL_STATUSES.includes(req.rawStatus) &&
+                  !isSubmittedLocally &&
+                  isPastMeetingEnd(req.date, req.time, req.endDateTime);
+
+                // Trạng thái/nhãn/màu hiển thị thực tế sau khi tính auto-cancel
+                const displayRawStatus = isAutoCancelled
+                  ? "CANCELLED"
+                  : req.rawStatus;
+                const displayStatusClass = isAutoCancelled
+                  ? "cancelled"
+                  : req.status;
+
                 const isFinalized =
                   req.rawStatus === "COMPLETED" ||
                   req.rawStatus === "REJECTED" ||
                   req.rawStatus === "CANCELLED" ||
-                  isSubmittedLocally;
+                  isSubmittedLocally ||
+                  isAutoCancelled;
+
+                const isTimeValid = isMeetingTimeValid(req.date, req.time);
+
+                const canStartMeeting =
+                  (req.rawStatus === "PAID" ||
+                    req.rawStatus === "IN_PROGRESS") &&
+                  !isSubmittedLocally &&
+                  !isAutoCancelled &&
+                  isTimeValid;
 
                 return (
                   <motion.div
@@ -342,14 +481,14 @@ const RDashboard = () => {
                         {req.interviewee}
                       </span>
                       <span className="cell-about">{req.about}</span>
-                      <span className={`cell-status status-${req.status}`}>
-                        {STATUS_LABEL[req.status] || req.rawStatus}
+                      <span
+                        className={`cell-status status-${displayStatusClass}`}
+                      >
+                        {STATUS_LABEL[displayStatusClass] || displayRawStatus}
                       </span>
 
                       <span className="cell-meeting">
-                        {(req.rawStatus === "ACCEPTED" ||
-                          req.rawStatus === "IN_PROGRESS") &&
-                        !isSubmittedLocally ? (
+                        {canStartMeeting ? (
                           <button
                             type="button"
                             className="go-meeting-btn"
@@ -368,7 +507,13 @@ const RDashboard = () => {
                             className="go-meeting-btn btn-disabled"
                             disabled={true}
                           >
-                            Ended
+                            {isAutoCancelled
+                              ? "Cancelled"
+                              : !isTimeValid &&
+                                  (req.rawStatus === "PAID" ||
+                                    req.rawStatus === "IN_PROGRESS")
+                                ? "Not In Time"
+                                : "Ended"}
                           </button>
                         )}
                       </span>

@@ -2,7 +2,9 @@
 import { useEffect, useRef, useState } from "react";
 import NavigationBar from "../NavigationBar/NavigationBar";
 import "./SelfPracticePage.css";
-import "../MockInterviewPage/MockInterviewPage.css"; // Reuse mock styles
+import UserHeader from "../UserHeader/UserHeader";
+import ChatPanel from "../ChatPanel/ChatPanel";
+import "../MockInterviewPage/MockInterviewPage.css";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
@@ -35,12 +37,24 @@ const DIFFICULTY_OPTIONS = [
 const NUM_QUESTIONS_OPTIONS = [5, 10, 15, 20];
 
 const SelfPracticePage = () => {
-  // States cho Position
+  const [navCollapsed, setNavCollapsed] = useState(false);
+  const [chatCollapsed, setChatCollapsed] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
+
   const [positionQuery, setPositionQuery] = useState("");
   const [positionSuggestions, setPositionSuggestions] = useState([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState("");
   const positionWrapperRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) setCurrentUser(JSON.parse(userStr));
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   // States cho Filter
   const [selectedDifficulty, setSelectedDifficulty] = useState("MIXED");
@@ -54,14 +68,9 @@ const SelfPracticePage = () => {
 
   // States cho User Interaction
   const [answerText, setAnswerText] = useState("");
-  // const [recording, setRecording] = useState(false);
-  // const [mediaError, setMediaError] = useState("");
-  // const [audioUrl, setAudioUrl] = useState("");
-  // const recorderRef = useRef(null);
-  // const audioChunksRef = useRef([]);
   const [showAnswer, setShowAnswer] = useState(false);
 
-  // ===> STATE MỚI CHO TÍNH NĂNG CHẤM ĐIỂM <===
+  // State cho AI Evaluation
   const [evaluationResult, setEvaluationResult] = useState(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
 
@@ -74,10 +83,12 @@ const SelfPracticePage = () => {
     const timeoutId = setTimeout(async () => {
       try {
         const cleanToken = getAccessToken();
-        const headers = cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {};
+        const headers = cleanToken
+          ? { Authorization: `Bearer ${cleanToken}` }
+          : {};
         const res = await fetch(
           `${API_BASE}/api/v1/position/search?q=${encodeURIComponent(positionQuery)}`,
-          { headers }
+          { headers },
         );
         if (res.ok) {
           const data = await res.json();
@@ -96,7 +107,10 @@ const SelfPracticePage = () => {
   // Click outside to close suggestion dropdown
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (positionWrapperRef.current && !positionWrapperRef.current.contains(e.target)) {
+      if (
+        positionWrapperRef.current &&
+        !positionWrapperRef.current.contains(e.target)
+      ) {
         setSuggestionsOpen(false);
       }
     };
@@ -116,7 +130,7 @@ const SelfPracticePage = () => {
     setSuggestionsOpen(false);
   };
 
-  // Hàm Fetch Data
+  // Hàm Fetch Questions
   const fetchQuestions = async () => {
     if (!selectedPosition.trim()) {
       setLoadError("Please enter or select a position first!");
@@ -126,13 +140,10 @@ const SelfPracticePage = () => {
     setLoadError(null);
     setPool([]);
     setPoolIndex(0);
-    
-    // Reset toàn bộ state con
+
     setAnswerText("");
-    // setAudioUrl("");
-    // setMediaError("");
     setShowAnswer(false);
-    setEvaluationResult(null); // Reset điểm số
+    setEvaluationResult(null);
 
     try {
       const params = new URLSearchParams({
@@ -153,7 +164,7 @@ const SelfPracticePage = () => {
             "Content-Type": "application/json",
             ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {}),
           },
-        }
+        },
       );
 
       if (res.status === 401) {
@@ -167,7 +178,9 @@ const SelfPracticePage = () => {
         if (data && data.length > 0) {
           setPool(data);
         } else {
-          setLoadError(`Không tìm thấy câu hỏi phù hợp cho vị trí "${selectedPosition}" trong Database.`);
+          setLoadError(
+            `Không tìm thấy câu hỏi phù hợp cho vị trí "${selectedPosition}" trong Database.`,
+          );
         }
       } else {
         setLoadError(`Lỗi tải câu hỏi từ Server (${res.status}).`);
@@ -187,53 +200,52 @@ const SelfPracticePage = () => {
   const nextQuestion = () => {
     if (!hasMoreInPool) return;
     setPoolIndex((prev) => prev + 1);
-    
-    // Reset lại màn hình cho câu mới
+
     setAnswerText("");
     setShowAnswer(false);
-    setEvaluationResult(null); // Reset lại khung AI feedback
+    setEvaluationResult(null);
   };
 
   const revealAnswer = () => {
     setShowAnswer((prev) => !prev);
   };
 
-  // ===> HÀM MỚI: XỬ LÝ CHẤM ĐIỂM BẰNG AI <===
   const handleEvaluate = async () => {
     if (!answerText.trim()) {
       alert("Please input your answer first before evaluating!");
       return;
     }
-    
+
     setIsEvaluating(true);
-    setEvaluationResult(null); // Reset kết quả cũ nếu nộp lại
+    setEvaluationResult(null);
 
     try {
       const cleanToken = getAccessToken();
       const payload = {
         answer_list: [
           {
-            questionId: currentQuestion.questionId, // Lấy ID của câu hiện tại
+            questionId: currentQuestion.questionId,
             answer: answerText,
-          }
-        ]
+          },
+        ],
       };
 
-      const res = await fetch(`${API_BASE}/api/v1/question/evaluate-questions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {}),
+      const res = await fetch(
+        `${API_BASE}/api/v1/question/evaluate-questions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {}),
+          },
+          body: JSON.stringify(payload),
         },
-        body: JSON.stringify(payload),
-      });
+      );
 
       if (!res.ok) throw new Error("Lỗi khi chấm điểm!");
 
       const data = await res.json();
 
-      console.log("🚀 [EVALUATE API] - Raw Response Data:", data);
-      // Vì mảng trả về theo list, ta bốc phần tử đầu tiên
       if (data && data.length > 0) {
         setEvaluationResult(data[0]);
       }
@@ -245,68 +257,33 @@ const SelfPracticePage = () => {
     }
   };
 
-  // Logic Ghi âm
-  // const startRecording = async () => {
-  //   setMediaError("");
-  //   if (recording) {
-  //     stopRecording();
-  //     return;
-  //   }
-  //   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-  //     setMediaError("Microphone không được hỗ trợ trên trình duyệt này.");
-  //     return;
-  //   }
-  //   try {
-  //     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  //     const recorder = new MediaRecorder(stream);
-  //     recorderRef.current = recorder;
-  //     audioChunksRef.current = [];
-
-  //     recorder.addEventListener("dataavailable", (event) => {
-  //       if (event.data && event.data.size > 0) {
-  //         audioChunksRef.current.push(event.data);
-  //       }
-  //     });
-
-  //     recorder.addEventListener("stop", () => {
-  //       const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-  //       const url = URL.createObjectURL(blob);
-  //       setAudioUrl(url);
-  //       stream.getTracks().forEach((track) => track.stop());
-  //     });
-
-  //     recorder.start();
-  //     setRecording(true);
-  //   } catch (error) {
-  //     setMediaError("Không thể truy cập Microphone. Vui lòng cấp quyền!");
-  //   }
-  // };
-
-  // const stopRecording = () => {
-  //   const recorder = recorderRef.current;
-  //   if (recorder && recorder.state !== "inactive") {
-  //     recorder.stop();
-  //   }
-  //   setRecording(false);
-  // };
-
-  // useEffect(() => {
-  //   return () => {
-  //     if (recorderRef.current && recorderRef.current.state !== "inactive") {
-  //       recorderRef.current.stop();
-  //     }
-  //   };
-  // }, []);
-
   return (
-    <div className="self-page-root">
-      <NavigationBar />
-      <main className="self-main">
+    <div className="dashboard-container">
+      <NavigationBar
+        isCollapsed={navCollapsed}
+        setIsCollapsed={setNavCollapsed}
+      />
+
+      <main
+        className={`dashboard-main self-main ${!chatCollapsed ? "with-chat" : ""}`}
+      >
         <section className="self-inner">
           <h1 className="selfpractice-title">SELF PRACTICE</h1>
 
-          <div className="self-field-select-wrap" style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-            <div className="mock-position-search" ref={positionWrapperRef} style={{ flex: "1 1 220px" }}>
+          <div
+            className="self-field-select-wrap"
+            style={{
+              display: "flex",
+              gap: "12px",
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <div
+              className="mock-position-search"
+              ref={positionWrapperRef}
+              style={{ flex: "1 1 220px" }}
+            >
               <input
                 type="text"
                 className="self-field-select mock-position-input"
@@ -404,7 +381,7 @@ const SelfPracticePage = () => {
                 <h2 className="mock-question-title">
                   {currentQuestion.content}
                 </h2>
-                
+
                 <div className="mock-answer-area">
                   <textarea
                     className="mock-answer-textarea"
@@ -414,53 +391,98 @@ const SelfPracticePage = () => {
                     disabled={isEvaluating}
                   />
                 </div>
-                
-                {/* HIỂN THỊ KẾT QUẢ AI CHẤM ĐIỂM */}
+
                 {evaluationResult && evaluationResult.analysis && (
                   <div className="self-evaluation-box">
                     <h4 className="self-eval-title">AI Feedback</h4>
-                    
-                    {evaluationResult.analysis.smartSuggestions && evaluationResult.analysis.smartSuggestions.length > 0 && (
-                      <ul className="self-eval-list">
-                        {evaluationResult.analysis.smartSuggestions.map((sug, i) => (
-                          <li key={i}>{sug}</li>
-                        ))}
-                      </ul>
-                    )}
-                    
+
+                    {evaluationResult.analysis.smartSuggestions &&
+                      evaluationResult.analysis.smartSuggestions.length > 0 && (
+                        <ul className="self-eval-list">
+                          {evaluationResult.analysis.smartSuggestions.map(
+                            (sug, i) => (
+                              <li key={i}>{sug}</li>
+                            ),
+                          )}
+                        </ul>
+                      )}
+
                     <div className="self-eval-metrics">
-                      <div>🎯 Depth: <span className="metric-score" style={{ color: "#4ade80", fontWeight: "bold" }}>{evaluationResult.analysis.depth?.rating || "N/A"}</span></div>
-                      
-                      <div>🔍 Relevance: <span className="metric-score" style={{ color: "#4ade80", fontWeight: "bold" }}>{evaluationResult.analysis.relevance?.status || "N/A"}</span> 
-                        {evaluationResult.analysis.relevance ? ` (Matched ${evaluationResult.analysis.relevance.matchedKeywords}/${evaluationResult.analysis.relevance.totalKeywords} keywords)` : ""}
+                      <div>
+                        🎯 Depth:{" "}
+                        <span
+                          className="metric-score"
+                          style={{ color: "#4ade80", fontWeight: "bold" }}
+                        >
+                          {evaluationResult.analysis.depth?.rating || "N/A"}
+                        </span>
                       </div>
-                      
-                      <div>💪 Confidence: <span className="metric-score" style={{ color: "#4ade80", fontWeight: "bold" }}>{evaluationResult.analysis.confidence?.status || "N/A"}</span></div>
-                      
-                      <div>📝 Length: <span className="metric-score" style={{ color: "#4ade80", fontWeight: "bold" }}>{evaluationResult.analysis.comparison?.status || "N/A"}</span> 
-                        {evaluationResult.analysis.comparison ? ` (${evaluationResult.analysis.comparison.avgWords} words)` : ""}
+
+                      <div>
+                        🔍 Relevance:{" "}
+                        <span
+                          className="metric-score"
+                          style={{ color: "#4ade80", fontWeight: "bold" }}
+                        >
+                          {evaluationResult.analysis.relevance?.status || "N/A"}
+                        </span>
+                        {evaluationResult.analysis.relevance
+                          ? ` (Matched ${evaluationResult.analysis.relevance.matchedKeywords}/${evaluationResult.analysis.relevance.totalKeywords} keywords)`
+                          : ""}
+                      </div>
+
+                      <div>
+                        💪 Confidence:{" "}
+                        <span
+                          className="metric-score"
+                          style={{ color: "#4ade80", fontWeight: "bold" }}
+                        >
+                          {evaluationResult.analysis.confidence?.status ||
+                            "N/A"}
+                        </span>
+                      </div>
+
+                      <div>
+                        📝 Length:{" "}
+                        <span
+                          className="metric-score"
+                          style={{ color: "#4ade80", fontWeight: "bold" }}
+                        >
+                          {evaluationResult.analysis.comparison?.status ||
+                            "N/A"}
+                        </span>
+                        {evaluationResult.analysis.comparison
+                          ? ` (${evaluationResult.analysis.comparison.avgWords} words)`
+                          : ""}
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* HIỂN THỊ ĐÁP ÁN MẪU (Đã fix biến answer) */}
                 {showAnswer && (
                   <div className="self-answer-reveal">
                     <p className="self-answer-reveal-label">Suggested Answer</p>
                     <p className="self-answer-reveal-text">
-                      {currentQuestion.answer || "No suggested answer available in database."}
+                      {currentQuestion.answer ||
+                        "No suggested answer available in database."}
                     </p>
                   </div>
                 )}
 
                 {!hasMoreInPool && (
-                  <p className="mock-pool-exhausted" style={{ marginTop: "16px", color: "#fbbf24", fontStyle: "italic", textAlign: "center" }}>
+                  <p
+                    className="mock-pool-exhausted"
+                    style={{
+                      marginTop: "16px",
+                      color: "#fbbf24",
+                      fontStyle: "italic",
+                      textAlign: "center",
+                    }}
+                  >
                     This is the last question in this practice set.
                   </p>
                 )}
 
-                {/* HÀNG NÚT ĐIỀU KHIỂN */}
                 <div className="mock-control-row" style={{ marginTop: "24px" }}>
                   <button
                     type="button"
@@ -469,8 +491,7 @@ const SelfPracticePage = () => {
                   >
                     {showAnswer ? "Hide Key" : "Key"}
                   </button>
-                  
-                  {/* ===> NÚT EVALUATE <=== */}
+
                   <button
                     type="button"
                     className="mock-action-btn evaluate-btn"
@@ -494,6 +515,14 @@ const SelfPracticePage = () => {
           )}
         </section>
       </main>
+
+      <UserHeader
+        user={currentUser}
+        isChatOpen={!chatCollapsed}
+        onToggleChat={() => setChatCollapsed((prev) => !prev)}
+      />
+
+      <ChatPanel isCollapsed={chatCollapsed} onBookFromChat={() => {}} />
     </div>
   );
 };

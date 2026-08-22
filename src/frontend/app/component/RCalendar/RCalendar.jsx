@@ -218,7 +218,7 @@ const RCalendar = () => {
     return () => window.removeEventListener("mouseup", stopDragging);
   }, []);
 
-  // SỬA ĐỔI: Xử lý Bật/Tắt Repeat Weekly
+  // Xử lý Bật/Tắt Repeat Weekly
   const handleToggleRepeat = () => {
     setRepeatWeekly((prevRepeat) => {
       const willBeRepeat = !prevRepeat;
@@ -263,7 +263,7 @@ const RCalendar = () => {
     }
   };
 
-  // SỬA ĐỔI: Tải lại dữ liệu khi đổi tuần mà không làm đè/sót state của tuần khác
+  // Tải lại dữ liệu khi đổi tuần
   useEffect(() => {
     const loadSchedule = async () => {
       setScheduleError(null);
@@ -309,7 +309,6 @@ const RCalendar = () => {
         });
 
         setRepeatSlots(fetchedRepeatSlots);
-        // Reset sạch selectedSlots theo tuần đang xem
         setSelectedSlots(fetchedSelectedSlots);
 
         await loadBlockedSchedules(dateInWeek, weekDays);
@@ -322,7 +321,7 @@ const RCalendar = () => {
     loadSchedule();
   }, [weekStart]);
 
-  // SỬA ĐỔI: Lưu chính xác dữ liệu theo trạng thái Bật/Tắt Repeat
+  // Lưu dữ liệu lịch
   const handleSaveSchedule = async () => {
     setSaving(true);
     setScheduleError(null);
@@ -331,7 +330,6 @@ const RCalendar = () => {
       const hoursByWeekday = new Map();
 
       if (repeatWeekly) {
-        // Lưu theo repeatSlots (Toàn bộ các tuần)
         repeatSlots.forEach((key) => {
           const [weekdayIndexStr, hourStr] = key.split("-");
           const weekdayIndex = parseInt(weekdayIndexStr, 10);
@@ -342,7 +340,6 @@ const RCalendar = () => {
           hoursByWeekday.get(weekdayIndex).push(hour);
         });
       } else {
-        // Repeat OFF: Chỉ lưu các ô đang chọn trong tuần hiện tại thành cấu trúc khung mới
         weekDays.forEach((date, weekdayIndex) => {
           HOURS.forEach((hour) => {
             if (selectedSlots.has(dateKey(date, hour))) {

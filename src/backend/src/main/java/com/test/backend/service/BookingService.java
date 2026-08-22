@@ -85,6 +85,10 @@ public class BookingService {
             String position,
             LocalDate date,
             int page, int size) {
+        if(date.isBefore(LocalDate.now())) {
+            throw new ForbiddenOperationException("You cannot book in the past");
+        }
+
         Pageable pageable = PageRequest.of(page, size);
 
         Page<InterviewerExpertise> expertisePage = interviewerExpertiseRepository
@@ -192,8 +196,9 @@ public class BookingService {
     // Confirm Booking
     public BookingStatusResponse confirmBooking(Long userId, Long bookingId, ConfirmBookingRequest request) {
 
-        Booking booking = bookingRepository.findByBookingIdAndInterviewer_InterviewerId(bookingId, userId)
-                .orElseThrow(() -> new NotFoundException("Booking not found"));
+        Booking booking = bookingRepository.findByBookingIdAndInterviewer_User_UserId(bookingId, userId)
+            .orElseGet(() -> bookingRepository.findByBookingIdAndInterviewer_InterviewerId(bookingId, userId)
+            .orElseThrow(() -> new NotFoundException("Booking not found for this interviewer")));
 
         if(!BookingStatus.PENDING.equals(booking.getStatus())) {
             throw new ForbiddenOperationException("Confirm can only use fore Pending Booking");
@@ -216,8 +221,9 @@ public class BookingService {
 
     // Reject Booking
     public BookingStatusResponse rejectBooking(Long userId, Long bookingId) {
-        Booking booking = bookingRepository.findByBookingIdAndInterviewer_InterviewerId(bookingId, userId)
-                .orElseThrow(() -> new NotFoundException("Booking not found"));
+        Booking booking = bookingRepository.findByBookingIdAndInterviewer_User_UserId(bookingId, userId)
+            .orElseGet(() -> bookingRepository.findByBookingIdAndInterviewer_InterviewerId(bookingId, userId)
+            .orElseThrow(() -> new NotFoundException("Booking not found for this interviewer")));
 
         if(!BookingStatus.PENDING.equals(booking.getStatus())) {
             throw new ForbiddenOperationException("Reject can only use fore Pending Booking");
@@ -242,6 +248,13 @@ public class BookingService {
             throw new ForbiddenOperationException("Only the designated interviewer can start this meeting");
         }
 
+        LocalDateTime startTime = booking.getStartTime();
+
+        Duration duration = Duration.between(LocalDateTime.now(), startTime);
+
+        if(duration.toMinutes() > 60) {
+            throw new ForbiddenOperationException("You can only get start URL within one hour after the start time");
+        }
 
         String freshStartUrl = zoomService.getFreshStartUrl(booking.getMeetingId());
 

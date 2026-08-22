@@ -2,6 +2,9 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import NavigationBar from "../NavigationBar/NavigationBar";
+import StripePaymentModal from "../BookingPage/StripePaymentModal";
+import UserHeader from "../UserHeader/UserHeader";
+import ChatPanel from "../ChatPanel/ChatPanel";
 import "./BookingHistoryPage.css";
 
 const API_BASE =
@@ -33,6 +36,9 @@ const mapBookingStatus = (status) => {
     case "PENDING":
       return "pending";
     case "ACCEPTED":
+      return "accepted";
+    case "PAID":
+      return "paid";
     case "IN_PROGRESS":
       return "in-progress";
     case "AWAIT_REVIEW":
@@ -49,10 +55,33 @@ const mapBookingStatus = (status) => {
 
 const STATUS_LABEL = {
   pending: "Pending",
-  "in-progress": "Accepted",
+  accepted: "Accepted",
+  paid: "Paid",
+  "in-progress": "In Progress",
   "await-review": "Await Review",
   done: "Completed",
   cancelled: "Rejected",
+};
+
+const toTimestamp = (dateStr, timeStr) => {
+  if (!dateStr || !timeStr) return 0;
+  const [day, month, year] = dateStr.split("/").map(Number);
+  const [hour, minute] = timeStr.split(":").map(Number);
+  return new Date(year, month - 1, day, hour, minute).getTime();
+};
+
+const isMeetingTimeValid = (dateStr, timeStr) => {
+  const meetingTimestamp = toTimestamp(dateStr, timeStr);
+  if (!meetingTimestamp) return false;
+
+  const now = Date.now();
+  const TEN_MINUTES = 10 * 60 * 1000;
+  const SIXTY_MINUTES = 60 * 60 * 1000;
+
+  return (
+    now >= meetingTimestamp - TEN_MINUTES &&
+    now <= meetingTimestamp + SIXTY_MINUTES
+  );
 };
 
 const convertBookingToDashboardRow = (booking) => {
@@ -77,10 +106,15 @@ const convertBookingToDashboardRow = (booking) => {
     interviewerDTO?.full_name ||
     interviewerDTO?.interviewerName ||
     interviewerDTO?.interviewer_name ||
+    booking.interviewerName ||
     "Interviewer";
 
-  const rawStatus =
-    booking.bookingStatus || booking.booking_status || booking.status;
+  const rawStatus = (
+    booking.bookingStatus ||
+    booking.booking_status ||
+    booking.status ||
+    ""
+  ).toUpperCase();
 
   const cleanId = booking.bookingId ?? booking.booking_id;
 
@@ -89,13 +123,27 @@ const convertBookingToDashboardRow = (booking) => {
   const existingRating = reviewData?.rating || 5;
   const isReviewed = Boolean(reviewData);
 
+  const rawAmount =
+    booking.totalAmount ??
+    booking.total_amount ??
+    booking.price ??
+    booking.amount ??
+    interviewerDTO?.price;
+
+  const priceDisplay =
+    rawAmount !== undefined && rawAmount !== null && rawAmount !== ""
+      ? `$${Number(rawAmount).toFixed(2)} / session`
+      : "$10 / session";
+
   return {
     id: `booking-${cleanId}`,
     bookingId: Number(cleanId),
     date: dateStr,
     time: timeStr,
     interviewer: interviewerName,
-    about: booking.positionName || "Mock Interview",
+    price: priceDisplay,
+    rawAmount: rawAmount,
+    about: booking.positionName || booking.position || "Mock Interview",
     rawStatus: rawStatus,
     status: mapBookingStatus(rawStatus),
     joinUrl:
@@ -103,6 +151,7 @@ const convertBookingToDashboardRow = (booking) => {
       booking.join_url ||
       booking.meetingUrl ||
       booking.meeting_url,
+    startUrl: booking.startUrl || booking.start_url,
     feedback: existingComment,
     rating: existingRating,
     isReviewed: isReviewed,
@@ -110,14 +159,9 @@ const convertBookingToDashboardRow = (booking) => {
   };
 };
 
-const toTimestamp = (dateStr, timeStr) => {
-  if (!dateStr || !timeStr) return 0;
-  const [day, month, year] = dateStr.split("/").map(Number);
-  const [hour, minute] = timeStr.split(":").map(Number);
-  return new Date(year, month - 1, day, hour, minute).getTime();
-};
-
 const BookingHistoryPage = () => {
+  const [chatCollapsed, setChatCollapsed] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
   const [requests, setRequests] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -128,6 +172,26 @@ const BookingHistoryPage = () => {
   const [ratingDrafts, setRatingDrafts] = useState({});
   const [submittingId, setSubmittingId] = useState(null);
 
+  const [paymentTarget, setPaymentTarget] = useState(null);
+  const [creatingIntent, setCreatingIntent] = useState(false);
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) setCurrentUser(JSON.parse(userStr));
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const handleToggleChat = () => {
+    setChatCollapsed((prev) => !prev);
+  };
+
+  const handleBookFromChat = (data) => {
+    console.log("Book from chat action:", data);
+  };
+
   const loadBookings = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -136,18 +200,18 @@ const BookingHistoryPage = () => {
         headers: authHeaders(),
       });
 
-      if (!res.ok) {
+      if (!res.ok)
         throw new Error(`Failed to load booking data (${res.status})`);
-      }
 
       const bookings = await res.json();
+
       const dashboardBookings = (Array.isArray(bookings) ? bookings : [])
         .map((b) => convertBookingToDashboardRow(b))
         .filter((r) => r !== null);
 
       setRequests(dashboardBookings);
     } catch (err) {
-      console.error("Error loading candidate bookings:", err);
+      console.error("❌ Error loading candidate bookings:", err);
       setError(err.message || "Could not load booking history.");
     } finally {
       setLoading(false);
@@ -158,11 +222,46 @@ const BookingHistoryPage = () => {
     loadBookings();
   }, [loadBookings]);
 
+  const handleOpenPaymentModal = async (req) => {
+    setCreatingIntent(true);
+    try {
+      const intentRes = await fetch(
+        `${API_BASE}/api/v1/stripe/${req.bookingId}/create-intent`,
+        {
+          method: "POST",
+          headers: authHeaders(),
+        },
+      );
+
+      if (!intentRes.ok) {
+        const errText = await intentRes.text();
+        throw new Error(`Stripe initialization failed (${intentRes.status})`);
+      }
+
+      const intentData = await intentRes.json();
+      const secret = intentData.client_secret || intentData.clientSecret;
+      if (!secret)
+        throw new Error("Did not receive clientSecret from Backend.");
+
+      setPaymentTarget({ req, clientSecret: secret });
+    } catch (err) {
+      alert("Payment initialization error: " + err.message);
+    } finally {
+      setCreatingIntent(false);
+    }
+  };
+
+  const handlePaymentSuccess = () => {
+    alert("Payment successful!");
+    setPaymentTarget(null);
+    loadBookings();
+  };
+
   const handleJoinMeeting = (joinUrl) => {
     if (joinUrl) {
       window.open(joinUrl, "_blank", "noopener,noreferrer");
     } else {
-      alert("Chưa tìm thấy link Zoom cho buổi phỏng vấn này!");
+      alert("Meeting link is not available yet!");
     }
   };
 
@@ -184,7 +283,7 @@ const BookingHistoryPage = () => {
     const rating = ratingDrafts[req.id] || 5;
 
     if (!comment.trim()) {
-      alert("Vui lòng nhập nội dung đánh giá trước khi gửi.");
+      alert("Please enter review content before submitting.");
       return;
     }
 
@@ -208,46 +307,23 @@ const BookingHistoryPage = () => {
       }
 
       setSubmittedReviews((prev) => [...prev, Number(rawBookingId)]);
-      alert("Đã gửi đánh giá thành công!");
+      alert("Review submitted successfully!");
       loadBookings();
     } catch (err) {
       console.error("Submit review error:", err);
-      alert("Gửi đánh giá thất bại: " + err.message);
+      alert("Failed to submit review: " + err.message);
     } finally {
       setSubmittingId(null);
     }
   };
 
-  // 🟢 Sắp xếp giảm dần: Accepted -> Pending -> Completed -> Rejected
-  const sortedRequests = useMemo(() => {
-    const getStatusPriority = (item) => {
-      const st = item.rawStatus;
-      if (st === "ACCEPTED" || st === "IN_PROGRESS" || st === "AWAIT_REVIEW")
-        return 1;
-      if (st === "PENDING") return 2;
-      if (st === "COMPLETED") return 3;
-      if (st === "REJECTED" || st === "CANCELLED") return 4;
-      return 5;
-    };
-
-    return [...requests].sort((a, b) => {
-      const priorityA = getStatusPriority(a);
-      const priorityB = getStatusPriority(b);
-
-      if (priorityA !== priorityB) {
-        return priorityA - priorityB;
-      }
-
-      const aTime = toTimestamp(a.date, a.time);
-      const bTime = toTimestamp(b.date, b.time);
-      return bTime - aTime;
-    });
-  }, [requests]);
-
   return (
     <div className="booking-history-root">
       <NavigationBar />
-      <main className="booking-history-main">
+
+      <main
+        className={`booking-history-main ${!chatCollapsed ? "with-chat" : ""}`}
+      >
         <section className="booking-history-inner">
           <h1 className="booking-history-title">-----BOOKING HISTORY-----</h1>
 
@@ -268,18 +344,26 @@ const BookingHistoryPage = () => {
               <div className="booking-history-empty text-red-500">{error}</div>
             ) : (
               <AnimatePresence initial={false}>
-                {sortedRequests.map((req) => {
+                {requests.map((req) => {
                   const isOpen = expandedId === req.id;
+
+                  const isPending = req.rawStatus === "PENDING";
+                  const isAccepted = req.rawStatus === "ACCEPTED";
+                  const isPaid = req.rawStatus === "PAID";
+                  const isInProgress = req.rawStatus === "IN_PROGRESS";
+                  const isAwaitReview = req.rawStatus === "AWAIT_REVIEW";
+                  const isCompleted = req.rawStatus === "COMPLETED";
+
+                  const isTimeValid = isMeetingTimeValid(req.date, req.time);
+
+                  const canJoinMeeting =
+                    (isPaid || isInProgress) &&
+                    Boolean(req.joinUrl) &&
+                    isTimeValid;
 
                   const isAlreadyReviewed =
                     req.isReviewed ||
-                    req.rawStatus === "COMPLETED" ||
                     submittedReviews.includes(Number(req.bookingId));
-
-                  const isCompletedOrEnded =
-                    req.rawStatus === "COMPLETED" ||
-                    req.rawStatus === "REJECTED" ||
-                    req.rawStatus === "CANCELLED";
 
                   return (
                     <motion.div
@@ -288,9 +372,6 @@ const BookingHistoryPage = () => {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      transition={{
-                        layout: { duration: 0.4, ease: "easeInOut" },
-                      }}
                       className="booking-history-row-wrap"
                     >
                       <div className="booking-history-row booking-history-data-row">
@@ -305,45 +386,29 @@ const BookingHistoryPage = () => {
                         </span>
 
                         <span className="cell-meeting">
-                          {req.rawStatus === "ACCEPTED" ||
-                          req.rawStatus === "IN_PROGRESS" ? (
-                            <button
-                              type="button"
-                              className={`join-meeting-btn ${!req.joinUrl ? "btn-disabled" : ""}`}
-                              disabled={!req.joinUrl}
-                              onClick={() => handleJoinMeeting(req.joinUrl)}
-                            >
-                              Join meeting
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="join-meeting-btn btn-disabled"
-                              disabled={true}
-                            >
-                              {req.rawStatus === "PENDING"
-                                ? "Waiting"
-                                : "Ended"}
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            className={`join-meeting-btn ${!canJoinMeeting ? "btn-disabled" : ""}`}
+                            disabled={!canJoinMeeting}
+                            onClick={() => handleJoinMeeting(req.joinUrl)}
+                          >
+                            {canJoinMeeting
+                              ? "Join meeting"
+                              : isPending || isAccepted
+                                ? "Not Ready"
+                                : !isTimeValid && (isPaid || isInProgress)
+                                  ? "Not In Time"
+                                  : "Ended"}
+                          </button>
                         </span>
 
                         <span className="cell-action">
                           <button
                             type="button"
-                            className={`details-btn ${isOpen ? "is-open" : ""} ${
-                              isCompletedOrEnded ? "btn-disabled" : ""
-                            }`}
-                            onClick={() =>
-                              !isCompletedOrEnded && toggleExpand(req.id)
-                            }
-                            disabled={isCompletedOrEnded}
+                            className={`details-btn ${isOpen ? "is-open" : ""}`}
+                            onClick={() => toggleExpand(req.id)}
                           >
-                            {isCompletedOrEnded
-                              ? "Done"
-                              : isOpen
-                                ? "Close"
-                                : "View"}
+                            {isOpen ? "Close" : "View"}
                           </button>
                         </span>
                       </div>
@@ -355,106 +420,149 @@ const BookingHistoryPage = () => {
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.28, ease: "easeInOut" }}
                             className="details-panel-wrap"
                           >
-                            <div className="details-panel">
+                            <div
+                              className="details-panel"
+                              style={{ padding: "16px" }}
+                            >
                               <div className="details-field">
                                 <span className="details-label">
-                                  Interviewer
+                                  Interviewer:{" "}
                                 </span>
-                                <div className="details-value">
-                                  {req.interviewer}
+                                <strong>{req.interviewer}</strong>
+                              </div>
+                              <div
+                                className="details-field"
+                                style={{ marginTop: "8px" }}
+                              >
+                                <span className="details-label">Fee: </span>
+                                <span>{req.price}</span>
+                              </div>
+
+                              {isAccepted && (
+                                <div style={{ marginTop: "16px" }}>
+                                  <button
+                                    type="button"
+                                    style={{
+                                      backgroundColor: "#4C1D95",
+                                      color: "#FFFFFF",
+                                      padding: "10px 20px",
+                                      borderRadius: "6px",
+                                      fontWeight: "600",
+                                      border: "none",
+                                      cursor: "pointer",
+                                    }}
+                                    onClick={() => handleOpenPaymentModal(req)}
+                                    disabled={creatingIntent}
+                                  >
+                                    {creatingIntent
+                                      ? "INITIALIZING..."
+                                      : "PAY NOW"}
+                                  </button>
                                 </div>
-                              </div>
+                              )}
 
-                              <div className="details-field">
-                                <span className="details-label">
-                                  Position / Category
-                                </span>
-                                <div className="details-value">{req.about}</div>
-                              </div>
-
-                              <div className="details-field">
-                                <span className="details-label">
-                                  Review Interviewer
-                                </span>
-
-                                {isAlreadyReviewed ? (
-                                  <div className="existing-review-box p-3 bg-gray-100 rounded text-sm">
-                                    <div className="font-semibold text-yellow-600 mb-1">
-                                      Rating: {req.rating} ★
+                              {(isAwaitReview || isCompleted) && (
+                                <div
+                                  className="details-field"
+                                  style={{ marginTop: "16px" }}
+                                >
+                                  <span className="details-label">
+                                    Review Interviewer
+                                  </span>
+                                  {isAlreadyReviewed ? (
+                                    <div
+                                      className="existing-review-box p-3 bg-gray-100 rounded text-sm"
+                                      style={{ marginTop: "8px" }}
+                                    >
+                                      <div className="font-semibold text-yellow-600 mb-1">
+                                        Rating: {req.rating} ★
+                                      </div>
+                                      <div className="text-gray-700">
+                                        {req.feedback
+                                          ? req.feedback
+                                          : "No comment provided."}
+                                      </div>
                                     </div>
-                                    <div className="text-gray-700">
-                                      {req.feedback
-                                        ? req.feedback
-                                        : "No comment provided."}
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="review-input-container">
-                                    <div className="rating-select-row">
-                                      <span className="rating-label">
-                                        Rating:
-                                      </span>
-                                      <select
-                                        className="rating-select"
+                                  ) : (
+                                    <div
+                                      className="review-input-container"
+                                      style={{ marginTop: "8px" }}
+                                    >
+                                      <div className="rating-select-row">
+                                        <span className="rating-label">
+                                          Rating:{" "}
+                                        </span>
+                                        <select
+                                          className="rating-select"
+                                          value={
+                                            ratingDrafts[req.id] ??
+                                            req.rating ??
+                                            5
+                                          }
+                                          onChange={(e) =>
+                                            updateRatingDraft(
+                                              req.id,
+                                              e.target.value,
+                                            )
+                                          }
+                                        >
+                                          <option value={5}>
+                                            5 ★ - Excellent
+                                          </option>
+                                          <option value={4}>
+                                            4 ★ - Very Good
+                                          </option>
+                                          <option value={3}>3 ★ - Good</option>
+                                          <option value={2}>2 ★ - Fair</option>
+                                          <option value={1}>1 ★ - Poor</option>
+                                        </select>
+                                      </div>
+
+                                      <textarea
+                                        className="feedback-textarea"
+                                        rows={3}
+                                        style={{
+                                          width: "100%",
+                                          marginTop: "8px",
+                                          padding: "8px",
+                                        }}
+                                        placeholder="Write your review for the interviewer..."
                                         value={
-                                          ratingDrafts[req.id] ??
-                                          req.rating ??
-                                          5
+                                          feedbackDrafts[req.id] ??
+                                          req.feedback ??
+                                          ""
                                         }
                                         onChange={(e) =>
-                                          updateRatingDraft(
+                                          updateFeedbackDraft(
                                             req.id,
                                             e.target.value,
                                           )
                                         }
-                                      >
-                                        <option value={5}>
-                                          5 ★ - Excellent
-                                        </option>
-                                        <option value={4}>
-                                          4 ★ - Very Good
-                                        </option>
-                                        <option value={3}>3 ★ - Good</option>
-                                        <option value={2}>2 ★ - Fair</option>
-                                        <option value={1}>1 ★ - Poor</option>
-                                      </select>
-                                    </div>
+                                      />
 
-                                    <textarea
-                                      className="feedback-textarea"
-                                      rows={3}
-                                      placeholder="Write your review for the interviewer..."
-                                      value={
-                                        feedbackDrafts[req.id] ??
-                                        req.feedback ??
-                                        ""
-                                      }
-                                      onChange={(e) =>
-                                        updateFeedbackDraft(
-                                          req.id,
-                                          e.target.value,
-                                        )
-                                      }
-                                    />
-
-                                    <div className="submit-btn-row">
-                                      <button
-                                        type="button"
-                                        className="submit-review-btn"
-                                        disabled={submittingId === req.id}
-                                        onClick={() => handleSubmitReview(req)}
+                                      <div
+                                        className="submit-btn-row"
+                                        style={{ marginTop: "8px" }}
                                       >
-                                        {submittingId === req.id
-                                          ? "SUBMITTING..."
-                                          : "SUBMIT REVIEW"}
-                                      </button>
+                                        <button
+                                          type="button"
+                                          className="submit-review-btn"
+                                          disabled={submittingId === req.id}
+                                          onClick={() =>
+                                            handleSubmitReview(req)
+                                          }
+                                        >
+                                          {submittingId === req.id
+                                            ? "SUBMITTING..."
+                                            : "SUBMIT REVIEW"}
+                                        </button>
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
-                              </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </motion.div>
                         )}
@@ -465,18 +573,38 @@ const BookingHistoryPage = () => {
               </AnimatePresence>
             )}
 
-            {!loading && sortedRequests.length === 0 && (
-              <motion.div
-                className="booking-history-empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
+            {!loading && requests.length === 0 && (
+              <div className="booking-history-empty">
                 No interview sessions found.
-              </motion.div>
+              </div>
             )}
           </div>
         </section>
       </main>
+
+      <UserHeader
+        user={currentUser}
+        isChatOpen={!chatCollapsed}
+        onToggleChat={handleToggleChat}
+      />
+
+      <ChatPanel
+        isCollapsed={chatCollapsed}
+        onBookFromChat={handleBookFromChat}
+      />
+
+      {paymentTarget && (
+        <StripePaymentModal
+          clientSecret={paymentTarget.clientSecret}
+          bookingId={paymentTarget.req.bookingId}
+          mentor={{
+            name: paymentTarget.req.interviewer,
+            price: paymentTarget.req.price,
+          }}
+          onPaid={handlePaymentSuccess}
+          onCancel={() => setPaymentTarget(null)}
+        />
+      )}
     </div>
   );
 };

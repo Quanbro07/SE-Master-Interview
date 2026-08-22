@@ -54,7 +54,7 @@ const RProfile = () => {
       : `Bearer ${normalizedToken}`;
   };
 
-  // Trích xuất tên Position từ đối tượng DTO
+  // Trích xuất tên Position từ đối tượng DTO hoặc database
   const extractPositionName = (item) => {
     if (typeof item === "string") return item;
     if (!item) return "N/A";
@@ -71,7 +71,7 @@ const RProfile = () => {
     );
   };
 
-  // Chuẩn hóa và lấy toàn bộ danh sách Chuyên môn / Vị trí
+  // Chuẩn hóa và lấy toàn bộ danh sách Chuyên môn / Vị trí theo schema Database
   const processExpertises = (userData) => {
     const rawList =
       userData.expertises ||
@@ -84,15 +84,19 @@ const RProfile = () => {
     if (!Array.isArray(rawList)) return [];
 
     return rawList.map((item) => {
+      // Map theo các column: is_certified, hourly_fee, experience_year
       const isCert =
-        item.isCertified ?? item.is_certified ?? item.certified ?? false;
+        item.is_certified ?? item.isCertified ?? item.certified ?? false;
       const posName = extractPositionName(item);
 
       return {
         ...item,
         displayPositionName: String(posName).toUpperCase(),
+        hourlyFee: item.hourly_fee ?? item.hourlyFee,
+        experienceYear: item.experience_year ?? item.experienceYear,
         isCertified: Boolean(
           isCert === true ||
+          isCert === "t" ||
           isCert === "true" ||
           isCert === 1 ||
           item.status === "APPROVED" ||
@@ -288,7 +292,7 @@ const RProfile = () => {
     }
   };
 
-  // 5. Submit Expertise Request
+  // 5. Submit Expertise Request (Khớp với các tên cột DB: experience_year, hourly_fee, level)
   const handleRequestExpertise = async (e) => {
     e.preventDefault();
     if (!expPosition.trim() || !expFile) return;
@@ -438,7 +442,7 @@ const RProfile = () => {
                 ) : (
                   approvedExpertises.map((item, idx) => {
                     const level = (item.level || "VERIFIED").toUpperCase();
-                    const fee = item.hourlyFee || item.hourly_fee;
+                    const fee = item.hourlyFee;
 
                     return (
                       <div key={idx} className="rp-expertise-badge">

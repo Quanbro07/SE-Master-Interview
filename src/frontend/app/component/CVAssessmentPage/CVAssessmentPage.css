@@ -358,3 +358,67 @@
   font-size: 13px;
   margin: -6px 0 12px;
 }
+
+.cv-main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Thêm đoạn này để thụt lề giống SelfPractice */
+.cv-main.with-chat {
+  margin-right: 400px;
+}
+
+@media (max-width: 1024px) {
+  .cv-main.with-chat {
+    margin-right: 0;
+  }
+}
+
+/* CVAssessmentPage.css */
+
+.cv-page-root {
+  display: flex;
+  min-height: 100vh;
+  background: #0f0f13;
+  color: #f4f4f5;
+  position: relative;
+  overflow-x: hidden; /* Đảm bảo không tạo thanh cuộn ngang khiChatPanel xuất hiện */
+}
+
+.cv-main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px;
+  width: 100%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Khi ChatPanel mở: Thụt lề phải đúng 400px (giống hệt self-main.with-chat) */
+.cv-main.with-chat {
+  margin-right: 400px;
+}
+
+.cv-inner {
+  width: 100%;
+  max-width: 880px; /* Giữ nguyên chiều rộng tối đa, không bị biến dạng nội dung */
+  padding: 40px 48px;
+  border-radius: 20px;
+  background: #18181c;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+  min-height: 420px;
+}
+
+/* Đảm bảo trên các màn hình nhỏ/máy tính bảng không bị đẩy quá sâu */
+@media (max-width: 1024px) {
+  .cv-main.with-chat {
+    margin-right: 0;
+  }
+}

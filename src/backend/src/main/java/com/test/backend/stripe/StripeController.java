@@ -51,4 +51,16 @@ public class StripeController {
     public Flux<PaymentEventDTO> streamPaymentStatus(@PathVariable Long bookingId) {
         return paymentEventService.subscribe(bookingId);
     }
+
+    @PreAuthorize("hasRole('Interviewee')")
+    @PostMapping("/{bookingId}/confirm-hold")
+    public ResponseEntity<Void> confirmHoldPayment(
+            @PathVariable Long bookingId,
+            @AuthenticationPrincipal CustomUserDetail customUserDetail) {
+
+        Long userId = customUserDetail.getUser().getUserId();
+        stripeService.confirmManualHoldPayment(userId, bookingId);
+
+        return ResponseEntity.ok().build();
+    }
 }

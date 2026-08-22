@@ -1,12 +1,13 @@
 "use client";
 import { useRef, useState, useEffect } from "react";
 import NavigationBar from "../NavigationBar/NavigationBar";
+import ChatPanel from "../ChatPanel/ChatPanel";
+import UserHeader from "../UserHeader/UserHeader";
 import "./CVAssessmentPage.css";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
-// Hàm lấy Access Token gọn gàng, đồng bộ với các component khác
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
   const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
@@ -22,7 +23,6 @@ const getAccessToken = () => {
   return token.replace(/^"(.*)"$/, "$1").trim();
 };
 
-// Labels cho section names từ backend
 const SECTION_LABELS = {
   EXPERIENCE: "Experience",
   SKILLS: "Skills",
@@ -34,24 +34,36 @@ const SECTION_LABELS = {
 };
 
 const CVAssessmentPage = () => {
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState(null);
   const [error, setError] = useState(null);
   const inputRef = useRef(null);
 
-  // States hỗ trợ Autocomplete Position
   const [position, setPosition] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Lấy toàn bộ vị trí khi mount component hoặc dùng search query
   useEffect(() => {
     fetchPositions("");
   }, []);
 
-  // Đóng dropdown khi click bên ngoài khung search
+  const handleToggleChat = () => {
+    setIsChatOpen((prev) => !prev);
+  };
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) setCurrentUser(JSON.parse(userStr));
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -62,7 +74,6 @@ const CVAssessmentPage = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Gọi API Backend lấy danh sách gợi ý Position (có kèm Token)
   const fetchPositions = async (query) => {
     try {
       const rawToken = getAccessToken();
@@ -126,7 +137,6 @@ const CVAssessmentPage = () => {
     inputRef.current?.click();
   };
 
-  // Hàm Submit trực tiếp, truyền token chuẩn như các trang khác
   const onSubmit = async () => {
     if (!file) {
       setError("Please select a CV file.");
@@ -148,7 +158,6 @@ const CVAssessmentPage = () => {
       formData.append("file", file);
       formData.append("position", position.trim());
 
-      // GỌI API VỚI CẤU HÌNH CHUẨN CHO FORMDATA
       const res = await fetch(`${API_BASE}/api/v1/cv-assessment/assess-cv`, {
         method: "POST",
         headers: {
@@ -182,7 +191,13 @@ const CVAssessmentPage = () => {
   return (
     <div className="cv-page-root">
       <NavigationBar />
-      <main className="cv-main">
+      <UserHeader
+        user={currentUser}
+        isChatOpen={isChatOpen}
+        onToggleChat={handleToggleChat}
+      />
+      <ChatPanel isCollapsed={!isChatOpen} onBookFromChat={() => {}} />
+      <main className={`cv-main ${isChatOpen ? "with-chat" : ""}`}>
         <section className="cv-inner">
           <h1 className="cvassessment-title">-----CV ASSESSMENT-----</h1>
 
