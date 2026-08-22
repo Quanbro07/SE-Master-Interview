@@ -204,6 +204,8 @@ services:
       context: ./core_ai
 
       dockerfile: dockerfile
+    env_file:
+      - .env
 
     container_name: master-interview-ai
 
