@@ -30,10 +30,10 @@ const authHeaders = () => {
 const mapBookingStatus = (status) => {
   const upperStatus = (status || "").toUpperCase();
   switch (upperStatus) {
-    case "PAID":
-      return "paid";
     case "ACCEPTED":
       return "accepted";
+    case "PAID":
+      return "paid";
     case "IN_PROGRESS":
       return "in-progress";
     case "AWAIT_REVIEW":
@@ -41,8 +41,9 @@ const mapBookingStatus = (status) => {
     case "COMPLETED":
       return "done";
     case "REJECTED":
-    case "CANCELLED":
       return "rejected";
+    case "CANCELLED":
+      return "cancelled";
     default:
       return "pending";
   }
@@ -56,13 +57,16 @@ const STATUS_LABEL = {
   "await-review": "Await Review",
   done: "Completed",
   rejected: "Rejected",
+  cancelled: "Cancelled",
 };
 
 const convertBookingToDashboardRow = (booking) => {
   if (!booking) return null;
 
   const startTimeStr = booking.startTime || booking.start_time;
+  const endTimeStr = booking.endTime || booking.end_time;
   const startTime = new Date(startTimeStr);
+  const endTime = new Date(endTimeStr);
 
   const dateStr = !isNaN(startTime)
     ? startTime.toLocaleDateString("en-GB")
@@ -104,6 +108,8 @@ const convertBookingToDashboardRow = (booking) => {
     money: `$${booking.totalAmount || 10}`,
     meetingUrl: booking.meetingUrl || booking.meeting_url,
     startUrl: booking.startUrl || booking.start_url,
+    // Lưu lại giờ kết thúc thật (nếu có) để tính auto-cancel khi quá giờ
+    endDateTime: !isNaN(endTime) ? endTime : null,
     rawBooking: booking,
   };
 };
@@ -151,6 +157,22 @@ const isMeetingTimeValid = (dateStr, timeStr) => {
     now <= meetingTimestamp + TWO_HOURS
   );
 };
+
+// Đã qua giờ kết thúc buổi phỏng vấn chưa. Ưu tiên dùng endDateTime thật
+// (từ booking.endTime); nếu thiếu, fallback coi buổi phỏng vấn kéo dài 1 tiếng
+// tính từ giờ bắt đầu.
+const isPastMeetingEnd = (dateStr, timeStr, endDateTime, now = Date.now()) => {
+  const endTimestamp = endDateTime
+    ? endDateTime.getTime()
+    : toTimestamp(dateStr, timeStr) + 60 * 60 * 1000;
+
+  if (!endTimestamp) return false;
+  return now > endTimestamp;
+};
+
+// Các trạng thái coi là đã "chốt", không thể tự động hủy nữa
+const TERMINAL_STATUSES = ["COMPLETED", "REJECTED", "CANCELLED"];
+
 const RDashboard = () => {
   const [submittedBookings, setSubmittedBookings] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -160,6 +182,9 @@ const RDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [joiningId, setJoiningId] = useState(null);
+  // Tick để re-render mỗi phút, giúp trạng thái tự chuyển sang CANCELLED
+  // đúng lúc mà không cần người dùng reload trang
+  const [nowTick, setNowTick] = useState(() => Date.now());
 
   const loadBookings = useCallback(async () => {
     setLoading(true);
@@ -198,6 +223,11 @@ const RDashboard = () => {
   useEffect(() => {
     loadBookings();
   }, [loadBookings]);
+
+  useEffect(() => {
+    const interval = setInterval(() => setNowTick(Date.now()), 30 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleGoToMeeting = async (bookingId, defaultStartUrl) => {
     setJoiningId(bookingId);
@@ -338,9 +368,15 @@ const RDashboard = () => {
   const sortedRequests = useMemo(() => {
     const getStatusPriority = (item) => {
       const st = item.rawStatus;
+      const autoCancelled =
+        !TERMINAL_STATUSES.includes(st) &&
+        !submittedBookings.includes(item.bookingId) &&
+        isPastMeetingEnd(item.date, item.time, item.endDateTime);
+
+      if (autoCancelled) return 4;
       if (
-        st === "PAID" ||
         st === "ACCEPTED" ||
+        st === "PAID" ||
         st === "IN_PROGRESS" ||
         st === "AWAIT_REVIEW"
       )
@@ -363,7 +399,7 @@ const RDashboard = () => {
       const bTime = toTimestamp(b.date, b.time);
       return bTime - aTime;
     });
-  }, [requests]);
+  }, [requests, submittedBookings, nowTick]);
 
   return (
     <div className="r-dashboard-root">
@@ -392,11 +428,30 @@ const RDashboard = () => {
                 );
                 const isAwaitingReview = req.rawStatus === "AWAIT_REVIEW";
 
+                // eslint-disable-next-line no-unused-vars
+                const _tick = nowTick; // đảm bảo re-render mỗi khi tick đổi
+
+                // Quá giờ kết thúc buổi phỏng vấn mà vẫn chưa được chốt
+                // (chưa Done/No-show, chưa Rejected/Cancelled) -> tự động CANCELLED
+                const isAutoCancelled =
+                  !TERMINAL_STATUSES.includes(req.rawStatus) &&
+                  !isSubmittedLocally &&
+                  isPastMeetingEnd(req.date, req.time, req.endDateTime);
+
+                // Trạng thái/nhãn/màu hiển thị thực tế sau khi tính auto-cancel
+                const displayRawStatus = isAutoCancelled
+                  ? "CANCELLED"
+                  : req.rawStatus;
+                const displayStatusClass = isAutoCancelled
+                  ? "cancelled"
+                  : req.status;
+
                 const isFinalized =
                   req.rawStatus === "COMPLETED" ||
                   req.rawStatus === "REJECTED" ||
                   req.rawStatus === "CANCELLED" ||
-                  isSubmittedLocally;
+                  isSubmittedLocally ||
+                  isAutoCancelled;
 
                 const isTimeValid = isMeetingTimeValid(req.date, req.time);
 
@@ -404,6 +459,7 @@ const RDashboard = () => {
                   (req.rawStatus === "PAID" ||
                     req.rawStatus === "IN_PROGRESS") &&
                   !isSubmittedLocally &&
+                  !isAutoCancelled &&
                   isTimeValid;
 
                 return (
@@ -425,8 +481,10 @@ const RDashboard = () => {
                         {req.interviewee}
                       </span>
                       <span className="cell-about">{req.about}</span>
-                      <span className={`cell-status status-${req.status}`}>
-                        {STATUS_LABEL[req.status] || req.rawStatus}
+                      <span
+                        className={`cell-status status-${displayStatusClass}`}
+                      >
+                        {STATUS_LABEL[displayStatusClass] || displayRawStatus}
                       </span>
 
                       <span className="cell-meeting">
@@ -449,11 +507,13 @@ const RDashboard = () => {
                             className="go-meeting-btn btn-disabled"
                             disabled={true}
                           >
-                            {!isTimeValid &&
-                            (req.rawStatus === "PAID" ||
-                              req.rawStatus === "IN_PROGRESS")
-                              ? "Not In Time"
-                              : "Ended"}
+                            {isAutoCancelled
+                              ? "Cancelled"
+                              : !isTimeValid &&
+                                  (req.rawStatus === "PAID" ||
+                                    req.rawStatus === "IN_PROGRESS")
+                                ? "Not In Time"
+                                : "Ended"}
                           </button>
                         )}
                       </span>
