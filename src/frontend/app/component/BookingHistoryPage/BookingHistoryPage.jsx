@@ -160,7 +160,7 @@ const convertBookingToDashboardRow = (booking) => {
 };
 
 const BookingHistoryPage = () => {
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatCollapsed, setChatCollapsed] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   const [requests, setRequests] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
@@ -185,7 +185,7 @@ const BookingHistoryPage = () => {
   }, []);
 
   const handleToggleChat = () => {
-    setIsChatOpen((prev) => !prev);
+    setChatCollapsed((prev) => !prev);
   };
 
   const handleBookFromChat = (data) => {
@@ -318,25 +318,12 @@ const BookingHistoryPage = () => {
   };
 
   return (
-    <div
-      className="booking-history-root"
-      style={{
-        paddingRight: isChatOpen ? "320px" : "0px",
-        transition: "padding-right 0.3s ease",
-      }}
-    >
+    <div className="booking-history-root">
       <NavigationBar />
-      <UserHeader
-        user={currentUser}
-        isChatOpen={isChatOpen}
-        onToggleChat={handleToggleChat}
-      />
-      <ChatPanel
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        onBookFromChat={handleBookFromChat}
-      />
-      <main className="booking-history-main">
+
+      <main
+        className={`booking-history-main ${!chatCollapsed ? "with-chat" : ""}`}
+      >
         <section className="booking-history-inner">
           <h1 className="booking-history-title">-----BOOKING HISTORY-----</h1>
 
@@ -594,6 +581,18 @@ const BookingHistoryPage = () => {
           </div>
         </section>
       </main>
+
+      <UserHeader
+        user={currentUser}
+        isChatOpen={!chatCollapsed}
+        onToggleChat={handleToggleChat}
+      />
+
+      <ChatPanel
+        isCollapsed={chatCollapsed}
+        onBookFromChat={handleBookFromChat}
+      />
+
       {paymentTarget && (
         <StripePaymentModal
           clientSecret={paymentTarget.clientSecret}

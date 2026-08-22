@@ -189,21 +189,15 @@ const CVAssessmentPage = () => {
   };
 
   return (
-    <div
-      className="cv-page-root"
-      style={{
-        paddingRight: isChatOpen ? "320px" : "0px",
-        transition: "padding-right 0.3s ease",
-      }}
-    >
+    <div className="cv-page-root">
       <NavigationBar />
       <UserHeader
         user={currentUser}
         isChatOpen={isChatOpen}
         onToggleChat={handleToggleChat}
       />
-      <ChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
-      <main className="cv-main">
+      <ChatPanel isCollapsed={!isChatOpen} onBookFromChat={() => {}} />
+      <main className={`cv-main ${isChatOpen ? "with-chat" : ""}`}>
         <section className="cv-inner">
           <h1 className="cvassessment-title">-----CV ASSESSMENT-----</h1>
 

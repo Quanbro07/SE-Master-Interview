@@ -1,3 +1,4 @@
+// MockInterviewPage.jsx
 "use client";
 import { useEffect, useRef, useState } from "react";
 import NavigationBar from "../NavigationBar/NavigationBar";
@@ -29,7 +30,7 @@ const getAccessToken = () => {
 };
 
 const MockInterviewPage = () => {
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatCollapsed, setChatCollapsed] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   const [positionQuery, setPositionQuery] = useState("");
   const [positionSuggestions, setPositionSuggestions] = useState([]);
@@ -70,7 +71,11 @@ const MockInterviewPage = () => {
   }, []);
 
   const handleToggleChat = () => {
-    setIsChatOpen((prev) => !prev);
+    setChatCollapsed((prev) => !prev);
+  };
+
+  const handleBookFromChat = (data) => {
+    console.log("Book from chat action:", data);
   };
 
   useEffect(() => {
@@ -319,21 +324,10 @@ const MockInterviewPage = () => {
   );
 
   return (
-    <div
-      className="mock-page-root"
-      style={{
-        paddingRight: isChatOpen ? "320px" : "0px",
-        transition: "padding-right 0.3s ease",
-      }}
-    >
+    <div className="mock-page-root">
       <NavigationBar />
-      <UserHeader
-        user={currentUser}
-        isChatOpen={isChatOpen}
-        onToggleChat={handleToggleChat}
-      />
-      <ChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
-      <main className="mock-main">
+
+      <main className={`mock-main ${!chatCollapsed ? "with-chat" : ""}`}>
         <section className="mock-inner">
           <h1 className="mockinterview-title">MOCK INTERVIEW</h1>
           <div className="mock-intro">
@@ -537,6 +531,17 @@ const MockInterviewPage = () => {
           )}
         </section>
       </main>
+
+      <UserHeader
+        user={currentUser}
+        isChatOpen={!chatCollapsed}
+        onToggleChat={handleToggleChat}
+      />
+
+      <ChatPanel
+        isCollapsed={chatCollapsed}
+        onBookFromChat={handleBookFromChat}
+      />
     </div>
   );
 };
