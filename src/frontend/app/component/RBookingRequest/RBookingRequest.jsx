@@ -16,7 +16,7 @@ const authHeaders = () => {
 
 const convertBookingToRequest = (booking) => {
   if (!booking) return null;
-
+  console.log("RAW BOOKING ITEM FROM API:", booking);
   const bookingId = booking.booking_id || booking.bookingId;
   const rawStatus = (
     booking.booking_status ||
@@ -47,6 +47,7 @@ const convertBookingToRequest = (booking) => {
     booking.cvUrl ||
     booking.booker?.cv_url ||
     booking.booker?.cvUrl ||
+    booking.bookerResponseDTO?.cvUrl ||
     null;
 
   // 2. Chuyển thành URL hoàn chỉnh
@@ -438,7 +439,7 @@ const RBookingRequest = () => {
                                       className="cv-filesize"
                                       style={{ color: "#4caf50" }}
                                     >
-                                      Click to View CV ↗
+                                      View PDF ↗
                                     </span>
                                   </a>
                                 ) : (

@@ -186,6 +186,7 @@ public class BookingService {
 
         List<BookingResponse> responseList = bookingList.stream()
                 .map(booking -> {
+                    log.info(">>> DEBUG BOOKING ID: {}, cvUrl in DB: '{}'", booking.getBookingId(), booking.getCvUrl());
                     Interviewer interviewer = booking.getInterviewer();
                     Interviewee interviewee = booking.getBooker();
 
@@ -389,6 +390,8 @@ public class BookingService {
 
         try {
             cvUrl = fileService.uploadFile(cvBucket.getCVBucketName(), fileData, contentType, originalFileName, target);
+            booking.setCvUrl(cvUrl);
+            bookingRepository.save(booking);
 
         } catch (MinioException | IOException e) {
             log.warn(e.getMessage());
@@ -461,6 +464,7 @@ public class BookingService {
                 .interviewerResponseDTO(interviewerDTO)
                 .startTime(newBooking.getStartTime())
                 .endTime(newBooking.getEndTime())
+                .joinUrl(newBooking.getJoinUrl())
                 .cvUrl(newBooking.getCvUrl())
                 .bookingReview(reviewDto)
                 .totalAmount(newBooking.getTotalAmount())

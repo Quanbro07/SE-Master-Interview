@@ -128,10 +128,10 @@
   color: #f97316; /* Cam - Pending */
 }
 .status-accepted {
-  color: #a855f7; /* Tím - Accepted */
+  color: #dcd025; /* Tím - Accepted */
 }
 .status-paid {
-  color: #06b6d4; /* Xanh Cyan - Paid */
+  color: #d853c4; /* Xanh Cyan - Paid */
 }
 .status-in-progress,
 .status-await-review {
@@ -179,12 +179,12 @@
 }
 
 .details-btn {
-  background: linear-gradient(90deg, #6b21a8, #4c1d95, #2e1065);
+  background: linear-gradient(90deg, #5e1d94, #38166c, #1f0b45);
   color: #ffffff;
 }
 
 .details-btn:hover:not(:disabled) {
-  background: linear-gradient(90deg, #7e22ce, #581c87, #3b0764);
+  background: linear-gradient(90deg, #6c21a9, #4a1e8d, #30116b);
   box-shadow: 0 4px 12px rgba(126, 34, 206, 0.3);
   transform: translateY(-1px);
 }
@@ -336,4 +336,128 @@
   .booking-history-inner {
     padding: 24px;
   }
+}
+
+/* Update panel (drop-down) dạng Box nổi bật tông Tím */
+.details-panel-wrap {
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.details-panel {
+  padding: 22px 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03); /* Cùng màu nền dropdown RDashboard */
+  border: 1px solid #7c3aed; /* Bọc viền tím nổi bật */
+  box-shadow: 0 0 15px rgba(124, 58, 237, 0.25); /* Glow shadow Tím */
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Hàng chứa các thông tin ngắn (Interviewer, Fee) nằm chung 1 hàng */
+.details-info-row {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.details-inline-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Tiêu đề chữ Tím in đậm */
+.details-label {
+  font-size: 13px;
+  color: #c084fc;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Giá trị truyền vào: Chữ trắng, in đậm, in nghiêng trong Box nhỏ */
+.details-pill {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  font-style: italic;
+  color: #f4f4f5;
+  width: fit-content;
+  font-size: 14px;
+}
+
+/* Khung Review lớn */
+.review-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.rating-select-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rating-label {
+  font-size: 13px;
+  color: #c084fc;
+  font-weight: 700;
+}
+
+.rating-select {
+  background: #18181c;
+  color: #fbbf24;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  outline: none;
+}
+
+.feedback-textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: #f4f4f5;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+}
+
+.feedback-textarea:focus {
+  border-color: #a855f7;
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.3);
+}
+
+.existing-review-box {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+/* Nút thanh toán & Nút gửi Review */
+.pay-now-btn {
+  background: linear-gradient(90deg, #7c3aed, #6d28d9);
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pay-now-btn:hover:not(:disabled) {
+  background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
 }

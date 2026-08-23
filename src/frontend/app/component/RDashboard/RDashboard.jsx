@@ -53,14 +53,14 @@ const mapBookingStatus = (status) => {
 };
 
 const STATUS_LABEL = {
-  pending: "Pending",
-  accepted: "Accepted",
-  paid: "Paid",
-  "in-progress": "In Progress",
-  "await-review": "Await Review",
-  done: "Completed",
-  rejected: "Rejected",
-  cancelled: "Cancelled",
+  pending: "PENDING",
+  accepted: "ACCEPTED",
+  paid: "PAID",
+  "in-progress": "IN PROGRESS",
+  "await-review": "AWAIT REVIEW",
+  done: "COMPLETED",
+  rejected: "REJECTED",
+  cancelled: "CANCELLED",
 };
 
 const convertBookingToDashboardRow = (booking) => {
@@ -186,6 +186,20 @@ const isPastMeetingEnd = (dateStr, timeStr, endDateTime, now = Date.now()) => {
 
 const TERMINAL_STATUSES = ["COMPLETED", "REJECTED", "CANCELLED"];
 
+const STATUS_PRIORITY_MAP = {
+  IN_PROGRESS: 1,
+  "IN-PROGRESS": 1,
+  AWAIT_REVIEW: 2,
+  "AWAIT-REVIEW": 2,
+  PAID: 3,
+  PENDING: 4,
+  ACCEPTED: 4,
+  COMPLETED: 5,
+  DONE: 5,
+  REJECTED: 6,
+  CANCELLED: 7,
+};
+
 const RDashboard = () => {
   const [user, setUser] = useState(null);
   const [submittedBookings, setSubmittedBookings] = useState([]);
@@ -229,7 +243,10 @@ const RDashboard = () => {
       });
 
       if (res.status === 401) {
-        alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+        showToast(
+          "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!",
+          "error",
+        );
         return;
       }
 
@@ -272,13 +289,13 @@ const RDashboard = () => {
 
   const handleGoToMeeting = async (bookingId, defaultStartUrl) => {
     if (!bookingId || isNaN(Number(bookingId))) {
-      alert("Booking ID không hợp lệ!");
+      showToast("Booking ID không hợp lệ!", "error");
       return;
     }
 
     const headers = authHeaders();
     if (!headers.Authorization) {
-      alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+      showToast("Token expired! Please log-out and sign-in again", "error");
       return;
     }
 
@@ -311,14 +328,14 @@ const RDashboard = () => {
         window.open(cleanDefaultUrl, "_blank", "noopener,noreferrer");
         loadBookings();
       } else {
-        alert("Không thể khởi tạo link Zoom.");
+        showToast("Can't not start ZOOM!", "error");
       }
     } catch (err) {
       if (defaultStartUrl) {
         window.open(defaultStartUrl, "_blank", "noopener,noreferrer");
         loadBookings();
       } else {
-        alert("Có lỗi mạng xảy ra khi tạo cuộc họp.");
+        showToast("Netword crash occurred", "error");
       }
     } finally {
       setJoiningId(null);
@@ -349,7 +366,7 @@ const RDashboard = () => {
   const finalizeStatus = async (id) => {
     const target = requests.find((r) => r.id === id);
     if (!target || !target.bookingId) {
-      alert("Không tìm thấy Booking ID hợp lệ!");
+      showToast("No valid BookingID", "error");
       return;
     }
 
@@ -361,7 +378,7 @@ const RDashboard = () => {
     const isFeedbackProvided = Boolean(currentFeedback.trim());
 
     if (!feedbackText.trim()) {
-      alert("Vui lòng điền đánh giá (feedback) trước khi nhấn Complete!");
+      showToast("Please feedback before submitting!", "error");
       return;
     }
 
@@ -410,7 +427,7 @@ const RDashboard = () => {
       setTimeout(() => setToast(null), 2200);
       loadBookings();
     } catch (err) {
-      alert("Cập nhật thất bại: " + err.message);
+      showToast(`Update failed ${err.message}`, "error");
     } finally {
       setSubmittingId(null);
     }
@@ -418,27 +435,41 @@ const RDashboard = () => {
 
   const sortedRequests = useMemo(() => {
     const getStatusPriority = (item) => {
-      const st = item.rawStatus;
+      const st = (item.rawStatus || "").toUpperCase();
       const autoCancelled =
         !TERMINAL_STATUSES.includes(st) &&
         !submittedBookings.includes(item.bookingId) &&
         isPastMeetingEnd(item.date, item.time, item.endDateTime);
 
-      if (autoCancelled) return 4;
-      if (
-        st === "ACCEPTED" ||
-        st === "PAID" ||
-        st === "IN_PROGRESS" ||
-        st === "AWAIT_REVIEW"
-      )
-        return 1;
-      if (st === "PENDING") return 2;
-      if (st === "COMPLETED") return 3;
-      if (st === "REJECTED" || st === "CANCELLED") return 4;
-      return 5;
+      if (autoCancelled) return STATUS_PRIORITY_MAP["CANCELLED"];
+      return STATUS_PRIORITY_MAP[st] || 99;
+    };
+
+    const getDayTimestamp = (dateStr) => {
+      if (!dateStr) return 0;
+      let day, month, year;
+      if (dateStr.includes("/")) {
+        const parts = dateStr.split("/").map(Number);
+        if (parts[2] > 1000) [day, month, year] = parts;
+        else [month, day, year] = parts;
+      } else if (dateStr.includes("-")) {
+        const parts = dateStr.split("-").map(Number);
+        if (parts[0] > 1000) [year, month, day] = parts;
+        else [day, month, year] = parts;
+      } else return 0;
+      return new Date(year, month - 1, day).getTime();
     };
 
     return [...requests].sort((a, b) => {
+      // 1. So sánh theo ngày (Giảm dần: Ngày mới nhất đứng trước)
+      const dateA = getDayTimestamp(a.date);
+      const dateB = getDayTimestamp(b.date);
+
+      if (dateA !== dateB) {
+        return dateB - dateA;
+      }
+
+      // 2. Nếu cùng ngày: Ưu tiên theo thứ tự IN-PROGRESS, AWAIT-REVIEW, PAID, PENDING, COMPLETED, REJECTED, CANCELLED
       const priorityA = getStatusPriority(a);
       const priorityB = getStatusPriority(b);
 
@@ -446,6 +477,7 @@ const RDashboard = () => {
         return priorityA - priorityB;
       }
 
+      // 3. Nếu cùng status nữa thì xếp theo thời gian trong ngày (Giảm dần)
       const aTime = toTimestamp(a.date, a.time);
       const bTime = toTimestamp(b.date, b.time);
       return bTime - aTime;

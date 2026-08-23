@@ -70,7 +70,8 @@ export const uploadCvBooking = async (bookingId, selectedFile) => {
     }
 
     if (res.ok) {
-      const cvUrl = await res.text(); // Lấy URL trả về từ Backend
+      const rawText = await res.text();
+      const cvUrl = rawText.replace(/^"(.*)"$/, "$1").trim();
       console.log("Upload CV thành công, URL:", cvUrl);
       return cvUrl; // TRẢ VỀ STRING URL
     } else {
