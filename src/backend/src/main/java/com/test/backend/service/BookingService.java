@@ -375,26 +375,30 @@ public class BookingService {
 
         String contentType = file.getContentType();
         String originalFileName = file.getOriginalFilename();
+        String extension = "";
+        if (originalFileName != null && originalFileName.contains(".")) {
+            extension = originalFileName.substring(originalFileName.lastIndexOf("."));
+        }
 
-        String target = "bookingCV_" + bookingId;
+        String target = "bookingCV_" + bookingId + extension;
 
         byte[] fileData = null;
 
         try {
             fileData = file.getBytes();
         } catch (IOException e) {
-            log.warn(e.getMessage());
+            throw new RuntimeException("Error reading file data", e);
         }
 
         String cvUrl = null;
 
         try {
             cvUrl = fileService.uploadFile(cvBucket.getCVBucketName(), fileData, contentType, originalFileName, target);
-            booking.setCvUrl(cvUrl);
+            booking.setCvUrl(target);
             bookingRepository.save(booking);
-
         } catch (MinioException | IOException e) {
-            log.warn(e.getMessage());
+            log.error("Upload CV failed for booking {}: {}", bookingId, e.getMessage(), e);
+            throw new RuntimeException("Failed to upload CV to storage", e);
         }
         return cvUrl;
     }
@@ -465,7 +469,7 @@ public class BookingService {
                 .startTime(newBooking.getStartTime())
                 .endTime(newBooking.getEndTime())
                 .joinUrl(newBooking.getJoinUrl())
-                .cvUrl(newBooking.getCvUrl())
+                .cvUrl(resolveCvUrl(newBooking.getCvUrl()))
                 .bookingReview(reviewDto)
                 .totalAmount(newBooking.getTotalAmount())
                 .bookingStatus(newBooking.getStatus());
@@ -487,6 +491,16 @@ public class BookingService {
         }
 
         return responseBuilder.build();
+    }
+
+    private String resolveCvUrl(String cvKey) {
+        if (cvKey == null) return null;
+        try {
+            return fileService.getPresignedUrl(cvBucket.getCVBucketName(), cvKey);
+        } catch (Exception e) {
+            log.warn("Failed to generate presigned CV url for key {}: {}", cvKey, e.getMessage());
+            return null;
+        }
     }
 
     private InterviewerReviewResponse convertToReviewResponse(BookingReview review) {
