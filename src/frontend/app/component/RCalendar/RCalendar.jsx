@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useCallback } from "react";
 import {
   addDays,
   addWeeks,
@@ -78,6 +79,10 @@ const slideVariants = {
 };
 
 const RCalendar = () => {
+  const [blockForm, setBlockForm] = useState({ note: "" });
+  const [blockSelectedSlots, setBlockSelectedSlots] = useState(new Set());
+  const isBlockDraggingRef = useRef(false);
+  const blockDragValueRef = useRef(true);
   const [weekStart, setWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 }),
   );
@@ -92,11 +97,6 @@ const RCalendar = () => {
   const [saving, setSaving] = useState(false);
 
   const [showBlockForm, setShowBlockForm] = useState(false);
-  const [blockForm, setBlockForm] = useState({
-    startTime: "",
-    endTime: "",
-    note: "",
-  });
   const [blockSubmitting, setBlockSubmitting] = useState(false);
   const [blockError, setBlockError] = useState(null);
   const [blockSuccess, setBlockSuccess] = useState(false);
@@ -151,14 +151,48 @@ const RCalendar = () => {
     }
   };
 
+  const isBlockSlotSelected = (date, hour) =>
+    blockSelectedSlots.has(dateKey(date, hour));
+
+  const setBlockSlot = (date, hour, value) => {
+    if (isSlotInPast(date, hour) || isSlotBlocked(date, hour)) return;
+    setBlockSelectedSlots((prev) => {
+      const next = new Set(prev);
+      const key = dateKey(date, hour);
+      if (value) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+  };
+
+  const handleBlockMouseDown = (date, hour) => {
+    if (isSlotInPast(date, hour) || isSlotBlocked(date, hour)) return;
+    const nextValue = !isBlockSlotSelected(date, hour);
+    blockDragValueRef.current = nextValue;
+    isBlockDraggingRef.current = true;
+    setBlockSlot(date, hour, nextValue);
+  };
+
+  const handleBlockMouseEnter = (date, hour) => {
+    if (!isBlockDraggingRef.current) return;
+    setBlockSlot(date, hour, blockDragValueRef.current);
+  };
+
   const goPrevWeek = () => {
+    if (isEditing) return;
     setPage([page - 1, -1]);
     setWeekStart((prev) => subWeeks(prev, 1));
   };
 
   const goNextWeek = () => {
+    if (isEditing) return;
     setPage([page + 1, 1]);
     setWeekStart((prev) => addWeeks(prev, 1));
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    loadScheduleForWeek();
   };
 
   const isSlotSelected = (date, hour, weekdayIndex) => {
@@ -213,6 +247,7 @@ const RCalendar = () => {
   useEffect(() => {
     const stopDragging = () => {
       isDraggingRef.current = false;
+      isBlockDraggingRef.current = false;
     };
     window.addEventListener("mouseup", stopDragging);
     return () => window.removeEventListener("mouseup", stopDragging);
@@ -264,62 +299,52 @@ const RCalendar = () => {
   };
 
   // Tải lại dữ liệu khi đổi tuần
-  useEffect(() => {
-    const loadSchedule = async () => {
-      setScheduleError(null);
-      try {
-        const dateInWeek = format(weekStart, "yyyy-MM-dd");
+  const loadScheduleForWeek = useCallback(async () => {
+    setScheduleError(null);
+    try {
+      const dateInWeek = format(weekStart, "yyyy-MM-dd");
+      const res = await fetch(
+        `${API_BASE}/api/v1/schedule/get?dateInWeek=${encodeURIComponent(dateInWeek)}`,
+        { method: "GET", headers: authHeaders() },
+      );
+      if (!res.ok)
+        throw new Error(`Failed to load schedule (Status: ${res.status})`);
+      const data = await res.json();
+      localStorage.setItem("interviewerSchedule", JSON.stringify(data));
 
-        const res = await fetch(
-          `${API_BASE}/api/v1/schedule/get?dateInWeek=${encodeURIComponent(dateInWeek)}`,
-          {
-            method: "GET",
-            headers: authHeaders(),
-          },
-        );
+      const fetchedRepeatSlots = new Set();
+      const fetchedSelectedSlots = new Set();
 
-        if (!res.ok) {
-          throw new Error(`Failed to load schedule (Status: ${res.status})`);
-        }
+      (data.schedules || []).forEach((daySchedule) => {
+        const weekdayIndex = dayOfWeekToWeekdayIndex(daySchedule.day_of_week);
+        if (weekdayIndex < 0 || weekdayIndex > 6) return;
+        const targetDate = weekDays[weekdayIndex];
 
-        const data = await res.json();
-        localStorage.setItem("interviewerSchedule", JSON.stringify(data));
-
-        const fetchedRepeatSlots = new Set();
-        const fetchedSelectedSlots = new Set();
-
-        (data.schedules || []).forEach((daySchedule) => {
-          const weekdayIndex = dayOfWeekToWeekdayIndex(daySchedule.day_of_week);
-          if (weekdayIndex < 0 || weekdayIndex > 6) return;
-          const targetDate = weekDays[weekdayIndex];
-
-          (daySchedule.schedule_times || []).forEach((range) => {
-            const startHour = parseHourFromTimeString(range.start_time);
-            const endHour = parseHourFromTimeString(range.end_time);
-            if (startHour == null || endHour == null) return;
-            for (let h = startHour; h < endHour; h += 1) {
-              if (h >= 9 && h <= 22) {
-                fetchedRepeatSlots.add(repeatKey(weekdayIndex, h));
-                if (targetDate) {
-                  fetchedSelectedSlots.add(dateKey(targetDate, h));
-                }
-              }
+        (daySchedule.schedule_times || []).forEach((range) => {
+          const startHour = parseHourFromTimeString(range.start_time);
+          const endHour = parseHourFromTimeString(range.end_time);
+          if (startHour == null || endHour == null) return;
+          for (let h = startHour; h < endHour; h += 1) {
+            if (h >= 9 && h <= 22) {
+              fetchedRepeatSlots.add(repeatKey(weekdayIndex, h));
+              if (targetDate) fetchedSelectedSlots.add(dateKey(targetDate, h));
             }
-          });
+          }
         });
+      });
+      setRepeatSlots(fetchedRepeatSlots);
+      setSelectedSlots(fetchedSelectedSlots);
 
-        setRepeatSlots(fetchedRepeatSlots);
-        setSelectedSlots(fetchedSelectedSlots);
-
-        await loadBlockedSchedules(dateInWeek, weekDays);
-      } catch (err) {
-        console.error("Schedule error:", err);
-        setScheduleError(err.message || "Could not load your schedule.");
-      }
-    };
-
-    loadSchedule();
+      await loadBlockedSchedules(dateInWeek, weekDays);
+    } catch (err) {
+      console.error("Schedule error:", err);
+      setScheduleError(err.message || "Could not load your schedule.");
+    }
   }, [weekStart]);
+
+  useEffect(() => {
+    loadScheduleForWeek();
+  }, [loadScheduleForWeek]);
 
   // Lưu dữ liệu lịch
   const handleSaveSchedule = async () => {
@@ -391,32 +416,47 @@ const RCalendar = () => {
     setBlockSuccess(false);
 
     try {
-      if (!blockForm.startTime || !blockForm.endTime) {
-        throw new Error("Please select both a start and end time.");
+      if (blockSelectedSlots.size === 0) {
+        throw new Error("Please select at least one time slot to block.");
       }
 
-      const payload = {
-        startTime: `${blockForm.startTime}:00`,
-        endTime: `${blockForm.endTime}:00`,
-        purpose: "PERSONAL",
-        note: blockForm.note || null,
-      };
+      const hoursByDate = new Map();
+      blockSelectedSlots.forEach((key) => {
+        const lastDash = key.lastIndexOf("-");
+        const dateStr = key.slice(0, lastDash);
+        const hour = parseInt(key.slice(lastDash + 1), 10);
+        if (!hoursByDate.has(dateStr)) hoursByDate.set(dateStr, []);
+        hoursByDate.get(dateStr).push(hour);
+      });
 
-      const res = await fetch(
-        `${API_BASE}/api/v1/schedule/add-blocked-schedule`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...authHeaders(),
+      const requests = [];
+      hoursByDate.forEach((hours, dateStr) => {
+        mergeHoursIntoRanges(hours).forEach((range) => {
+          requests.push({
+            start_time: `${dateStr}T${formatHourAsTime(range.start)}`,
+            end_time: `${dateStr}T${formatHourAsTime(range.end)}`,
+            purpose: "PERSONAL",
+            note: blockForm.note || null,
+          });
+        });
+      });
+
+      for (const payload of requests) {
+        const res = await fetch(
+          `${API_BASE}/api/v1/schedule/add-blocked-schedule`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...authHeaders() },
+            body: JSON.stringify(payload),
           },
-          body: JSON.stringify(payload),
-        },
-      );
-      if (!res.ok) throw new Error(`Failed to block time (${res.status})`);
-
+        );
+        if (!res.ok) throw new Error(`Failed to block time (${res.status})`);
+      }
       setBlockSuccess(true);
-      setBlockForm({ startTime: "", endTime: "", note: "" });
+      setBlockSelectedSlots(new Set());
+      setBlockForm({ note: "" });
+      await loadBlockedSchedules(format(weekStart, "yyyy-MM-dd"), weekDays);
+
       setTimeout(() => {
         setShowBlockForm(false);
         setBlockSuccess(false);
@@ -453,7 +493,11 @@ const RCalendar = () => {
               <button
                 type="button"
                 className="block-time-btn"
-                onClick={() => setShowBlockForm(true)}
+                onClick={() => {
+                  setShowBlockForm(true);
+                  setBlockSelectedSlots(new Set());
+                  setBlockError(null);
+                }}
               >
                 + Block time
               </button>
@@ -467,6 +511,10 @@ const RCalendar = () => {
                 className="week-nav-btn"
                 onClick={goPrevWeek}
                 aria-label="Previous week"
+                disabled={isEditing}
+                title={
+                  isEditing ? "Save or cancel your change first!" : undefined
+                }
               >
                 ‹
               </button>
@@ -476,6 +524,10 @@ const RCalendar = () => {
                 className="week-nav-btn"
                 onClick={goNextWeek}
                 aria-label="Next week"
+                isabled={isEditing}
+                title={
+                  isEditing ? "Save or cancel your change first!" : undefined
+                }
               >
                 ›
               </button>
@@ -560,6 +612,16 @@ const RCalendar = () => {
             </div>
 
             <div className="r-calendar-footer">
+              {isEditing && (
+                <button
+                  type="button"
+                  className="edit-cancel-btn"
+                  onClick={handleCancelEdit}
+                  disabled={saving}
+                >
+                  CANCEL
+                </button>
+              )}
               <button
                 type="button"
                 className={`edit-save-btn ${isEditing ? "save-mode" : "edit-mode"}`}
@@ -579,41 +641,60 @@ const RCalendar = () => {
           onClick={() => setShowBlockForm(false)}
         >
           <form
-            className="block-form-card"
+            className="block-form-card block-form-card-grid"
             onClick={(e) => e.stopPropagation()}
             onSubmit={handleAddBlockedSchedule}
           >
             <h3>Block time</h3>
             <p className="block-form-subtitle">
-              Mark a period as unavailable for personal reasons.
+              Chọn các khung giờ muốn đánh dấu bận cho tuần {monthLabel}.
             </p>
 
-            <label>
-              Start
-              <input
-                type="datetime-local"
-                value={blockForm.startTime}
-                onChange={handleBlockFieldChange("startTime")}
-                required
-              />
-            </label>
-
-            <label>
-              End
-              <input
-                type="datetime-local"
-                value={blockForm.endTime}
-                onChange={handleBlockFieldChange("endTime")}
-                required
-              />
-            </label>
+            <div className="block-form-grid-wrapper custom-scrollbar">
+              <div className="r-calendar-grid">
+                <div className="grid-header-row">
+                  <div className="grid-day-col-spacer">DAY</div>
+                  {HOURS.map((hour) => (
+                    <div key={hour} className="grid-time-header">
+                      {hour}:00
+                    </div>
+                  ))}
+                </div>
+                {weekDays.map((date, weekdayIndex) => (
+                  <div key={weekdayIndex} className="grid-day-row">
+                    <div className="grid-day-label">
+                      <span className="weekday-name">
+                        {WEEKDAY_LABELS[weekdayIndex]}
+                      </span>
+                      <span className="weekday-date">{format(date, "d")}</span>
+                    </div>
+                    {HOURS.map((hour) => {
+                      const alreadyBlocked = isSlotBlocked(date, hour);
+                      const picked = isBlockSlotSelected(date, hour);
+                      const inPast = isSlotInPast(date, hour);
+                      return (
+                        <button
+                          key={hour}
+                          type="button"
+                          className={`slot-cell block-slot-cell ${picked ? "is-block-picked" : ""} ${alreadyBlocked ? "is-blocked" : ""} ${inPast ? "is-locked is-past" : ""}`}
+                          onMouseDown={() => handleBlockMouseDown(date, hour)}
+                          onMouseEnter={() => handleBlockMouseEnter(date, hour)}
+                          disabled={alreadyBlocked || inPast}
+                          aria-pressed={picked}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <label>
               Note (optional)
               <textarea
                 value={blockForm.note}
                 onChange={handleBlockFieldChange("note")}
-                rows={3}
+                rows={2}
                 placeholder="e.g. Doctor's appointment"
               />
             </label>
@@ -637,7 +718,9 @@ const RCalendar = () => {
                 className="block-form-submit"
                 disabled={blockSubmitting}
               >
-                {blockSubmitting ? "Blocking..." : "Block time"}
+                {blockSubmitting
+                  ? "Blocking..."
+                  : `Block ${blockSelectedSlots.size || ""} slot(s)`}
               </button>
             </div>
           </form>

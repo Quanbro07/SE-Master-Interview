@@ -244,20 +244,19 @@ public class ScheduleService {
             if (overlap.getPurpose() == BlockedSchedulePurpose.PERSONAL) {
                 throw new ScheduleConflictException("Khung giờ này đã được block từ trước.");
             }
-
-            Interviewer interviewer = interviewerRepository.findByInterviewerId(userId)
-                    .orElseThrow(() -> new NotFoundException("Interviewer Not Found"));
-
-            BlockedSchedule newBlockSchedule = BlockedSchedule.builder()
-                    .interviewer(interviewer)
-                    .startTime(request.startTime())
-                    .endTime(request.endTime())
-                    .purpose(overlap.getPurpose())
-                    .note(request.note())
-                    .build();
-
-            blockedScheduleRepository.save(newBlockSchedule);
         }
+        
+        Interviewer interviewer = interviewerRepository.findByInterviewerId(userId)
+            .orElseThrow(() -> new NotFoundException("Interviewer Not Found"));
+        BlockedSchedule newBlockSchedule = BlockedSchedule.builder()
+                .interviewer(interviewer)
+                .startTime(request.startTime())
+                .endTime(request.endTime())
+                .purpose(request.purpose())
+                .note(request.note())
+                .build();
+
+        blockedScheduleRepository.save(newBlockSchedule);
     }
 
     // * Helper

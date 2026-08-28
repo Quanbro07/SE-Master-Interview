@@ -402,3 +402,49 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+.edit-cancel-btn {
+  padding: 12px 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: #9ca3af;
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.edit-cancel-btn:hover {
+  color: #f4f4f5;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.r-calendar-footer {
+  gap: 16px;
+}
+.week-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+.week-nav-btn:disabled:hover {
+  background: #3f3f46;
+}
+
+.block-form-card-grid {
+  max-width: 900px;
+  width: 92vw;
+}
+.block-form-grid-wrapper {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+.block-slot-cell.is-block-picked {
+  background: #ef4444;
+  box-shadow: 0 0 0 1px #dc2626 inset;
+}
+.block-slot-cell.is-blocked {
+  background: #7f1d1d;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
