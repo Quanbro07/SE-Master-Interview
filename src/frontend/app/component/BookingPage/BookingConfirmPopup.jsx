@@ -247,7 +247,7 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
       if (!bookingId) throw new Error("bookingId not found!");
 
       const uploadedCvUrl = await uploadCvBooking(bookingId, cvFile);
-      // if (!uploadedCvUrl) throw new Error("CV upload failed.");
+      if (!uploadedCvUrl) throw new Error("CV upload failed.");
 
       showToast("Requested successfully", "success");
 
