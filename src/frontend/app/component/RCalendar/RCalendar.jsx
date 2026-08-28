@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import UserHeader from "../UserHeader/UserHeader";
 import { useCallback } from "react";
 import {
   addDays,
@@ -79,6 +80,7 @@ const slideVariants = {
 };
 
 const RCalendar = () => {
+  const [user, setUser] = useState(null);
   const [blockForm, setBlockForm] = useState({ note: "" });
   const [blockSelectedSlots, setBlockSelectedSlots] = useState(new Set());
   const isBlockDraggingRef = useRef(false);
@@ -113,6 +115,19 @@ const RCalendar = () => {
     slotDate.setHours(hour, 0, 0, 0);
     return slotDate < new Date();
   };
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (err) {
+        console.error("Lỗi đọc user:", err);
+      }
+    }
+  }, []);
 
   const loadBlockedSchedules = async (dateInWeek, days) => {
     try {
@@ -470,6 +485,7 @@ const RCalendar = () => {
 
   return (
     <div className="r-calendar-root">
+      <UserHeader user={user} />
       <RNavigationBar />
       <main className="r-calendar-main">
         <section className="r-calendar-inner">

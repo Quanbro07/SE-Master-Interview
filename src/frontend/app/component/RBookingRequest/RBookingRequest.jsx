@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import RNavigationBar from "../RNavigationBar/RNavigationBar";
+import UserHeader from "../UserHeader/UserHeader";
 import "./RBookingRequest.css";
 
 const API_BASE =
@@ -111,11 +112,25 @@ const BADGE_HOLD = 500;
 const EXIT_DURATION = 320;
 
 const RBookingRequest = () => {
+  const [user, setUser] = useState(null);
   const [requests, setRequests] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (err) {
+        console.error("Lỗi đọc user:", err);
+      }
+    }
+  }, []);
 
   const loadBookingRequests = useCallback(async () => {
     setLoading(true);
@@ -260,6 +275,7 @@ const RBookingRequest = () => {
   return (
     <div className="rbr-root">
       <RNavigationBar />
+      <UserHeader user={user} />
       <main className="rbr-main">
         <section className="rbr-inner">
           <h1 className="rbr-title">-----REQUESTS-----</h1>

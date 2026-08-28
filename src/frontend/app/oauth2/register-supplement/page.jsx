@@ -142,13 +142,13 @@ const authHeaders = (token) => {
 
 const InterviewerDetailsFields = ({ values, onChange }) => (
   <fieldset className="auth-interviewer-fieldset">
-    <legend>Interviewer details</legend>
+    <legend>INTERVIEWER DETAILS</legend>
     <p className="auth-interviewer-note">
       This information will be shown to candidates browsing mentors.
     </p>
 
     <label>
-      Job title
+      JOB TITLE
       <input
         type="text"
         value={values.title}
@@ -159,7 +159,7 @@ const InterviewerDetailsFields = ({ values, onChange }) => (
     </label>
 
     <label>
-      Company
+      COMPANY
       <input
         type="text"
         value={values.company}
@@ -170,7 +170,7 @@ const InterviewerDetailsFields = ({ values, onChange }) => (
     </label>
 
     <label>
-      Years of experience
+      YEARS OF EXPERIENCE
       <input
         type="number"
         min={0}
@@ -180,7 +180,7 @@ const InterviewerDetailsFields = ({ values, onChange }) => (
     </label>
 
     <label>
-      About you
+      ABOUT YOU
       <textarea
         rows={4}
         value={values.bio}
@@ -459,7 +459,7 @@ const AuthCallbackInner = () => {
               router.replace("/login");
             }}
           >
-            Back to login
+            BACK TO LOGIN
           </button>
         </div>
       </div>
@@ -470,18 +470,18 @@ const AuthCallbackInner = () => {
     return (
       <div className="auth-callback-root">
         <form className="auth-register-form" onSubmit={handleRegisterSubmit}>
-          <h2>Complete your profile</h2>
+          <h2>COMPLETE YOUR PROFILE</h2>
           <p className="auth-register-subtitle">
             Welcome! Tell us a bit more about yourself.
           </p>
 
           <label>
-            Email
+            EMAIL
             <input type="email" value={displayEmail} disabled />
           </label>
 
           <label>
-            Username
+            USERNAME
             <input
               type="text"
               value={form.userName}
@@ -491,7 +491,7 @@ const AuthCallbackInner = () => {
           </label>
 
           <label>
-            Full name
+            FULL NAME
             <input
               type="text"
               value={form.fullName}
@@ -501,7 +501,7 @@ const AuthCallbackInner = () => {
           </label>
 
           <label>
-            LinkedIn URL
+            LINKEDIN URL
             <input
               type="url"
               value={form.linkedinUrl}
@@ -511,7 +511,7 @@ const AuthCallbackInner = () => {
           </label>
 
           <label>
-            GitHub URL
+            GITHUB URL
             <input
               type="url"
               value={form.githubUrl}
@@ -521,7 +521,7 @@ const AuthCallbackInner = () => {
           </label>
 
           <fieldset className="auth-role-fieldset">
-            <legend>I am joining as a...</legend>
+            <legend>I AM JOINING AS A...</legend>
             <label className="auth-role-option">
               <input
                 type="radio"
@@ -544,17 +544,10 @@ const AuthCallbackInner = () => {
             </label>
           </fieldset>
 
-          {form.role === "Interviewer" && (
-            <InterviewerDetailsFields
-              values={form}
-              onChange={handleFieldChange}
-            />
-          )}
-
           {error && <p className="auth-register-error">{error}</p>}
 
           <button type="submit" disabled={submitting}>
-            {submitting ? "Creating account..." : "Complete sign up"}
+            {submitting ? "CREATING ACCOUNT..." : "COMPLETE SIGN UP"}
           </button>
         </form>
       </div>
@@ -568,7 +561,7 @@ const AuthCallbackInner = () => {
           className="auth-register-form"
           onSubmit={handleCompleteProfileSubmit}
         >
-          <h2>Finish setting up your profile</h2>
+          <h2>FINISH SETTING UP YOUR PROFILE</h2>
           <p className="auth-register-subtitle">
             A few details are missing — candidates will see this on your mentor
             profile.
@@ -588,10 +581,10 @@ const AuthCallbackInner = () => {
               onClick={skipProfileCompletion}
               disabled={submitting}
             >
-              Skip for now
+              SKIP FOR NOW
             </button>
             <button type="submit" disabled={submitting}>
-              {submitting ? "Saving..." : "Save and continue"}
+              {submitting ? "SAVING..." : "SAVE AND CONTINUE"}
             </button>
           </div>
         </form>
