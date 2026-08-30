@@ -3,8 +3,9 @@ import NavigationBar from "../NavigationBar/NavigationBar";
 import ChatPanel from "../ChatPanel/ChatPanel";
 import BookingList from "../BookingList/BookingList";
 import UserHeader from "../UserHeader/UserHeader";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import BookingConfirmPopup from "./BookingConfirmPopup";
+import Toast from "../Toast/Toast";
 import "./BookingPage.css";
 
 const getStoredUser = () => {
@@ -131,8 +132,7 @@ const BookingPage = () => {
   const [selectedMentor, setSelectedMentor] = useState(null);
 
   const [currentUser, setCurrentUser] = useState(null);
-  const [notice, setNotice] = useState(null);
-  const noticeTimeoutRef = useRef(null);
+  const [toast, setToast] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
 
   const handleBookFromChat = (mentorData) => {
@@ -145,17 +145,10 @@ const BookingPage = () => {
     if (user) setCurrentUser(user);
   }, []);
 
-  const showNotice = (message) => {
-    setNotice(message);
-    if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
-    noticeTimeoutRef.current = setTimeout(() => setNotice(null), 5000);
+  const showToastNotice = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
   };
-
-  useEffect(() => {
-    return () => {
-      if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
-    };
-  }, []);
 
   const handleOpenProfile = (mentor) => {
     setSelectedMentor(mentor);
@@ -203,7 +196,7 @@ const BookingPage = () => {
           mentor={selectedMentor}
           onConfirm={() => {
             handleCloseAllPopups();
-            showNotice(
+            showToastNotice(
               "Booking request submitted! Please wait for Interviewer approval.",
             );
           }}
@@ -224,13 +217,15 @@ const BookingPage = () => {
           mentor={selectedMentor}
           onConfirm={() => {
             handleCloseAllPopups();
-            showNotice(
+            showToastNotice(
               "Booking request submitted! Check your Booking History.",
             );
           }}
           onCancel={handleCloseAllPopups}
         />
       )}
+
+      <Toast toast={toast} />
     </div>
   );
 };

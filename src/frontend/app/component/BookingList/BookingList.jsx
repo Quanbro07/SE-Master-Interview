@@ -310,7 +310,7 @@ const BookingList = ({ navCollapsed, chatCollapsed, onViewProfile }) => {
 
   return (
     <div className={`booking-list-container ${gridClass}`}>
-      <h2 className="main-heading">-----INTERVIEW BOOKING-----</h2>
+      <h2 className="main-heading-title">INTERVIEW BOOKING</h2>
 
       {/* SEARCH BAR CONTAINER & DROPDOWN */}
       <div className="search-bar-wrapper" ref={dropdownRef}>

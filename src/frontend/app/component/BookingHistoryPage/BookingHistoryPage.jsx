@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState, useEffect, useCallback } from "react";
+import Toast from "../Toast/Toast";
 import { AnimatePresence, motion } from "framer-motion";
 import NavigationBar from "../NavigationBar/NavigationBar";
 import StripePaymentModal from "../BookingPage/StripePaymentModal";
@@ -32,7 +33,8 @@ const authHeaders = () => {
 };
 
 const mapBookingStatus = (status) => {
-  switch (status) {
+  const upperStatus = (status || "").toUpperCase();
+  switch (upperStatus) {
     case "PENDING":
       return "pending";
     case "ACCEPTED":
@@ -46,6 +48,7 @@ const mapBookingStatus = (status) => {
     case "COMPLETED":
       return "done";
     case "REJECTED":
+      return "rejected";
     case "CANCELLED":
       return "cancelled";
     default:
@@ -54,34 +57,66 @@ const mapBookingStatus = (status) => {
 };
 
 const STATUS_LABEL = {
-  pending: "Pending",
-  accepted: "Accepted",
-  paid: "Paid",
-  "in-progress": "In Progress",
-  "await-review": "Await Review",
-  done: "Completed",
-  cancelled: "Rejected",
+  pending: "PENDING",
+  accepted: "ACCEPTED",
+  paid: "PAID",
+  "in-progress": "IN PROGRESS",
+  "await-review": "AWAIT REVIEW",
+  done: "COMPLETED",
+  rejected: "REJECTED",
+  cancelled: "CANCELLED",
+};
+
+const STATUS_PRIORITY_MAP = {
+  IN_PROGRESS: 1,
+  "IN-PROGRESS": 1,
+  AWAIT_REVIEW: 2,
+  "AWAIT-REVIEW": 2,
+  PAID: 3,
+  PENDING: 4,
+  ACCEPTED: 4,
+  COMPLETED: 5,
+  DONE: 5,
+  REJECTED: 6,
+  CANCELLED: 7,
 };
 
 const toTimestamp = (dateStr, timeStr) => {
   if (!dateStr || !timeStr) return 0;
-  const [day, month, year] = dateStr.split("/").map(Number);
+
+  let day, month, year;
+  if (dateStr.includes("/")) {
+    const parts = dateStr.split("/").map(Number);
+    if (parts[2] > 1000) {
+      [day, month, year] = parts;
+    } else {
+      [month, day, year] = parts;
+    }
+  } else if (dateStr.includes("-")) {
+    const parts = dateStr.split("-").map(Number);
+    if (parts[0] > 1000) {
+      [year, month, day] = parts;
+    } else {
+      [day, month, year] = parts;
+    }
+  } else {
+    return 0;
+  }
+
   const [hour, minute] = timeStr.split(":").map(Number);
   return new Date(year, month - 1, day, hour, minute).getTime();
 };
 
+// Kiếm tra tới trước meeting 5 phút
 const isMeetingTimeValid = (dateStr, timeStr) => {
   const meetingTimestamp = toTimestamp(dateStr, timeStr);
   if (!meetingTimestamp) return false;
 
   const now = Date.now();
-  const TEN_MINUTES = 10 * 60 * 1000;
-  const SIXTY_MINUTES = 60 * 60 * 1000;
+  const before = 5 * 60 * 1000;
+  const after = 60 * 60 * 1000; // Mở rộng khoảng thời gian diễn ra cuộc họp
 
-  return (
-    now >= meetingTimestamp - TEN_MINUTES &&
-    now <= meetingTimestamp + SIXTY_MINUTES
-  );
+  return now >= meetingTimestamp - before && now <= meetingTimestamp + after;
 };
 
 const convertBookingToDashboardRow = (booking) => {
@@ -118,11 +153,13 @@ const convertBookingToDashboardRow = (booking) => {
 
   const cleanId = booking.bookingId ?? booking.booking_id;
 
-  const reviewData = booking.booking_review || booking.bookingReviewDTO;
+  const reviewData = booking.booking_review || booking.bookingReview;
   const existingComment = reviewData?.comment || "";
-  const existingRating = reviewData?.rating || 5;
-  const isReviewed = Boolean(reviewData);
-
+  const existingRating = reviewData?.rate ?? reviewData?.rating ?? 5;
+  const isReviewed = Boolean(
+    reviewData &&
+    (reviewData.review_id || reviewData.comment || reviewData.rate),
+  );
   const rawAmount =
     booking.totalAmount ??
     booking.total_amount ??
@@ -160,6 +197,7 @@ const convertBookingToDashboardRow = (booking) => {
 };
 
 const BookingHistoryPage = () => {
+  const [toast, setToast] = useState(null);
   const [chatCollapsed, setChatCollapsed] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   const [requests, setRequests] = useState([]);
@@ -167,6 +205,7 @@ const BookingHistoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submittedReviews, setSubmittedReviews] = useState([]);
+  const [submittedReviewsMap, setSubmittedReviewsMap] = useState({});
 
   const [feedbackDrafts, setFeedbackDrafts] = useState({});
   const [ratingDrafts, setRatingDrafts] = useState({});
@@ -183,6 +222,13 @@ const BookingHistoryPage = () => {
       console.error(e);
     }
   }, []);
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  };
 
   const handleToggleChat = () => {
     setChatCollapsed((prev) => !prev);
@@ -205,9 +251,24 @@ const BookingHistoryPage = () => {
 
       const bookings = await res.json();
 
+      if (Array.isArray(bookings)) {
+        bookings.forEach((b, index) => {
+          console.log(
+            `Booking #${index + 1} (ID: ${b.bookingId || b.booking_id}):`,
+            {
+              bookingStatus: b.bookingStatus || b.booking_status || b.status,
+              joinUrl: b.joinUrl || b.join_url,
+              meetingUrl: b.meetingUrl || b.meeting_url,
+              rawObject: b,
+            },
+          );
+        });
+      }
+
       const dashboardBookings = (Array.isArray(bookings) ? bookings : [])
         .map((b) => convertBookingToDashboardRow(b))
         .filter((r) => r !== null);
+      console.log("=== MAPPED DASHBOARD BOOKINGS ===", dashboardBookings);
 
       setRequests(dashboardBookings);
     } catch (err) {
@@ -234,7 +295,6 @@ const BookingHistoryPage = () => {
       );
 
       if (!intentRes.ok) {
-        const errText = await intentRes.text();
         throw new Error(`Stripe initialization failed (${intentRes.status})`);
       }
 
@@ -245,14 +305,14 @@ const BookingHistoryPage = () => {
 
       setPaymentTarget({ req, clientSecret: secret });
     } catch (err) {
-      alert("Payment initialization error: " + err.message);
+      showToast("Payment initialization error: " + err.message, "error");
     } finally {
       setCreatingIntent(false);
     }
   };
 
   const handlePaymentSuccess = () => {
-    alert("Payment successful!");
+    showToast("Payment successful!", "success");
     setPaymentTarget(null);
     loadBookings();
   };
@@ -261,7 +321,7 @@ const BookingHistoryPage = () => {
     if (joinUrl) {
       window.open(joinUrl, "_blank", "noopener,noreferrer");
     } else {
-      alert("Meeting link is not available yet!");
+      showToast("Meeting link is not available yet!", "error");
     }
   };
 
@@ -283,7 +343,7 @@ const BookingHistoryPage = () => {
     const rating = ratingDrafts[req.id] || 5;
 
     if (!comment.trim()) {
-      alert("Please enter review content before submitting.");
+      showToast("Please enter review content before submitting.", "error");
       return;
     }
 
@@ -306,16 +366,69 @@ const BookingHistoryPage = () => {
         throw new Error(errText || `Request failed status ${res.status}`);
       }
 
+      setSubmittedReviewsMap((prev) => ({
+        ...prev,
+        [Number(rawBookingId)]: {
+          rating: Number(rating),
+          comment: comment.trim(),
+        },
+      }));
+
       setSubmittedReviews((prev) => [...prev, Number(rawBookingId)]);
-      alert("Review submitted successfully!");
+      showToast("Review submitted successfully!", "success");
       loadBookings();
     } catch (err) {
       console.error("Submit review error:", err);
-      alert("Failed to submit review: " + err.message);
+      showToast("Failed to submit review: " + err.message, "error");
     } finally {
       setSubmittingId(null);
     }
   };
+
+  const sortedRequests = useMemo(() => {
+    const getStatusPriority = (item) => {
+      const st = (item.rawStatus || "").toUpperCase();
+      return STATUS_PRIORITY_MAP[st] || 99;
+    };
+
+    const getDayTimestamp = (dateStr) => {
+      if (!dateStr) return 0;
+      let day, month, year;
+      if (dateStr.includes("/")) {
+        const parts = dateStr.split("/").map(Number);
+        if (parts[2] > 1000) [day, month, year] = parts;
+        else [month, day, year] = parts;
+      } else if (dateStr.includes("-")) {
+        const parts = dateStr.split("-").map(Number);
+        if (parts[0] > 1000) [year, month, day] = parts;
+        else [day, month, year] = parts;
+      } else return 0;
+      return new Date(year, month - 1, day).getTime();
+    };
+
+    return [...requests].sort((a, b) => {
+      // 1. So sánh theo ngày (Giảm dần: Ngày mới nhất đứng trước)
+      const dateA = getDayTimestamp(a.date);
+      const dateB = getDayTimestamp(b.date);
+
+      if (dateA !== dateB) {
+        return dateB - dateA;
+      }
+
+      // 2. Nếu cùng ngày: Ưu tiên theo thứ tự IN-PROGRESS, AWAIT-REVIEW, PAID, PENDING, COMPLETED, REJECTED, CANCELLED
+      const priorityA = getStatusPriority(a);
+      const priorityB = getStatusPriority(b);
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
+      // 3. Nếu cùng status nữa thì xếp theo thời gian trong ngày (Giảm dần)
+      const aTime = toTimestamp(a.date, a.time);
+      const bTime = toTimestamp(b.date, b.time);
+      return bTime - aTime;
+    });
+  }, [requests]);
 
   return (
     <div className="booking-history-root">
@@ -325,8 +438,7 @@ const BookingHistoryPage = () => {
         className={`booking-history-main ${!chatCollapsed ? "with-chat" : ""}`}
       >
         <section className="booking-history-inner">
-          <h1 className="booking-history-title">-----BOOKING HISTORY-----</h1>
-
+          <h1 className="booking-history-title">BOOKING HISTORY</h1>
           <div className="booking-history-table">
             <div className="booking-history-row booking-history-header">
               <span>DATE</span>
@@ -344,26 +456,47 @@ const BookingHistoryPage = () => {
               <div className="booking-history-empty text-red-500">{error}</div>
             ) : (
               <AnimatePresence initial={false}>
-                {requests.map((req) => {
+                {sortedRequests.map((req) => {
                   const isOpen = expandedId === req.id;
 
                   const isPending = req.rawStatus === "PENDING";
                   const isAccepted = req.rawStatus === "ACCEPTED";
                   const isPaid = req.rawStatus === "PAID";
-                  const isInProgress = req.rawStatus === "IN_PROGRESS";
+                  const isInProgress =
+                    req.rawStatus === "IN_PROGRESS" ||
+                    req.rawStatus === "IN-PROGRESS" ||
+                    req.status === "in-progress";
                   const isAwaitReview = req.rawStatus === "AWAIT_REVIEW";
                   const isCompleted = req.rawStatus === "COMPLETED";
 
                   const isTimeValid = isMeetingTimeValid(req.date, req.time);
+                  const hasStartUrl = Boolean(req.startUrl);
+                  const hasJoinUrl = Boolean(req.joinUrl);
 
+                  // 🟢 Nút Join Meeting Enable khi: Có start_url HOẶC Tới trước 5 phút
                   const canJoinMeeting =
-                    (isPaid || isInProgress) &&
-                    Boolean(req.joinUrl) &&
-                    isTimeValid;
+                    hasJoinUrl &&
+                    (isInProgress || (isPaid && (isTimeValid || hasStartUrl)));
 
+                  const getMeetingButtonLabel = () => {
+                    if (canJoinMeeting) return "Join Meeting";
+                    if (!hasJoinUrl && (isInProgress || isPaid))
+                      return "No Link";
+                    if (isPending || isAccepted) return "Not Ready";
+                    if (isPaid && !isTimeValid && !hasStartUrl)
+                      return "Not In Time";
+                    return "Ended";
+                  };
+                  const localSubmitted =
+                    submittedReviewsMap[Number(req.bookingId)];
                   const isAlreadyReviewed =
-                    req.isReviewed ||
-                    submittedReviews.includes(Number(req.bookingId));
+                    req.isReviewed || Boolean(localSubmitted);
+                  const displayRating = localSubmitted
+                    ? localSubmitted.rating
+                    : req.rating;
+                  const displayComment = localSubmitted
+                    ? localSubmitted.comment
+                    : req.feedback;
 
                   return (
                     <motion.div
@@ -392,17 +525,12 @@ const BookingHistoryPage = () => {
                             disabled={!canJoinMeeting}
                             onClick={() => handleJoinMeeting(req.joinUrl)}
                           >
-                            {canJoinMeeting
-                              ? "Join meeting"
-                              : isPending || isAccepted
-                                ? "Not Ready"
-                                : !isTimeValid && (isPaid || isInProgress)
-                                  ? "Not In Time"
-                                  : "Ended"}
+                            {getMeetingButtonLabel()}
                           </button>
                         </span>
 
                         <span className="cell-action">
+                          {/* 🟢 Nút View LUÔN ENABLE ở mọi status */}
                           <button
                             type="button"
                             className={`details-btn ${isOpen ? "is-open" : ""}`}
@@ -420,39 +548,35 @@ const BookingHistoryPage = () => {
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.28, ease: "easeInOut" }}
                             className="details-panel-wrap"
                           >
-                            <div
-                              className="details-panel"
-                              style={{ padding: "16px" }}
-                            >
-                              <div className="details-field">
-                                <span className="details-label">
-                                  Interviewer:{" "}
-                                </span>
-                                <strong>{req.interviewer}</strong>
-                              </div>
-                              <div
-                                className="details-field"
-                                style={{ marginTop: "8px" }}
-                              >
-                                <span className="details-label">Fee: </span>
-                                <span>{req.price}</span>
+                            <div className="details-panel">
+                              {/* Hàng 1: Tiêu đề + Giá trị nằm chung 1 hàng trong các Pill Box */}
+                              <div className="details-info-row">
+                                <div className="details-inline-field">
+                                  <span className="details-label">
+                                    INTERVIEWER
+                                  </span>
+                                  <div className="details-pill">
+                                    {req.interviewer}
+                                  </div>
+                                </div>
+
+                                <div className="details-inline-field">
+                                  <span className="details-label">FEE</span>
+                                  <div className="details-pill">
+                                    {req.price}
+                                  </div>
+                                </div>
                               </div>
 
+                              {/* Nút Pay Now (Nếu có) */}
                               {isAccepted && (
-                                <div style={{ marginTop: "16px" }}>
+                                <div>
                                   <button
                                     type="button"
-                                    style={{
-                                      backgroundColor: "#4C1D95",
-                                      color: "#FFFFFF",
-                                      padding: "10px 20px",
-                                      borderRadius: "6px",
-                                      fontWeight: "600",
-                                      border: "none",
-                                      cursor: "pointer",
-                                    }}
+                                    className="pay-now-btn"
                                     onClick={() => handleOpenPaymentModal(req)}
                                     disabled={creatingIntent}
                                   >
@@ -463,36 +587,28 @@ const BookingHistoryPage = () => {
                                 </div>
                               )}
 
+                              {/* Khung Review lớn */}
                               {(isAwaitReview || isCompleted) && (
-                                <div
-                                  className="details-field"
-                                  style={{ marginTop: "16px" }}
-                                >
+                                <div className="review-section">
                                   <span className="details-label">
-                                    Review Interviewer
+                                    REVIEW INTERVIEWER
                                   </span>
                                   {isAlreadyReviewed ? (
-                                    <div
-                                      className="existing-review-box p-3 bg-gray-100 rounded text-sm"
-                                      style={{ marginTop: "8px" }}
-                                    >
-                                      <div className="font-semibold text-yellow-600 mb-1">
-                                        Rating: {req.rating} ★
+                                    <div className="existing-review-box">
+                                      <div className="font-semibold text-yellow-500 mb-1">
+                                        Rating: {displayRating} ★
                                       </div>
-                                      <div className="text-gray-700">
-                                        {req.feedback
-                                          ? req.feedback
+                                      <div className="text-gray-300">
+                                        {displayComment
+                                          ? displayComment
                                           : "No comment provided."}
                                       </div>
                                     </div>
                                   ) : (
-                                    <div
-                                      className="review-input-container"
-                                      style={{ marginTop: "8px" }}
-                                    >
+                                    <div className="review-input-container">
                                       <div className="rating-select-row">
                                         <span className="rating-label">
-                                          Rating:{" "}
+                                          Rating:
                                         </span>
                                         <select
                                           className="rating-select"
@@ -522,12 +638,7 @@ const BookingHistoryPage = () => {
 
                                       <textarea
                                         className="feedback-textarea"
-                                        rows={3}
-                                        style={{
-                                          width: "100%",
-                                          marginTop: "8px",
-                                          padding: "8px",
-                                        }}
+                                        rows={4}
                                         placeholder="Write your review for the interviewer..."
                                         value={
                                           feedbackDrafts[req.id] ??
@@ -542,10 +653,7 @@ const BookingHistoryPage = () => {
                                         }
                                       />
 
-                                      <div
-                                        className="submit-btn-row"
-                                        style={{ marginTop: "8px" }}
-                                      >
+                                      <div className="submit-btn-row">
                                         <button
                                           type="button"
                                           className="submit-review-btn"
@@ -605,6 +713,7 @@ const BookingHistoryPage = () => {
           onCancel={() => setPaymentTarget(null)}
         />
       )}
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 };

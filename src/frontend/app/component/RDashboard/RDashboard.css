@@ -85,13 +85,13 @@
   font-weight: 600;
 }
 .status-pending {
-  color: #f97316; /* Cam - Pending (chờ interviewer duyệt) */
+  color: #f97316; /* Cam - Pending */
 }
 .status-accepted {
-  color: #a855f7; /* Tím - Accepted (interviewer đã duyệt, chờ thanh toán) */
+  color: #dcd025; /* Tím - Accepted */
 }
 .status-paid {
-  color: #06b6d4; /* Xanh cyan - Paid (đã thanh toán, chờ tới giờ) */
+  color: #d853c4; /* Xanh Cyan - Paid */
 }
 .status-in-progress,
 .status-await-review {
@@ -100,12 +100,11 @@
 .status-done {
   color: #22c55e; /* Xanh lá - Completed */
 }
-.status-rejected,
-.status-no-show {
-  color: #ef4444; /* Đỏ - Rejected / No-show (interviewer chủ động từ chối) */
+.status-rejected {
+  color: #ef4444; /* Đỏ - Rejected */
 }
 .status-cancelled {
-  color: #f43f5e; /* Đỏ hồng (rose) - Cancelled: quá giờ mà không ai xác nhận hoàn tất */
+  color: #f43f5e; /* Đỏ hồng - Cancelled */
 }
 
 .cell-action {
@@ -184,7 +183,9 @@
 }
 .update-label {
   font-size: 13px;
-  color: #cbd5e1;
+  color: #474fda;
+  text-transform: uppercase;
+  font-weight: 400;
 }
 .update-pill {
   padding: 10px 16px;

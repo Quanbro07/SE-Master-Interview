@@ -159,6 +159,16 @@
   transform: scale(1.05);
 }
 
+.week-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.week-nav-btn:disabled:hover {
+  background: #3f3f46;
+}
+
 .month-label {
   margin: 0;
   font-size: 19px;
@@ -245,12 +255,13 @@
   opacity: 0.4;
 }
 
-/* ĐỊNH DẠNG Ô FREE TIME - HÌNH VUÔNG CHUẨN (ASPECT-RATIO 1/1) */
+/* Ö FREE TIME */
 .slot-cell {
   width: 100%;
-  aspect-ratio: 1 / 1; /* Biến ô thành hình vuông chuẩn */
+  aspect-ratio: 1 / 1;
   border-radius: 8px;
   background: #2d2d35;
+  border: 1px solid transparent;
   cursor: pointer;
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
@@ -262,16 +273,16 @@
   transform: scale(1.04);
 }
 
-/* MÀU KHI ĐƯỢC CHỌN (FREE TIME) */
 .slot-cell.is-selected {
   background: #333387;
 }
 
 .slot-cell.is-blocked {
-  background: #ef4444;
+  background: #721b1b;
+  border-color: #792121;
   opacity: 0.65;
   cursor: not-allowed;
-  border-color: #dc2626;
+  pointer-events: none;
 }
 
 .slot-cell.is-locked {
@@ -287,10 +298,17 @@
 .slot-cell.is-locked.is-selected:hover {
   background: #333387;
 }
+
+.slot-cell.is-past {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 /* FOOTER BUTTONS */
 .r-calendar-footer {
   display: flex;
   justify-content: center;
+  gap: 16px;
   margin-top: 28px;
 }
 
@@ -303,6 +321,7 @@
   letter-spacing: 0.06em;
   cursor: pointer;
   transition: all 0.2s ease;
+  color: #fff;
 }
 
 .edit-save-btn:hover {
@@ -320,6 +339,24 @@
   background: linear-gradient(180deg, #21169b, #14046f);
   color: #ffffff;
   box-shadow: 0 4px 15px rgba(59, 53, 143, 0.25);
+}
+
+.edit-cancel-btn {
+  padding: 12px 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: #9ca3af;
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-cancel-btn:hover {
+  color: #f4f4f5;
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* FORM BLOCK TIME OVERLAY */
@@ -346,59 +383,88 @@
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
-.block-form-card h3 {
+.block-form-card-grid {
+  max-width: 900px;
+  width: 92vw;
+}
+
+.block-form-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 22px;
+  font-weight: 800;
   color: #f4f4f5;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .block-form-subtitle {
   margin: 0;
-  font-size: 13px;
+  font-size: 13.5px;
   color: #9ca3af;
   text-transform: none;
+  text-align: center;
 }
 
-.block-form-card label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #d1d5db;
+.block-form-grid-wrapper {
+  overflow-x: auto;
+  padding-bottom: 8px;
 }
 
-.block-form-card input,
-.block-form-card textarea {
-  background: #27272a;
-  border: 1px solid #3f3f46;
-  border-radius: 8px;
-  padding: 10px 12px;
-  color: #f4f4f5;
-  font-family: inherit;
+.block-slot-cell.is-block-picked {
+  background: #792121;
+  box-shadow: 0 0 0 1px #673333 inset;
 }
 
+.block-slot-cell.is-blocked {
+  background: #721b1b;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* CHUNG CHO BỘ NÚT HÀNH ĐỘNG MODAL BLOCK */
 .block-form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 8px;
+  margin-top: 12px;
+}
+
+.block-form-btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 110px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.block-form-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .block-form-cancel {
-  background: transparent;
-  border: none;
-  color: #9ca3af;
-  cursor: pointer;
-  font-weight: 600;
+  background: #3f3f46;
+  color: #ffffff;
+}
+
+.block-form-cancel:hover:not(:disabled) {
+  background: #52525b;
 }
 
 .block-form-submit {
-  background: #8bc5e9;
-  color: #fff;
-  border: none;
-  padding: 8px 18px;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
+  background: #262586;
+  color: #ffffff;
+}
+
+.block-form-submit:hover:not(:disabled) {
+  background: #3231a0;
+  transform: translateY(-1px);
 }

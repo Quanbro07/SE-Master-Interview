@@ -9,12 +9,79 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Khi ChatPanel mở rộng, cụm này tự co dãn hoặc căn lề phù hợp */
 .user-header-container.expanded {
   right: 24px;
 }
 
-/* Style nút LOGOUT màu xanh tím giống Landing Page */
+/* Khối trigger gồm Chatbot Logo + User Name + Avatar */
+.chat-trigger-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(30, 30, 45, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 6px 14px;
+  border-radius: 24px;
+  cursor: pointer;
+  user-select: none;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.chat-trigger-header:hover {
+  background: rgba(40, 40, 60, 0.9);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+/* Icon Chatbot Logo */
+.chatbot-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.chatbot-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Tên User */
+.user-name {
+  color: #f1f5f9;
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Khung bọc Avatar User (Khắc phục lỗi phồng to ảnh) */
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid #6366f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #2a2a3c;
+  flex-shrink: 0;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Nút LOGOUT màu xanh tím */
 .logout-btn {
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
   color: #ffffff;
@@ -43,21 +110,4 @@
 .logout-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-/* Đảm bảo khung Chatbot Trigger không đè chồng lên Logout */
-.user-header-container .chat-trigger-header {
-  position: relative;
-  top: 0;
-  right: 0;
-  margin: 0;
-  cursor: pointer;
-}
-
-.chat-trigger-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
 }

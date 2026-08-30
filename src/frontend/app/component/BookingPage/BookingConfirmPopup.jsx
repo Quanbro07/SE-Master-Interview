@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { uploadCvBooking } from "./uploadCv";
+import Toast from "../Toast/Toast";
 import "./BookingConfirmPopup.css";
 
 const API_BASE =
@@ -41,6 +42,15 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
   const [cvFile, setCvFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  };
 
   const monthLabel = `${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
   const monthStartDay = new Date(
@@ -177,16 +187,24 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
     fetchInterviewerSchedule();
   }, [selectedDate, mentor]);
 
-  const handleFileChange = (e) => setCvFile(e.target.files?.[0] || null);
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    setCvFile(file);
+    if (file) {
+      showToast(`Selected CV file: ${file.name}`, "success");
+    }
+  };
 
   const handleSubmitBooking = async (e) => {
     if (e) e.preventDefault();
     if (!cvFile) {
       setSubmitError("Please upload your CV before confirming.");
+      showToast("Please upload your CV before confirming.", "error");
       return;
     }
     if (!selectedSlot) {
       setSubmitError("Please select an available time slot.");
+      showToast("Please select an available time slot.", "error");
       return;
     }
 
@@ -236,12 +254,18 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
       const uploadedCvUrl = await uploadCvBooking(bookingId, cvFile);
       if (!uploadedCvUrl) throw new Error("CV upload failed.");
 
-      if (onConfirm) {
-        onConfirm({ ...booking, bookingId, cvUrl: uploadedCvUrl });
-      }
+      showToast("Booking request and CV uploaded successfully!", "success");
+
+      setTimeout(() => {
+        if (onConfirm) {
+          onConfirm({ ...booking, bookingId, cvUrl: uploadedCvUrl });
+        }
+      }, 1200);
     } catch (err) {
       console.error("Booking Error:", err);
-      setSubmitError(err.message || "An error occurred. Please try again.");
+      const errText = err.message || "An error occurred. Please try again.";
+      setSubmitError(errText);
+      showToast(errText, "error");
     } finally {
       setSubmitting(false);
     }
@@ -386,6 +410,8 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
           </div>
         </div>
       </div>
+
+      <Toast toast={toast} />
     </div>
   );
 };

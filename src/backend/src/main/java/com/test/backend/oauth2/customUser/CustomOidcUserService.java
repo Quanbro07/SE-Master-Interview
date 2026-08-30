@@ -30,19 +30,15 @@ public class CustomOidcUserService extends OidcUserService {
         // Abstract Class
         OAuth2UserInfo oAuth2UserInfo = oAuth2UserHelper.assignPlatForm(registrationId, oAuth2User.getAttributes());
 
-        // Lấy xem Email đã verified google chưa
-        Boolean isEmailVerified = oAuth2UserInfo.getIsEmailVerified();
-
-
         String email = oAuth2UserInfo.getEmail();
         String providerUserId = oAuth2UserInfo.getId();
 
-        // Check xem verify email có ko
-        // Nếu ko thì đi xin verify email
-        oAuth2UserHelper.verifyEmail(email, registrationId, userRequest);
+        // Check + verify email (với Google, hàm này chỉ trả lại chính email đã có,
+        // vì Google OIDC luôn coi email là đã verified sẵn)
+        String verifiedEmail = oAuth2UserHelper.resolveAndVerifyEmail(email, registrationId, userRequest);
 
-        Boolean isNewUser = !userRepository.existsByEmail(email);
+        Boolean isNewUser = !userRepository.existsByEmail(verifiedEmail);
 
-        return new CustomOAuth2User(oAuth2User, email, registrationId, providerUserId, isNewUser);
+        return new CustomOAuth2User(oAuth2User, verifiedEmail, registrationId, providerUserId, isNewUser);
     }
 }

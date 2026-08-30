@@ -9,14 +9,34 @@
   color: #f8f8ff;
 }
 
-.main-heading {
-  text-align: center;
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: 2px;
+.main-heading-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin: 0 0 32px;
   color: #e4e4e7;
-  margin-top: 20px;
-  margin-bottom: 10px;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.main-heading-title::before,
+.main-heading-title::after {
+  content: "";
+  height: 3px;
+  width: 80px;
+  border-radius: 2px;
+}
+
+.main-heading-title::before {
+  background: linear-gradient(to left, #7c3aed, transparent);
+}
+
+.main-heading-title::after {
+  background: linear-gradient(to right, #7c3aed, transparent);
 }
 
 /* ================= SEARCH BAR & DROPDOWN ================= */

@@ -2,6 +2,7 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import RNavigationBar from "../RNavigationBar/RNavigationBar";
+import UserHeader from "../UserHeader/UserHeader";
 import "./RDashboard.css";
 
 const API_BASE =
@@ -30,6 +31,8 @@ const authHeaders = () => {
 const mapBookingStatus = (status) => {
   const upperStatus = (status || "").toUpperCase();
   switch (upperStatus) {
+    case "PENDING":
+      return "pending";
     case "ACCEPTED":
       return "accepted";
     case "PAID":
@@ -50,14 +53,14 @@ const mapBookingStatus = (status) => {
 };
 
 const STATUS_LABEL = {
-  pending: "Pending",
-  accepted: "Accepted",
-  paid: "Paid",
-  "in-progress": "In Progress",
-  "await-review": "Await Review",
-  done: "Completed",
-  rejected: "Rejected",
-  cancelled: "Cancelled",
+  pending: "PENDING",
+  accepted: "ACCEPTED",
+  paid: "PAID",
+  "in-progress": "IN PROGRESS",
+  "await-review": "AWAIT REVIEW",
+  done: "COMPLETED",
+  rejected: "REJECTED",
+  cancelled: "CANCELLED",
 };
 
 const convertBookingToDashboardRow = (booking) => {
@@ -95,6 +98,25 @@ const convertBookingToDashboardRow = (booking) => {
 
   const cleanId = booking.bookingId ?? booking.booking_id;
 
+  const candidateReview = booking.bookingReview || booking.booking_review;
+  const candidateComment = candidateReview?.comment || "";
+  const resultData =
+    booking.interviewResult ||
+    booking.interview_result ||
+    booking.interviewResultResponseDTO;
+
+  let safeInterviewerFeedback = "";
+
+  if (typeof resultData === "string") {
+    safeInterviewerFeedback = resultData;
+  } else if (resultData && typeof resultData.overallComment === "string") {
+    safeInterviewerFeedback = resultData.overallComment;
+  } else if (resultData && typeof resultData.overall_comment === "string") {
+    safeInterviewerFeedback = resultData.overall_comment;
+  } else if (typeof booking.feedback === "string") {
+    safeInterviewerFeedback = booking.feedback;
+  }
+
   return {
     id: `booking-${cleanId}`,
     bookingId: Number(cleanId),
@@ -104,11 +126,12 @@ const convertBookingToDashboardRow = (booking) => {
     about: booking.positionName || "Mock Interview",
     rawStatus: rawStatus,
     status: mapBookingStatus(rawStatus),
-    feedback: "",
-    money: `$${booking.totalAmount || 10}`,
+    feedback: safeInterviewerFeedback,
+    candidateComment: candidateComment,
+    hasInterviewerFeedback: Boolean(safeInterviewerFeedback.trim()),
+    money: `$${booking.total_amount || booking.totalAmount || 10}`,
     meetingUrl: booking.meetingUrl || booking.meeting_url,
     startUrl: booking.startUrl || booking.start_url,
-    // Lưu lại giờ kết thúc thật (nếu có) để tính auto-cancel khi quá giờ
     endDateTime: !isNaN(endTime) ? endTime : null,
     rawBooking: booking,
   };
@@ -117,15 +140,12 @@ const convertBookingToDashboardRow = (booking) => {
 const toTimestamp = (dateStr, timeStr) => {
   if (!dateStr || !timeStr) return 0;
 
-  // Tách an toàn hỗ trợ cả dạng DD/MM/YYYY lẫn YYYY-MM-DD
   let day, month, year;
   if (dateStr.includes("/")) {
     const parts = dateStr.split("/").map(Number);
-    // Nếu năm nằm ở cuối (DD/MM/YYYY)
     if (parts[2] > 1000) {
       [day, month, year] = parts;
     } else {
-      // Trường hợp MM/DD/YYYY
       [month, day, year] = parts;
     }
   } else if (dateStr.includes("-")) {
@@ -148,19 +168,13 @@ const isMeetingTimeValid = (dateStr, timeStr) => {
   if (!meetingTimestamp) return false;
 
   const now = Date.now();
-  // Cho phép Interviewer vào phòng trước 30 phút và kéo dài tối đa 120 phút sau giờ hẹn
-  const THIRTY_MINUTES = 30 * 60 * 1000;
-  const TWO_HOURS = 60 * 60 * 1000;
+  const ONE_HOUR = 60 * 60 * 1000;
 
   return (
-    now >= meetingTimestamp - THIRTY_MINUTES &&
-    now <= meetingTimestamp + TWO_HOURS
+    now >= meetingTimestamp - ONE_HOUR && now <= meetingTimestamp + ONE_HOUR
   );
 };
 
-// Đã qua giờ kết thúc buổi phỏng vấn chưa. Ưu tiên dùng endDateTime thật
-// (từ booking.endTime); nếu thiếu, fallback coi buổi phỏng vấn kéo dài 1 tiếng
-// tính từ giờ bắt đầu.
 const isPastMeetingEnd = (dateStr, timeStr, endDateTime, now = Date.now()) => {
   const endTimestamp = endDateTime
     ? endDateTime.getTime()
@@ -170,10 +184,24 @@ const isPastMeetingEnd = (dateStr, timeStr, endDateTime, now = Date.now()) => {
   return now > endTimestamp;
 };
 
-// Các trạng thái coi là đã "chốt", không thể tự động hủy nữa
 const TERMINAL_STATUSES = ["COMPLETED", "REJECTED", "CANCELLED"];
 
+const STATUS_PRIORITY_MAP = {
+  IN_PROGRESS: 1,
+  "IN-PROGRESS": 1,
+  AWAIT_REVIEW: 2,
+  "AWAIT-REVIEW": 2,
+  PAID: 3,
+  PENDING: 4,
+  ACCEPTED: 4,
+  COMPLETED: 5,
+  DONE: 5,
+  REJECTED: 6,
+  CANCELLED: 7,
+};
+
 const RDashboard = () => {
+  const [user, setUser] = useState(null);
   const [submittedBookings, setSubmittedBookings] = useState([]);
   const [requests, setRequests] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
@@ -182,20 +210,50 @@ const RDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [joiningId, setJoiningId] = useState(null);
-  // Tick để re-render mỗi phút, giúp trạng thái tự chuyển sang CANCELLED
-  // đúng lúc mà không cần người dùng reload trang
+  const [submittingId, setSubmittingId] = useState(null);
   const [nowTick, setNowTick] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (err) {
+        console.error("Lỗi khi đọc thông tin người dùng:", err);
+      }
+    }
+  }, []);
 
   const loadBookings = useCallback(async () => {
     setLoading(true);
     setError(null);
+    const headers = authHeaders();
+
+    if (!headers.Authorization) {
+      setError("Bạn chưa đăng nhập hoặc Session đã hết hạn.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/api/v1/booking/all-bookings`, {
-        headers: authHeaders(),
+        headers,
       });
 
-      if (!res.ok)
-        throw new Error(`Failed to load dashboard data (${res.status})`);
+      if (res.status === 401) {
+        showToast(
+          "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!",
+          "error",
+        );
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(`Lỗi Server (${res.status})`);
+      }
+
       const bookings = await res.json();
 
       const dashboardBookings = (Array.isArray(bookings) ? bookings : [])
@@ -213,8 +271,8 @@ const RDashboard = () => {
 
       setRequests(dashboardBookings);
     } catch (err) {
-      console.error("Error loading dashboard bookings:", err);
-      setError(err.message || "Could not load interview sessions.");
+      console.error("Lỗi tải danh sách booking:", err);
+      setError(err.message || "Không thể tải danh sách cuộc họp.");
     } finally {
       setLoading(false);
     }
@@ -230,17 +288,20 @@ const RDashboard = () => {
   }, []);
 
   const handleGoToMeeting = async (bookingId, defaultStartUrl) => {
-    setJoiningId(bookingId);
-    try {
-      // 1. Gửi request cập nhật trạng thái sang IN_PROGRESS
-      await fetch(`${API_BASE}/api/v1/booking/${bookingId}/start-meeting`, {
-        method: "POST",
-        headers: authHeaders(),
-      }).catch((err) =>
-        console.log("Start meeting status update ignored/handled:", err),
-      );
+    if (!bookingId || isNaN(Number(bookingId))) {
+      showToast("Booking ID không hợp lệ!", "error");
+      return;
+    }
 
-      // 2. Gọi Backend lấy Zoom Meeting Start URL mới nhất từ Zoom API
+    const headers = authHeaders();
+    if (!headers.Authorization) {
+      showToast("Token expired! Please log-out and sign-in again", "error");
+      return;
+    }
+
+    setJoiningId(bookingId);
+
+    try {
       const res = await fetch(
         `${API_BASE}/api/v1/booking/${bookingId}/start-url`,
         {
@@ -251,8 +312,6 @@ const RDashboard = () => {
 
       if (res.ok) {
         let freshStartUrl = await res.text();
-
-        // Làm sạch chuỗi URL nếu Backend trả về dạng "https://..." (bị dính dấu quote)
         if (freshStartUrl) {
           freshStartUrl = freshStartUrl.trim().replace(/^"+|"+$/g, "");
         }
@@ -262,26 +321,21 @@ const RDashboard = () => {
           loadBookings();
           return;
         }
-      } else if (res.status === 401) {
-        alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
-        return;
       }
 
-      // 3. Fallback dùng defaultStartUrl nếu có
       if (defaultStartUrl) {
         const cleanDefaultUrl = defaultStartUrl.trim().replace(/^"+|"+$/g, "");
         window.open(cleanDefaultUrl, "_blank", "noopener,noreferrer");
         loadBookings();
       } else {
-        alert("Không thể lấy link Zoom từ hệ thống. Vui lòng thử lại sau!");
+        showToast("Can't not start ZOOM!", "error");
       }
     } catch (err) {
-      console.error("Lỗi khi kết nối lấy start-url:", err);
       if (defaultStartUrl) {
         window.open(defaultStartUrl, "_blank", "noopener,noreferrer");
         loadBookings();
       } else {
-        alert("Có lỗi xảy ra khi kết nối máy chủ Zoom.");
+        showToast("Netword crash occurred", "error");
       }
     } finally {
       setJoiningId(null);
@@ -292,9 +346,13 @@ const RDashboard = () => {
     setExpandedId((prev) => {
       const next = prev === id ? null : id;
       if (next) {
+        const targetReq = requests.find((r) => r.id === id);
+        const initFeedback =
+          typeof targetReq?.feedback === "string" ? targetReq.feedback : "";
+
         setFeedbackDrafts((drafts) => ({
           ...drafts,
-          [id]: drafts[id] ?? requests.find((r) => r.id === id)?.feedback ?? "",
+          [id]: drafts[id] !== undefined ? drafts[id] : initFeedback,
         }));
       }
       return next;
@@ -305,89 +363,113 @@ const RDashboard = () => {
     setFeedbackDrafts((prev) => ({ ...prev, [id]: value }));
   };
 
-  const finalizeStatus = async (id, finalStatus) => {
+  const finalizeStatus = async (id) => {
     const target = requests.find((r) => r.id === id);
     if (!target || !target.bookingId) {
-      alert("Không tìm thấy Booking ID hợp lệ!");
+      showToast("No valid BookingID", "error");
       return;
     }
 
-    const feedbackText = feedbackDrafts[id] ?? target?.feedback ?? "";
+    const rawFeedback =
+      feedbackDrafts[req.id] !== undefined
+        ? feedbackDrafts[req.id]
+        : req.feedback || "";
+    const currentFeedback = typeof rawFeedback === "string" ? rawFeedback : "";
+    const isFeedbackProvided = Boolean(currentFeedback.trim());
 
-    if (target && target.bookingId) {
-      try {
-        const cleanBookingId = Number(target.bookingId);
-        const safeComment = feedbackText.slice(0, 500);
+    if (!feedbackText.trim()) {
+      showToast("Please feedback before submitting!", "error");
+      return;
+    }
 
-        const payload = {
-          booking_id: cleanBookingId,
-          technical_score: 8,
-          communication_score: 8,
-          preparation_level: "WELL_PREPARED",
-          overall_comment: safeComment,
-        };
+    const cleanBookingId = Number(target.bookingId);
+    setSubmittingId(id);
 
-        const res = await fetch(`${API_BASE}/api/v1/booking/complete`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...authHeaders(),
-          },
-          body: JSON.stringify(payload),
-        });
+    const payload = {
+      booking_id: cleanBookingId,
+      technical_score: 8,
+      communication_score: 8,
+      preparation_level: "WELL_PREPARED",
+      overall_comment: feedbackText.slice(0, 500),
+    };
 
-        if (!res.ok) {
-          const errJson = await res.json().catch(() => null);
-          const errMsg = errJson?.message || `Failed with status ${res.status}`;
-          throw new Error(errMsg);
-        }
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/booking/complete`, {
+        method: "POST",
+        headers: {
+          ...authHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-        setSubmittedBookings((prev) => [...prev, cleanBookingId]);
-        setRequests((prev) =>
-          prev.map((r) =>
-            r.id === id
-              ? {
-                  ...r,
-                  status: finalStatus,
-                  rawStatus: "COMPLETED",
-                  feedback: feedbackText,
-                }
-              : r,
-          ),
-        );
-        setExpandedId(null);
-        setToast({ name: target?.interviewee, status: finalStatus });
-        setTimeout(() => setToast(null), 2200);
-      } catch (err) {
-        console.error("Failed to sync completed status to backend:", err);
-        alert("Cập nhật thất bại: " + err.message);
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => null);
+        throw new Error(errJson?.message || `Lỗi status ${res.status}`);
       }
+
+      setSubmittedBookings((prev) => [...prev, cleanBookingId]);
+      setRequests((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                status: "done",
+                rawStatus: "COMPLETED",
+                feedback: feedbackText,
+                hasInterviewerFeedback: true,
+              }
+            : r,
+        ),
+      );
+      setExpandedId(null);
+      setToast({ name: target?.interviewee, status: "done" });
+      setTimeout(() => setToast(null), 2200);
+      loadBookings();
+    } catch (err) {
+      showToast(`Update failed ${err.message}`, "error");
+    } finally {
+      setSubmittingId(null);
     }
   };
 
   const sortedRequests = useMemo(() => {
     const getStatusPriority = (item) => {
-      const st = item.rawStatus;
+      const st = (item.rawStatus || "").toUpperCase();
       const autoCancelled =
         !TERMINAL_STATUSES.includes(st) &&
         !submittedBookings.includes(item.bookingId) &&
         isPastMeetingEnd(item.date, item.time, item.endDateTime);
 
-      if (autoCancelled) return 4;
-      if (
-        st === "ACCEPTED" ||
-        st === "PAID" ||
-        st === "IN_PROGRESS" ||
-        st === "AWAIT_REVIEW"
-      )
-        return 1;
-      if (st === "PENDING") return 2;
-      if (st === "COMPLETED") return 3;
-      if (st === "REJECTED" || st === "CANCELLED") return 4;
-      return 5;
+      if (autoCancelled) return STATUS_PRIORITY_MAP["CANCELLED"];
+      return STATUS_PRIORITY_MAP[st] || 99;
+    };
+
+    const getDayTimestamp = (dateStr) => {
+      if (!dateStr) return 0;
+      let day, month, year;
+      if (dateStr.includes("/")) {
+        const parts = dateStr.split("/").map(Number);
+        if (parts[2] > 1000) [day, month, year] = parts;
+        else [month, day, year] = parts;
+      } else if (dateStr.includes("-")) {
+        const parts = dateStr.split("-").map(Number);
+        if (parts[0] > 1000) [year, month, day] = parts;
+        else [day, month, year] = parts;
+      } else return 0;
+      return new Date(year, month - 1, day).getTime();
     };
 
     return [...requests].sort((a, b) => {
+      // 1. So sánh theo ngày (Giảm dần: Ngày mới nhất đứng trước)
+      const dateA = getDayTimestamp(a.date);
+      const dateB = getDayTimestamp(b.date);
+
+      if (dateA !== dateB) {
+        return dateB - dateA;
+      }
+
+      // 2. Nếu cùng ngày: Ưu tiên theo thứ tự IN-PROGRESS, AWAIT-REVIEW, PAID, PENDING, COMPLETED, REJECTED, CANCELLED
       const priorityA = getStatusPriority(a);
       const priorityB = getStatusPriority(b);
 
@@ -395,6 +477,7 @@ const RDashboard = () => {
         return priorityA - priorityB;
       }
 
+      // 3. Nếu cùng status nữa thì xếp theo thời gian trong ngày (Giảm dần)
       const aTime = toTimestamp(a.date, a.time);
       const bTime = toTimestamp(b.date, b.time);
       return bTime - aTime;
@@ -404,9 +487,13 @@ const RDashboard = () => {
   return (
     <div className="r-dashboard-root">
       <RNavigationBar />
+      <UserHeader user={user} />
+
       <main className="r-dashboard-main">
         <section className="r-dashboard-inner">
           <h1 className="r-dashboard-title">-----DASHBOARD-----</h1>
+
+          {error && <div className="r-dashboard-error-banner">{error}</div>}
 
           <div className="r-dashboard-table">
             <div className="r-dashboard-row r-dashboard-header">
@@ -422,36 +509,27 @@ const RDashboard = () => {
             <AnimatePresence initial={false}>
               {sortedRequests.map((req) => {
                 const isOpen = expandedId === req.id;
-
                 const isSubmittedLocally = submittedBookings.includes(
                   req.bookingId,
                 );
-                const isAwaitingReview = req.rawStatus === "AWAIT_REVIEW";
+
+                const rawFeedback =
+                  feedbackDrafts[req.id] ?? req.feedback ?? "";
+                const currentFeedback =
+                  typeof rawFeedback === "string" ? rawFeedback : "";
+                const isFeedbackProvided = Boolean(currentFeedback.trim());
 
                 // eslint-disable-next-line no-unused-vars
-                const _tick = nowTick; // đảm bảo re-render mỗi khi tick đổi
+                const _tick = nowTick;
 
-                // Quá giờ kết thúc buổi phỏng vấn mà vẫn chưa được chốt
-                // (chưa Done/No-show, chưa Rejected/Cancelled) -> tự động CANCELLED
-                const isAutoCancelled =
-                  !TERMINAL_STATUSES.includes(req.rawStatus) &&
-                  !isSubmittedLocally &&
-                  isPastMeetingEnd(req.date, req.time, req.endDateTime);
+                const displayRawStatus = req.rawStatus;
+                const displayStatusClass = req.status;
 
-                // Trạng thái/nhãn/màu hiển thị thực tế sau khi tính auto-cancel
-                const displayRawStatus = isAutoCancelled
-                  ? "CANCELLED"
-                  : req.rawStatus;
-                const displayStatusClass = isAutoCancelled
-                  ? "cancelled"
-                  : req.status;
-
+                // Kiểm tra xem đã hoàn tất hoặc đã có feedback của Interviewer chưa
                 const isFinalized =
                   req.rawStatus === "COMPLETED" ||
-                  req.rawStatus === "REJECTED" ||
-                  req.rawStatus === "CANCELLED" ||
-                  isSubmittedLocally ||
-                  isAutoCancelled;
+                  req.hasInterviewerFeedback ||
+                  isSubmittedLocally;
 
                 const isTimeValid = isMeetingTimeValid(req.date, req.time);
 
@@ -459,7 +537,6 @@ const RDashboard = () => {
                   (req.rawStatus === "PAID" ||
                     req.rawStatus === "IN_PROGRESS") &&
                   !isSubmittedLocally &&
-                  !isAutoCancelled &&
                   isTimeValid;
 
                 return (
@@ -507,10 +584,12 @@ const RDashboard = () => {
                             className="go-meeting-btn btn-disabled"
                             disabled={true}
                           >
-                            {isAutoCancelled
+                            {req.rawStatus === "CANCELLED" ||
+                            req.rawStatus === "REJECTED"
                               ? "Cancelled"
                               : !isTimeValid &&
                                   (req.rawStatus === "PAID" ||
+                                    req.rawStatus === "ACCEPTED" ||
                                     req.rawStatus === "IN_PROGRESS")
                                 ? "Not In Time"
                                 : "Ended"}
@@ -521,13 +600,10 @@ const RDashboard = () => {
                       <span className="cell-action">
                         <button
                           type="button"
-                          className={`update-btn ${isOpen ? "is-open" : ""} ${
-                            isFinalized ? "btn-disabled" : ""
-                          }`}
-                          onClick={() => !isFinalized && toggleExpand(req.id)}
-                          disabled={isFinalized}
+                          className={`update-btn ${isOpen ? "is-open" : ""}`}
+                          onClick={() => toggleExpand(req.id)}
                         >
-                          {isFinalized ? "Done" : "Update"}
+                          Update
                         </button>
                       </span>
                     </div>
@@ -556,7 +632,7 @@ const RDashboard = () => {
                                 className="update-feedback-box"
                                 rows={4}
                                 placeholder="Write feedback about the candidate's performance..."
-                                value={feedbackDrafts[req.id] ?? ""}
+                                value={currentFeedback}
                                 disabled={isFinalized}
                                 readOnly={isFinalized}
                                 onChange={(e) =>
@@ -576,22 +652,19 @@ const RDashboard = () => {
                             <div className="update-decision-row">
                               <button
                                 type="button"
-                                disabled={isFinalized}
-                                className="decision-btn no-show-btn"
-                                onClick={() =>
-                                  finalizeStatus(req.id, "no-show")
+                                disabled={
+                                  !isFeedbackProvided ||
+                                  isFinalized ||
+                                  submittingId === req.id
                                 }
-                              >
-                                No-show
-                              </button>
-
-                              <button
-                                type="button"
-                                disabled={!isAwaitingReview || isFinalized}
                                 className="decision-btn done-btn"
-                                onClick={() => finalizeStatus(req.id, "done")}
+                                onClick={() => finalizeStatus(req.id)}
                               >
-                                {isFinalized ? "Completed" : "Done"}
+                                {submittingId === req.id
+                                  ? "SUBMITTING..."
+                                  : isFinalized
+                                    ? "COMPLETED"
+                                    : "COMPLETE"}
                               </button>
                             </div>
                           </div>
@@ -603,7 +676,7 @@ const RDashboard = () => {
               })}
             </AnimatePresence>
 
-            {sortedRequests.length === 0 && (
+            {sortedRequests.length === 0 && !loading && (
               <motion.div
                 className="r-dashboard-empty"
                 initial={{ opacity: 0 }}

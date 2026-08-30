@@ -7,8 +7,17 @@ import "./ExpertiseManagement.css";
 const ExpertiseManagementPage = () => {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null); // State lưu trữ Toast message { text, type }
+  const [processingId, setProcessingId] = useState(null); // Quản lý trạng thái loading từng nút
 
-  // 🛠️ Hàm lấy Token chuẩn từ SelfPracticePage (Loại bỏ ngoặc bọc "..." và bóc tách Bearer trùng)
+  // Hàm hiển thị Toast tự động ẩn sau 3s
+  const showToast = (text, type = "success") => {
+    setToast({ text, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  };
+
   const getAccessToken = () => {
     if (typeof window === "undefined") return "";
     const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
@@ -27,13 +36,11 @@ const ExpertiseManagementPage = () => {
       .trim();
   };
 
-  // Convert URL MinIO/Docker về localhost cho trình duyệt mở CV
   const getBrowserCvUrl = (url) => {
     if (!url) return "#";
     return url.replace("host.docker.internal", "localhost");
   };
 
-  // 1. Fetch danh sách Pending Expertise Requests từ Backend
   const fetchPendingRequests = async () => {
     try {
       setLoading(true);
@@ -51,16 +58,15 @@ const ExpertiseManagementPage = () => {
 
       if (res.ok) {
         const data = await res.json();
-        console.log("🔥 DỮ LIỆU THỰC TẾ TỪ BACKEND:", data);
-
         const listData =
           data.content || data.data || (Array.isArray(data) ? data : []);
         setPendingRequests(listData);
       } else {
-        console.error("Lỗi API Status:", res.status);
+        showToast(`Lỗi khi tải danh sách: HTTP ${res.status}`, "error");
       }
     } catch (err) {
       console.error("Lỗi khi tải danh sách Expertise:", err);
+      showToast("Không thể kết nối đến máy chủ", "error");
     } finally {
       setLoading(false);
     }
@@ -70,14 +76,13 @@ const ExpertiseManagementPage = () => {
     fetchPendingRequests();
   }, []);
 
-  // 2. Gọi API Duyệt Chứng Nhận
   const handleApprove = async (interviewerId, positionId) => {
     if (!interviewerId || !positionId) {
-      alert("Thiếu ID của Interviewer hoặc Position!");
+      showToast("Thiếu ID thông tin Interviewer hoặc Position!", "error");
       return;
     }
 
-    if (!confirm("Bạn có chắc chắn muốn duyệt cấp Expertise này?")) return;
+    setProcessingId(interviewerId + "-" + positionId);
 
     try {
       const cleanToken = getAccessToken();
@@ -94,13 +99,16 @@ const ExpertiseManagementPage = () => {
       );
 
       if (res.ok) {
-        alert("Duyệt thành công!");
+        showToast("Duyệt cấp chứng nhận Expertise thành công!", "success");
         fetchPendingRequests();
       } else {
-        alert(`Có lỗi xảy ra khi duyệt! (Mã lỗi: ${res.status})`);
+        showToast(`Duyệt thất bại! (Mã lỗi: ${res.status})`, "error");
       }
     } catch (err) {
       console.error(err);
+      showToast("Có lỗi xảy ra trong quá trình xử lý!", "error");
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -123,17 +131,16 @@ const ExpertiseManagementPage = () => {
               <span>LEVEL</span>
               <span>EXPERIENCE</span>
               <span>HOURLY FEE</span>
-              <span className="cell-action-header">ACTION</span>
+              <span style={{ textAlign: "right" }}>ACTION</span>
             </div>
 
             {loading ? (
               <div
                 style={{
                   textAlign: "center",
-                  padding: "40px 20px",
-                  color: "#888",
-                  fontSize: "1.1rem",
-                  fontWeight: 500,
+                  padding: "50px 20px",
+                  color: "#9ca3af",
+                  fontSize: "1rem",
                 }}
               >
                 Đang tải danh sách...
@@ -142,11 +149,10 @@ const ExpertiseManagementPage = () => {
               <div
                 style={{
                   textAlign: "center",
-                  padding: "50px 20px",
+                  padding: "60px 20px",
                   color: "#9ca3af",
-                  fontSize: "1.25rem",
-                  fontWeight: "600",
-                  letterSpacing: "0.5px",
+                  fontSize: "1.1rem",
+                  fontWeight: "500",
                 }}
               >
                 Không có yêu cầu cấp Expertise nào đang chờ duyệt.
@@ -169,7 +175,8 @@ const ExpertiseManagementPage = () => {
                   req.full_name ||
                   req.name ||
                   "N/A";
-                const email = req.email || "Chưa cập nhật";
+                const email =
+                  req.email || req.interviewerEmail || "Chưa cập nhật";
                 const positionName =
                   req.positionName ||
                   req.position_name ||
@@ -184,6 +191,8 @@ const ExpertiseManagementPage = () => {
                 const fee = req.hourlyFee ?? req.hourly_fee ?? req.fee ?? 0;
                 const cv = req.cvUrl || req.cv_url || req.fileUrl;
 
+                const isApproving = processingId === id + "-" + positionId;
+
                 return (
                   <div
                     key={id + "-" + idx}
@@ -195,9 +204,13 @@ const ExpertiseManagementPage = () => {
                       <span className="user-profile-email">{email}</span>
                     </span>
                     <span>
-                      <strong>{positionName}</strong>
+                      <strong style={{ color: "#e4e4e7" }}>
+                        {positionName}
+                      </strong>
                     </span>
-                    <span>{level}</span>
+                    <span style={{ color: "#a1a1aa", fontWeight: 600 }}>
+                      {level}
+                    </span>
                     <span>{experience} Years</span>
                     <span className="finance-in">${fee}/h</span>
                     <span className="cell-action">
@@ -206,22 +219,18 @@ const ExpertiseManagementPage = () => {
                           href={getBrowserCvUrl(cv)}
                           target="_blank"
                           rel="noreferrer"
-                          style={{
-                            marginRight: "10px",
-                            color: "#3b82f6",
-                            textDecoration: "underline",
-                          }}
+                          className="btn-view-cv"
                         >
                           View CV
                         </a>
                       )}
                       <button
                         type="button"
-                        className="admin-action-btn"
-                        style={{ backgroundColor: "#10b981", color: "#fff" }}
+                        className="btn-approve"
+                        disabled={isApproving}
                         onClick={() => handleApprove(id, positionId)}
                       >
-                        Approve
+                        {isApproving ? "Approving..." : "Approve"}
                       </button>
                     </span>
                   </div>
@@ -230,6 +239,14 @@ const ExpertiseManagementPage = () => {
             )}
           </div>
         </section>
+
+        {/* Component Render Toast Toast Message */}
+        {toast && (
+          <div className={`admin-toast ${toast.type}`}>
+            <span>{toast.type === "success" ? "✓" : "✕"}</span>
+            <span>{toast.text}</span>
+          </div>
+        )}
       </main>
     </div>
   );

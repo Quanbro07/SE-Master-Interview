@@ -31,12 +31,33 @@
 }
 
 .selfpractice-title {
-  text-align: center;
-  margin: 0 0 28px;
-  font-size: 28px;
-  letter-spacing: 0.06em;
-  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin: 0 0 32px;
   color: #e4e4e7;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.selfpractice-title::before,
+.selfpractice-title::after {
+  content: "";
+  height: 3px;
+  width: 80px;
+  border-radius: 2px;
+}
+
+.selfpractice-title::before {
+  background: linear-gradient(to left, #7c3aed, transparent);
+}
+
+.selfpractice-title::after {
+  background: linear-gradient(to right, #7c3aed, transparent);
 }
 
 .self-intro {
@@ -332,4 +353,8 @@
   .self-main.with-chat {
     margin-right: 0; /* Tránh đè giao diện trên màn hình nhỏ */
   }
+}
+
+.evaluate-btn {
+  background-color: #4d1977;
 }

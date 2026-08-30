@@ -35,11 +35,11 @@ public class CustomOauth2UserService extends DefaultOAuth2UserService {
 
         String providerUserId = oAuth2UserInfo.getId();
 
-        oauth2UserHelper.verifyEmail(email, registrationId, userRequest);
+        String verifiedEmail = oauth2UserHelper.resolveAndVerifyEmail(email, registrationId, userRequest);
 
-        Boolean isNewUser = !userRepository.existsByEmail(email);
+        Boolean isNewUser = !userRepository.existsByEmail(verifiedEmail);
 
-        return new CustomOAuth2User(oAuth2User, email, registrationId, providerUserId, isNewUser);
+        return new CustomOAuth2User(oAuth2User, verifiedEmail, registrationId, providerUserId, isNewUser);
     }
 
 }

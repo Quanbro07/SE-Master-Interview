@@ -31,44 +31,52 @@ public class FileService {
     }
 
     public String uploadFile(
-            String bucketName,
-            byte[] fileData,
-            String contentType,
-            String originalName,
-            String target) throws MinioException, IOException {
-        boolean isBucketExist = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
+        String bucketName,
+        byte[] fileData,
+        String contentType,
+        String originalName,
+        String target) throws MinioException, IOException {
+    boolean isBucketExist = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
 
-        if(!isBucketExist) {
-            throw new RuntimeException("Bucket does not exists");
-        }
+    if(!isBucketExist) {
+        throw new RuntimeException("Bucket does not exists");
+    }
 
-        contentType = this.guessContentType(contentType, originalName);
+    contentType = this.guessContentType(contentType, originalName);
 
-        try (InputStream inputStream = new ByteArrayInputStream(fileData)) {
-            var putObjectArg = PutObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(target)
-                    .stream(inputStream, (long) fileData.length, -1L)
-                    .contentType(contentType)
-                    .build();
+    try (InputStream inputStream = new ByteArrayInputStream(fileData)) {
+        var putObjectArg = PutObjectArgs.builder()
+                .bucket(bucketName)
+                .object(target)
+                .stream(inputStream, (long) fileData.length, -1L)
+                .contentType(contentType)
+                .build();
 
-            minioClient.putObject(putObjectArg);
-        }
-        //
+        minioClient.putObject(putObjectArg);
+    }
 
+    return getPresignedUrl(bucketName, target, contentType);
+}
+
+// Overload: dùng khi không biết contentType gốc (ví dụ lúc build response, không upload lại)
+    public String getPresignedUrl(String bucketName, String target) throws MinioException, IOException {
+        String guessedType = URLConnection.guessContentTypeFromName(target);
+        if (guessedType == null) guessedType = "application/octet-stream";
+        return getPresignedUrl(bucketName, target, guessedType);
+    }
+
+// Method dùng chung, tách từ logic presign cũ trong uploadFile()
+    public String getPresignedUrl(String bucketName, String target, String contentType) throws MinioException, IOException {
         Map<String, String> reqParams = new HashMap<>();
-        // Ép buộc trình duyệt hiển thị trực tiếp bằng header response-content-disposition=inline
         reqParams.put("response-content-disposition", "inline");
-
-        log.info(contentType);
         reqParams.put("response-content-type", contentType);
 
         var presignObjectArg = GetPresignedObjectUrlArgs.builder()
                 .method(Http.Method.GET)
                 .object(target)
                 .bucket(bucketName)
-                .region("us-east-1") // Giữ lại region fix hôm qua nhé
-                .extraQueryParams(reqParams) // Thêm tham số override header ở đây <--- QUAN TRỌNG
+                .region("us-east-1")
+                .extraQueryParams(reqParams)
                 .build();
 
         return externalMinioClient.getPresignedObjectUrl(presignObjectArg);

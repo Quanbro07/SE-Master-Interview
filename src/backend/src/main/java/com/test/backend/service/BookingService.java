@@ -11,6 +11,7 @@ import com.test.backend.dto.booking.bookingResponse.BookingResponse;
 import com.test.backend.dto.booking.FilterInterviewerPositionResponse;
 import com.test.backend.dto.booking.bookingResponse.InterviewerResponseDTO;
 import com.test.backend.dto.interview.InterviewResultRequest;
+import com.test.backend.dto.booking.bookingResponse.BookingReviewResponse;
 import com.test.backend.dto.interview.InterviewerReviewResponse;
 import com.test.backend.dto.interview.ReviewInterviewerRequest;
 import com.test.backend.dto.schedule.AddBlockedScheduleRequest;
@@ -66,6 +67,8 @@ public class BookingService {
     private final PositionRepository positionRepository;
 
     private final InterviewerRepository interviewerRepository;
+
+    private BigDecimal totalAmount;
 
     private final IntervieweeRepository intervieweeRepository;
 
@@ -183,6 +186,7 @@ public class BookingService {
 
         List<BookingResponse> responseList = bookingList.stream()
                 .map(booking -> {
+                    log.info(">>> DEBUG BOOKING ID: {}, cvUrl in DB: '{}'", booking.getBookingId(), booking.getCvUrl());
                     Interviewer interviewer = booking.getInterviewer();
                     Interviewee interviewee = booking.getBooker();
 
@@ -246,14 +250,6 @@ public class BookingService {
         // 1. Kiểm tra bảo mật: Chỉ Interviewer của buổi này mới được lấy startUrl
         if (!booking.getInterviewer().getInterviewerId().equals(userId)) {
             throw new ForbiddenOperationException("Only the designated interviewer can start this meeting");
-        }
-
-        LocalDateTime startTime = booking.getStartTime();
-
-        Duration duration = Duration.between(LocalDateTime.now(), startTime);
-
-        if(duration.toMinutes() > 60) {
-            throw new ForbiddenOperationException("You can only get start URL within one hour after the start time");
         }
 
         String freshStartUrl = zoomService.getFreshStartUrl(booking.getMeetingId());
@@ -379,24 +375,30 @@ public class BookingService {
 
         String contentType = file.getContentType();
         String originalFileName = file.getOriginalFilename();
+        String extension = "";
+        if (originalFileName != null && originalFileName.contains(".")) {
+            extension = originalFileName.substring(originalFileName.lastIndexOf("."));
+        }
 
-        String target = "bookingCV_" + bookingId;
+        String target = "bookingCV_" + bookingId + extension;
 
         byte[] fileData = null;
 
         try {
             fileData = file.getBytes();
         } catch (IOException e) {
-            log.warn(e.getMessage());
+            throw new RuntimeException("Error reading file data", e);
         }
 
         String cvUrl = null;
 
         try {
             cvUrl = fileService.uploadFile(cvBucket.getCVBucketName(), fileData, contentType, originalFileName, target);
-
+            booking.setCvUrl(target);
+            bookingRepository.save(booking);
         } catch (MinioException | IOException e) {
-            log.warn(e.getMessage());
+            log.error("Upload CV failed for booking {}: {}", bookingId, e.getMessage(), e);
+            throw new RuntimeException("Failed to upload CV to storage", e);
         }
         return cvUrl;
     }
@@ -450,13 +452,26 @@ public class BookingService {
                 .interviewerAvatar(interviewerUser.getAvatar())
                 .build();
         // Khởi tạo Builder
+
+        BookingReviewResponse reviewDto = null;
+        if (newBooking.getBookingReview() != null) {
+            BookingReview review = newBooking.getBookingReview();
+            reviewDto = BookingReviewResponse.builder()
+                    .reviewId(review.getReviewId())
+                    .rating(review.getRating())
+                    .comment(review.getComment())
+                    .build();
+        }
         BookingResponse.BookingResponseBuilder responseBuilder = BookingResponse.builder()
                 .bookingId(newBooking.getBookingId())
                 .bookerResponseDTO(bookerDTO)
                 .interviewerResponseDTO(interviewerDTO)
                 .startTime(newBooking.getStartTime())
                 .endTime(newBooking.getEndTime())
-                .cvUrl(newBooking.getCvUrl())
+                .joinUrl(newBooking.getJoinUrl())
+                .cvUrl(resolveCvUrl(newBooking.getCvUrl()))
+                .bookingReview(reviewDto)
+                .totalAmount(newBooking.getTotalAmount())
                 .bookingStatus(newBooking.getStatus());
         
         
@@ -478,6 +493,16 @@ public class BookingService {
         return responseBuilder.build();
     }
 
+    private String resolveCvUrl(String cvKey) {
+        if (cvKey == null) return null;
+        try {
+            return fileService.getPresignedUrl(cvBucket.getCVBucketName(), cvKey);
+        } catch (Exception e) {
+            log.warn("Failed to generate presigned CV url for key {}: {}", cvKey, e.getMessage());
+            return null;
+        }
+    }
+
     private InterviewerReviewResponse convertToReviewResponse(BookingReview review) {
 
         User bookerUser = review.getBooking().getBooker().getUser();
@@ -491,6 +516,5 @@ public class BookingService {
                 .createdAt(review.getCreatedAt())
                 .build();
     }
-
 
 }

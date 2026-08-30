@@ -1,12 +1,14 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import RNavigationBar from "../RNavigationBar/RNavigationBar";
+import UserHeader from "../UserHeader/UserHeader";
 import "./RProfile.css";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 const RProfile = () => {
+  const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [draft, setDraft] = useState({});
   const [isEditing, setIsEditing] = useState(false);
@@ -35,6 +37,19 @@ const RProfile = () => {
   const [submittingExpertise, setSubmittingExpertise] = useState(false);
 
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (err) {
+        console.error("Lỗi đọc user:", err);
+      }
+    }
+  }, []);
 
   const getAuthHeader = () => {
     const rawToken =
@@ -332,6 +347,7 @@ const RProfile = () => {
 
   return (
     <div className="rp-root">
+      <UserHeader user={user} />
       <RNavigationBar />
       <main className="rp-main">
         <section className="rp-inner">
