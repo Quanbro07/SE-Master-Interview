@@ -1,6 +1,7 @@
 package com.test.backend.controller;
 
 import com.test.backend.dto.schedule.AvailableScheduleDTO;
+import com.test.backend.dto.schedule.BlockedScheduleDTO;
 import com.test.backend.dto.schedule.AddBlockedScheduleRequest;
 import com.test.backend.entity.user.CustomUserDetail;
 import com.test.backend.service.ScheduleService;
@@ -12,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.time.LocalDate;
 
 @RequiredArgsConstructor
@@ -48,6 +50,23 @@ public class ScheduleController {
         }
 
         AvailableScheduleDTO response = scheduleService.getAvailableSchedule(targetUserId, dateInWeek);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasRole('Interviewer')")
+    @GetMapping("/blocked")
+    public ResponseEntity<List<BlockedScheduleDTO>> getBlockedSchedule(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateInWeek,
+            @AuthenticationPrincipal CustomUserDetail userDetails) {
+
+        Long userId = userDetails.getUser().getUserId();
+
+        if (dateInWeek == null) {
+            dateInWeek = LocalDate.now();
+        }
+
+        List<BlockedScheduleDTO> response = scheduleService.getBlockedSchedules(userId, dateInWeek);
 
         return ResponseEntity.ok(response);
     }

@@ -183,7 +183,9 @@
 }
 .update-label {
   font-size: 13px;
-  color: #cbd5e1;
+  color: #474fda;
+  text-transform: uppercase;
+  font-weight: 400;
 }
 .update-pill {
   padding: 10px 16px;

@@ -347,9 +347,8 @@
 .details-panel {
   padding: 22px 24px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03); /* Cùng màu nền dropdown RDashboard */
-  border: 1px solid #7c3aed; /* Bọc viền tím nổi bật */
-  box-shadow: 0 0 15px rgba(124, 58, 237, 0.25); /* Glow shadow Tím */
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #43198b; /* Bọc viền tím nổi bật */
   display: flex;
   flex-direction: column;
   gap: 16px;

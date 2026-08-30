@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { uploadCvBooking } from "./uploadCv";
-import { AnimatePresence, motion } from "framer-motion";
 import Toast from "../Toast/Toast";
 import "./BookingConfirmPopup.css";
 
@@ -188,7 +187,13 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
     fetchInterviewerSchedule();
   }, [selectedDate, mentor]);
 
-  const handleFileChange = (e) => setCvFile(e.target.files?.[0] || null);
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    setCvFile(file);
+    if (file) {
+      showToast(`Selected CV file: ${file.name}`, "success");
+    }
+  };
 
   const handleSubmitBooking = async (e) => {
     if (e) e.preventDefault();
@@ -249,15 +254,18 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
       const uploadedCvUrl = await uploadCvBooking(bookingId, cvFile);
       if (!uploadedCvUrl) throw new Error("CV upload failed.");
 
-      showToast("Requested successfully", "success");
+      showToast("Booking request and CV uploaded successfully!", "success");
 
-      if (onConfirm) {
-        onConfirm({ ...booking, bookingId, cvUrl: uploadedCvUrl });
-        showToast("UploadedCV successfully", "success");
-      }
+      setTimeout(() => {
+        if (onConfirm) {
+          onConfirm({ ...booking, bookingId, cvUrl: uploadedCvUrl });
+        }
+      }, 1200);
     } catch (err) {
       console.error("Booking Error:", err);
-      setSubmitError(err.message || "An error occurred. Please try again.");
+      const errText = err.message || "An error occurred. Please try again.";
+      setSubmitError(errText);
+      showToast(errText, "error");
     } finally {
       setSubmitting(false);
     }
@@ -402,15 +410,8 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
           </div>
         </div>
       </div>
-      <AnimatePresence>
-        {toast && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        )}
-      </AnimatePresence>
+
+      <Toast toast={toast} />
     </div>
   );
 };

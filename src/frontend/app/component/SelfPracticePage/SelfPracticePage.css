@@ -354,3 +354,7 @@
     margin-right: 0; /* Tránh đè giao diện trên màn hình nhỏ */
   }
 }
+
+.evaluate-btn {
+  background-color: #4d1977;
+}

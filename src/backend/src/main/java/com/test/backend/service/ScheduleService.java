@@ -1,6 +1,7 @@
 package com.test.backend.service;
 
 import com.test.backend.dto.schedule.*;
+import com.test.backend.dto.schedule.BlockedScheduleDTO;
 import com.test.backend.entity.availableSchedule.AvailableSchedule;
 import com.test.backend.entity.blockedSchedule.BlockedSchedule;
 import com.test.backend.entity.blockedSchedule.BlockedSchedulePurpose;
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -257,6 +259,26 @@ public class ScheduleService {
                 .build();
 
         blockedScheduleRepository.save(newBlockSchedule);
+    }
+
+    /*Lấy blocked time */
+    public List<BlockedScheduleDTO> getBlockedSchedules(Long userId, LocalDate dateInWeek) {
+        LocalDate monday = dateInWeek.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDateTime startOfWeek = monday.atStartOfDay();
+        LocalDateTime endOfWeek = monday.plusDays(6).atTime(LocalTime.MAX);
+ 
+        List<BlockedSchedule> blocks = blockedScheduleRepository
+                .findOverlappingBlockedSchedules(userId, startOfWeek, endOfWeek);
+ 
+        return blocks.stream()
+                .map(b -> BlockedScheduleDTO.builder()
+                        .blockedScheduleId(b.getBlockedScheduleId())
+                        .startTime(b.getStartTime())
+                        .endTime(b.getEndTime())
+                        .purpose(b.getPurpose())
+                        .note(b.getNote())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     // * Helper

@@ -7,6 +7,7 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
+import Toast from "../Toast/Toast";
 
 const stripePublishableKey =
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
@@ -15,7 +16,7 @@ const stripePromise = stripePublishableKey
   ? loadStripe(stripePublishableKey)
   : null;
 
-const PaymentForm = ({ bookingId, onPaid, onCancel }) => {
+const PaymentForm = ({ bookingId, onPaid, onCancel, showToast }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -23,15 +24,10 @@ const PaymentForm = ({ bookingId, onPaid, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements) {
-      console.warn("⚠️ Stripe JS or Elements not yet loaded");
-      return;
-    }
+    if (!stripe || !elements) return;
 
     setProcessing(true);
     setPayError(null);
-
-    console.log("🚀 Submitting Stripe Confirm Payment...");
 
     try {
       const result = await stripe.confirmPayment({
@@ -42,13 +38,11 @@ const PaymentForm = ({ bookingId, onPaid, onCancel }) => {
         redirect: "if_required",
       });
 
-      console.log("📩 Raw Stripe Result:", result);
-
       if (result.error) {
-        console.error("❌ Stripe Payment Error:", result.error);
-        setPayError(
-          result.error.message || "Payment failed. Please check card details.",
-        );
+        const errorMsg =
+          result.error.message || "Payment failed. Please check card details.";
+        setPayError(errorMsg);
+        showToast(errorMsg, "error");
         setProcessing(false);
         return;
       }
@@ -56,24 +50,17 @@ const PaymentForm = ({ bookingId, onPaid, onCancel }) => {
       const { paymentIntent } = result;
 
       if (paymentIntent) {
-        console.log("✅ PaymentIntent Status:", paymentIntent.status);
-
         if (
           paymentIntent.status === "succeeded" ||
           paymentIntent.status === "processing" ||
           paymentIntent.status === "requires_capture"
         ) {
-          // BỔ SUNG: Gọi API Backend để sync trạng thái PAID vào Postgres DB
           try {
-            const token = localStorage.getItem("token"); // Lấy JWT Token từ Auth state
+            const token = localStorage.getItem("token");
             const targetBookingId =
               bookingId || paymentIntent.metadata?.bookingId;
 
             if (targetBookingId) {
-              console.log(
-                "🔄 Syncing PAID status for Booking ID:",
-                targetBookingId,
-              );
               await fetch(
                 `http://localhost:8080/api/v1/stripe/${targetBookingId}/confirm-hold`,
                 {
@@ -86,29 +73,24 @@ const PaymentForm = ({ bookingId, onPaid, onCancel }) => {
               );
             }
           } catch (syncError) {
-            console.error(
-              "⚠️ Failed to sync status with DB, continuing UI flow...",
-              syncError,
-            );
+            console.error("Failed to sync status with DB:", syncError);
           }
 
-          console.log("🎉 Payment Authorized/Succeeded! Calling onPaid()...");
-          onPaid(paymentIntent);
-        } else if (paymentIntent.status === "requires_action") {
-          setPayError("Payment requires extra authentication step.");
+          showToast("Payment confirmed successfully!", "success");
+          setTimeout(() => {
+            onPaid(paymentIntent);
+          }, 1000);
         } else {
-          setPayError(
-            `Payment status: ${paymentIntent.status}. Please try again.`,
-          );
+          const statusMsg = `Payment status: ${paymentIntent.status}. Please try again.`;
+          setPayError(statusMsg);
+          showToast(statusMsg, "error");
         }
-      } else {
-        setPayError("Payment incomplete. No intent returned from Stripe.");
       }
     } catch (err) {
-      console.error("💥 Unexpected Payment Exception:", err);
-      setPayError(
-        err.message || "An unexpected error occurred during payment.",
-      );
+      const exceptionMsg =
+        err.message || "An unexpected error occurred during payment.";
+      setPayError(exceptionMsg);
+      showToast(exceptionMsg, "error");
     } finally {
       setProcessing(false);
     }
@@ -181,7 +163,14 @@ const StripePaymentModal = ({
   onPaid,
   onCancel,
 }) => {
+  const [toast, setToast] = useState(null);
+
   if (!clientSecret) return null;
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const options = {
     clientSecret,
@@ -217,6 +206,7 @@ const StripePaymentModal = ({
               bookingId={bookingId}
               onPaid={onPaid}
               onCancel={onCancel}
+              showToast={showToast}
             />
           </Elements>
         ) : (
@@ -225,6 +215,8 @@ const StripePaymentModal = ({
           </p>
         )}
       </div>
+
+      <Toast toast={toast} />
     </div>
   );
 };

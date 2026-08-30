@@ -37,24 +37,32 @@ public class OAuth2UserHelper {
         return oAuth2UserInfo;
     }
 
-    public void verifyEmail(String email, String registrationId, OAuth2UserRequest userRequest) {
-        boolean isEmailVerified = false;
-
+    /**
+     * Xác thực email VÀ trả về email thật sự nên dùng để tạo/tra user.
+     * - Với Google (và các platform mặc định tin tưởng): trả lại chính email đã có.
+     * - Với GitHub: email từ /user có thể null (nếu user để email private trên GitHub),
+     *   nên phải gọi /user/emails để lấy email primary + verified thật sự.
+     */
+    public String resolveAndVerifyEmail(String email, String registrationId, OAuth2UserRequest userRequest) {
         if ("github".equalsIgnoreCase(registrationId)) {
             String accessToken = userRequest.getAccessToken().getTokenValue();
-            isEmailVerified = checkGithubEmailVerified(accessToken, email);
+            String resolvedEmail = resolveGithubVerifiedEmail(accessToken, email);
 
-        } else {
-            // Các nền tảng mặc định tin tưởng (như Google OIDC thường đã verified sẵn)
-            isEmailVerified = true;
+            if (resolvedEmail == null) {
+                throw new OAuth2AuthenticationException("Email từ nền tảng này chưa được xác thực. Không thể tự động đăng nhập!");
+            }
+            return resolvedEmail;
         }
 
-        if (!isEmailVerified) {
-            throw new OAuth2AuthenticationException("Email từ nền tảng này chưa được xác thực. Không thể tự động đăng nhập!");
-        }
+        // Các nền tảng mặc định tin tưởng (như Google OIDC thường đã verified sẵn)
+        return email;
     }
 
-    private boolean checkGithubEmailVerified(String accessToken, String primaryEmail) {
+    /**
+     * Gọi GitHub API /user/emails để tìm email verified.
+     * Ưu tiên: email trùng với "email" đã có (nếu có và verified) -> email primary+verified -> bất kỳ email verified nào.
+     */
+    private String resolveGithubVerifiedEmail(String accessToken, String currentEmail) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
         HttpEntity<String> entity = new HttpEntity<>(headers);
@@ -68,19 +76,41 @@ public class OAuth2UserHelper {
             );
 
             List<Map<String, Object>> emailList = response.getBody();
-            if (emailList != null) {
-                for (Map<String, Object> emailObj : emailList) {
-                    String email = (String) emailObj.get("email");
-                    boolean verified = Boolean.TRUE.equals(emailObj.get("verified"));
+            if (emailList == null || emailList.isEmpty()) {
+                System.out.println("GitHub /user/emails trả về rỗng - có thể thiếu scope 'user:email'.");
+                return null;
+            }
 
-                    if (email.equalsIgnoreCase(primaryEmail) && verified) {
-                        return true;
+            // Ưu tiên 1: khớp với email hiện có (nếu currentEmail không null) và đã verified
+            if (currentEmail != null) {
+                for (Map<String, Object> emailObj : emailList) {
+                    String e = (String) emailObj.get("email");
+                    boolean verified = Boolean.TRUE.equals(emailObj.get("verified"));
+                    if (currentEmail.equalsIgnoreCase(e) && verified) {
+                        return e;
                     }
                 }
             }
+
+            // Ưu tiên 2: email primary + verified (trường hợp email GitHub bị để private)
+            for (Map<String, Object> emailObj : emailList) {
+                boolean isPrimary = Boolean.TRUE.equals(emailObj.get("primary"));
+                boolean verified = Boolean.TRUE.equals(emailObj.get("verified"));
+                if (isPrimary && verified) {
+                    return (String) emailObj.get("email");
+                }
+            }
+
+            // Ưu tiên 3: bất kỳ email nào đã verified
+            for (Map<String, Object> emailObj : emailList) {
+                boolean verified = Boolean.TRUE.equals(emailObj.get("verified"));
+                if (verified) {
+                    return (String) emailObj.get("email");
+                }
+            }
         } catch (Exception e) {
-            System.out.println("Lỗi khi check email GitHub: " + e.getMessage());
+            System.out.println("Lỗi khi gọi GitHub /user/emails: " + e.getMessage());
         }
-        return false;
+        return null;
     }
 }

@@ -1,8 +1,8 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import UserHeader from "../UserHeader/UserHeader";
-import { useCallback } from "react";
+import Toast from "../Toast/Toast";
 import {
   addDays,
   addWeeks,
@@ -14,8 +14,7 @@ import {
 import RNavigationBar from "../RNavigationBar/RNavigationBar";
 import "./RCalendar.css";
 
-// Thời gian từ 9h đến 22h (mỗi bước 1h)
-const HOURS = Array.from({ length: 14 }, (_, i) => i + 9); // 9 -> 22
+const HOURS = Array.from({ length: 14 }, (_, i) => i + 9);
 const WEEKDAY_LABELS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
 const API_BASE =
@@ -63,7 +62,6 @@ const parseHourFromTimeString = (value) => {
   return parseInt(hourStr, 10);
 };
 
-// Variants cho Animation chuyển tuần
 const slideVariants = {
   enter: (direction) => ({
     x: direction > 0 ? "100%" : "-100%",
@@ -95,13 +93,18 @@ const RCalendar = () => {
   const [repeatSlots, setRepeatSlots] = useState(new Set());
   const [blockedSlots, setBlockedSlots] = useState(new Set());
 
-  const [scheduleError, setScheduleError] = useState(null);
   const [saving, setSaving] = useState(false);
-
   const [showBlockForm, setShowBlockForm] = useState(false);
   const [blockSubmitting, setBlockSubmitting] = useState(false);
-  const [blockError, setBlockError] = useState(null);
-  const [blockSuccess, setBlockSuccess] = useState(false);
+
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  };
 
   const isDraggingRef = useRef(false);
   const dragValueRef = useRef(true);
@@ -109,7 +112,6 @@ const RCalendar = () => {
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const monthLabel = format(weekDays[6], "MMMM yyyy");
 
-  // Helper kiểm tra mốc thời gian (Ngày + Giờ) có thuộc về quá khứ hay không
   const isSlotInPast = (date, hour) => {
     const slotDate = new Date(date);
     slotDate.setHours(hour, 0, 0, 0);
@@ -132,16 +134,16 @@ const RCalendar = () => {
   const loadBlockedSchedules = async (dateInWeek, days) => {
     try {
       const res = await fetch(
-        `${API_BASE}/api/v1/schedule/get?dateInWeek=${dateInWeek}`,
+        `${API_BASE}/api/v1/schedule/blocked?dateInWeek=${dateInWeek}`,
         { headers: authHeaders() },
       );
       if (!res.ok) return;
 
-      const data = await res.json();
+      const blocks = await res.json();
       const nextBlockedSlots = new Set();
 
-      if (data.blockedSchedules && Array.isArray(data.blockedSchedules)) {
-        data.blockedSchedules.forEach((block) => {
+      if (Array.isArray(blocks)) {
+        blocks.forEach((block) => {
           const blockStart = new Date(block.startTime);
           const blockEnd = new Date(block.endTime);
 
@@ -245,7 +247,8 @@ const RCalendar = () => {
   };
 
   const handleMouseDown = (date, hour, weekdayIndex) => {
-    if (!isEditing || isSlotInPast(date, hour)) return;
+    if (!isEditing || isSlotInPast(date, hour) || isSlotBlocked(date, hour))
+      return;
     const current = isSlotSelected(date, hour, weekdayIndex);
     const nextValue = !current;
     dragValueRef.current = nextValue;
@@ -254,7 +257,12 @@ const RCalendar = () => {
   };
 
   const handleMouseEnter = (date, hour, weekdayIndex) => {
-    if (!isEditing || !isDraggingRef.current || isSlotInPast(date, hour))
+    if (
+      !isEditing ||
+      !isDraggingRef.current ||
+      isSlotInPast(date, hour) ||
+      isSlotBlocked(date, hour)
+    )
       return;
     setSlot(date, hour, weekdayIndex, dragValueRef.current);
   };
@@ -268,13 +276,11 @@ const RCalendar = () => {
     return () => window.removeEventListener("mouseup", stopDragging);
   }, []);
 
-  // Xử lý Bật/Tắt Repeat Weekly
   const handleToggleRepeat = () => {
     setRepeatWeekly((prevRepeat) => {
       const willBeRepeat = !prevRepeat;
 
       if (willBeRepeat) {
-        // Tắt -> Bật: Gom các slot đang được chọn ở tuần hiện tại thành Lịch lặp chung
         const newRepeatSlots = new Set();
         weekDays.forEach((date, weekdayIndex) => {
           HOURS.forEach((hour) => {
@@ -287,7 +293,6 @@ const RCalendar = () => {
         });
         setRepeatSlots(newRepeatSlots);
       } else {
-        // Bật -> Tắt: Nhân bản Lịch lặp chung vào các ô ngày cụ thể của tuần hiện tại
         const newSelectedSlots = new Set();
         weekDays.forEach((date, weekdayIndex) => {
           HOURS.forEach((hour) => {
@@ -313,9 +318,7 @@ const RCalendar = () => {
     }
   };
 
-  // Tải lại dữ liệu khi đổi tuần
   const loadScheduleForWeek = useCallback(async () => {
-    setScheduleError(null);
     try {
       const dateInWeek = format(weekStart, "yyyy-MM-dd");
       const res = await fetch(
@@ -353,7 +356,7 @@ const RCalendar = () => {
       await loadBlockedSchedules(dateInWeek, weekDays);
     } catch (err) {
       console.error("Schedule error:", err);
-      setScheduleError(err.message || "Could not load your schedule.");
+      showToast(err.message || "Could not load your schedule.", "error");
     }
   }, [weekStart]);
 
@@ -361,10 +364,8 @@ const RCalendar = () => {
     loadScheduleForWeek();
   }, [loadScheduleForWeek]);
 
-  // Lưu dữ liệu lịch
   const handleSaveSchedule = async () => {
     setSaving(true);
-    setScheduleError(null);
 
     try {
       const hoursByWeekday = new Map();
@@ -413,22 +414,17 @@ const RCalendar = () => {
       if (!res.ok) throw new Error(`Failed to save schedule (${res.status})`);
 
       setIsEditing(false);
+      showToast("Schedule updated successfully!", "success");
     } catch (err) {
-      setScheduleError(err.message || "Could not save your schedule.");
+      showToast(err.message || "Could not save your schedule.", "error");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleBlockFieldChange = (field) => (e) => {
-    setBlockForm((prev) => ({ ...prev, [field]: e.target.value }));
-  };
-
   const handleAddBlockedSchedule = async (e) => {
     e.preventDefault();
     setBlockSubmitting(true);
-    setBlockError(null);
-    setBlockSuccess(false);
 
     try {
       if (blockSelectedSlots.size === 0) {
@@ -467,17 +463,15 @@ const RCalendar = () => {
         );
         if (!res.ok) throw new Error(`Failed to block time (${res.status})`);
       }
-      setBlockSuccess(true);
+
       setBlockSelectedSlots(new Set());
       setBlockForm({ note: "" });
       await loadBlockedSchedules(format(weekStart, "yyyy-MM-dd"), weekDays);
 
-      setTimeout(() => {
-        setShowBlockForm(false);
-        setBlockSuccess(false);
-      }, 1200);
+      setShowBlockForm(false);
+      showToast("Time blocked successfully!", "success");
     } catch (err) {
-      setBlockError(err.message || "Could not block this time.");
+      showToast(err.message || "Could not block this time.", "error");
     } finally {
       setBlockSubmitting(false);
     }
@@ -485,6 +479,8 @@ const RCalendar = () => {
 
   return (
     <div className="r-calendar-root">
+      <Toast toast={toast} onClose={() => setToast(null)} />
+
       <UserHeader user={user} />
       <RNavigationBar />
       <main className="r-calendar-main">
@@ -512,14 +508,11 @@ const RCalendar = () => {
                 onClick={() => {
                   setShowBlockForm(true);
                   setBlockSelectedSlots(new Set());
-                  setBlockError(null);
                 }}
               >
                 + Block time
               </button>
             </div>
-
-            {scheduleError && <p className="calendar-error">{scheduleError}</p>}
 
             <div className="r-calendar-nav-row">
               <button
@@ -540,7 +533,7 @@ const RCalendar = () => {
                 className="week-nav-btn"
                 onClick={goNextWeek}
                 aria-label="Next week"
-                isabled={isEditing}
+                disabled={isEditing}
                 title={
                   isEditing ? "Save or cancel your change first!" : undefined
                 }
@@ -603,20 +596,16 @@ const RCalendar = () => {
                             <button
                               key={hour}
                               type="button"
-                              className={`slot-cell ${selected ? "is-selected" : ""} ${blocked ? "is-blocked" : ""} ${!isEditing || inPast ? "is-locked" : ""} ${inPast ? "is-past" : ""}`}
+                              className={`slot-cell ${selected && !blocked ? "is-selected" : ""} ${blocked ? "is-blocked" : ""} ${!isEditing || inPast ? "is-locked" : ""} ${inPast ? "is-past" : ""}`}
                               onMouseDown={() =>
                                 handleMouseDown(date, hour, weekdayIndex)
                               }
                               onMouseEnter={() =>
                                 handleMouseEnter(date, hour, weekdayIndex)
                               }
-                              aria-pressed={selected}
+                              aria-pressed={selected && !blocked}
                               aria-label={`${WEEKDAY_LABELS[weekdayIndex]} ${format(date, "MMM d")} ${hour}:00${blocked ? " (blocked)" : ""}`}
                               disabled={blocked || inPast}
-                              style={{
-                                cursor: inPast ? "not-allowed" : "pointer",
-                                opacity: inPast ? 0.35 : 1,
-                              }}
                             />
                           );
                         })}
@@ -661,9 +650,11 @@ const RCalendar = () => {
             onClick={(e) => e.stopPropagation()}
             onSubmit={handleAddBlockedSchedule}
           >
-            <h3>Block time</h3>
+            <h3 className="block-form-title">BLOCK TIME</h3>
             <p className="block-form-subtitle">
-              Chọn các khung giờ muốn đánh dấu bận cho tuần {monthLabel}.
+              Please select your hectic schedule from{" "}
+              {format(weekDays[0], "MMM d")} to {format(weekDays[6], "MMM d")}{" "}
+              on {format(weekDays[0], "MMMM yyyy")}
             </p>
 
             <div className="block-form-grid-wrapper custom-scrollbar">
@@ -705,38 +696,21 @@ const RCalendar = () => {
               </div>
             </div>
 
-            <label>
-              Note (optional)
-              <textarea
-                value={blockForm.note}
-                onChange={handleBlockFieldChange("note")}
-                rows={2}
-                placeholder="e.g. Doctor's appointment"
-              />
-            </label>
-
-            {blockError && <p className="block-form-error">{blockError}</p>}
-            {blockSuccess && (
-              <p className="block-form-success">Time blocked successfully.</p>
-            )}
-
             <div className="block-form-actions">
               <button
                 type="button"
-                className="block-form-cancel"
+                className="block-form-btn block-form-cancel"
                 onClick={() => setShowBlockForm(false)}
                 disabled={blockSubmitting}
               >
-                Cancel
+                CANCEL
               </button>
               <button
                 type="submit"
-                className="block-form-submit"
+                className="block-form-btn block-form-submit"
                 disabled={blockSubmitting}
               >
-                {blockSubmitting
-                  ? "Blocking..."
-                  : `Block ${blockSelectedSlots.size || ""} slot(s)`}
+                {blockSubmitting ? "BLOCKING..." : "BLOCK"}
               </button>
             </div>
           </form>
