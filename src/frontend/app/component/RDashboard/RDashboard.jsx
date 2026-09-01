@@ -10,21 +10,25 @@ const API_BASE =
 
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
-  return (
+  const rawToken =
     localStorage.getItem("accessToken") ||
     localStorage.getItem("token") ||
     localStorage.getItem("jwt") ||
     localStorage.getItem("authToken") ||
     localStorage.getItem("access_token") ||
-    ""
-  );
+    "";
+  // Xóa sạch chữ Bearer và dấu ngoặc kép thừa trong localStorage
+  return rawToken
+    .replace(/^"+|"+$/g, "")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
 };
 
 const authHeaders = () => {
   const token = getAccessToken();
   if (!token) return {};
   return {
-    Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
+    Authorization: `Bearer ${token}`,
   };
 };
 
@@ -186,18 +190,22 @@ const isPastMeetingEnd = (dateStr, timeStr, endDateTime, now = Date.now()) => {
 
 const TERMINAL_STATUSES = ["COMPLETED", "REJECTED", "CANCELLED"];
 
+// Tier 1: đang diễn ra / cần xử lý ngay
+// Tier 2: đang chờ interviewer quyết định
+// Tier 3: đã chốt, chờ đến giờ (sort theo ngày gần nhất trước)
+// Tier 4: đã kết thúc (thành công/thất bại) - luôn chìm xuống đáy, sort mới nhất trước
 const STATUS_PRIORITY_MAP = {
   IN_PROGRESS: 1,
   "IN-PROGRESS": 1,
-  AWAIT_REVIEW: 2,
-  "AWAIT-REVIEW": 2,
+  AWAIT_REVIEW: 1,
+  "AWAIT-REVIEW": 1,
+  PENDING: 2,
+  ACCEPTED: 3,
   PAID: 3,
-  PENDING: 4,
-  ACCEPTED: 4,
-  COMPLETED: 5,
-  DONE: 5,
-  REJECTED: 6,
-  CANCELLED: 7,
+  COMPLETED: 4,
+  DONE: 4,
+  REJECTED: 4,
+  CANCELLED: 4,
 };
 
 const RDashboard = () => {
@@ -212,6 +220,11 @@ const RDashboard = () => {
   const [joiningId, setJoiningId] = useState(null);
   const [submittingId, setSubmittingId] = useState(null);
   const [nowTick, setNowTick] = useState(() => Date.now());
+
+  const showToast = (message, type = "error") => {
+    setToast({ name: message, status: type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -342,21 +355,38 @@ const RDashboard = () => {
     }
   };
 
-  const toggleExpand = (id) => {
-    setExpandedId((prev) => {
-      const next = prev === id ? null : id;
-      if (next) {
-        const targetReq = requests.find((r) => r.id === id);
-        const initFeedback =
-          typeof targetReq?.feedback === "string" ? targetReq.feedback : "";
+  const toggleExpand = async (id) => {
+    setExpandedId((prev) => (prev === id ? null : id));
 
-        setFeedbackDrafts((drafts) => ({
-          ...drafts,
-          [id]: drafts[id] !== undefined ? drafts[id] : initFeedback,
-        }));
+    const targetReq = requests.find((r) => r.id === id);
+    if (!targetReq || !targetReq.bookingId) return;
+
+    // Nếu đã mở panel và chưa có draft thì gọi API fetch interview-result thực tế
+    if (expandedId !== id && !feedbackDrafts[id]) {
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/v1/booking/${targetReq.bookingId}/result`,
+          {
+            headers: authHeaders(),
+          },
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          const fetchedComment =
+            data.overallComment || data.overall_comment || "";
+
+          if (fetchedComment) {
+            setFeedbackDrafts((prev) => ({
+              ...prev,
+              [id]: fetchedComment,
+            }));
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi lấy interview result:", err);
       }
-      return next;
-    });
+    }
   };
 
   const updateFeedbackDraft = (id, value) => {
@@ -371,13 +401,12 @@ const RDashboard = () => {
     }
 
     const rawFeedback =
-      feedbackDrafts[req.id] !== undefined
-        ? feedbackDrafts[req.id]
-        : req.feedback || "";
+      feedbackDrafts[id] !== undefined
+        ? feedbackDrafts[id]
+        : target.feedback || "";
     const currentFeedback = typeof rawFeedback === "string" ? rawFeedback : "";
-    const isFeedbackProvided = Boolean(currentFeedback.trim());
 
-    if (!feedbackText.trim()) {
+    if (!currentFeedback.trim()) {
       showToast("Please feedback before submitting!", "error");
       return;
     }
@@ -390,7 +419,7 @@ const RDashboard = () => {
       technical_score: 8,
       communication_score: 8,
       preparation_level: "WELL_PREPARED",
-      overall_comment: feedbackText.slice(0, 500),
+      overall_comment: currentFeedback.slice(0, 500),
     };
 
     try {
@@ -416,7 +445,7 @@ const RDashboard = () => {
                 ...r,
                 status: "done",
                 rawStatus: "COMPLETED",
-                feedback: feedbackText,
+                feedback: currentFeedback,
                 hasInterviewerFeedback: true,
               }
             : r,
@@ -434,6 +463,8 @@ const RDashboard = () => {
   };
 
   const sortedRequests = useMemo(() => {
+    const TERMINAL_TIER = STATUS_PRIORITY_MAP["CANCELLED"]; // = 4
+
     const getStatusPriority = (item) => {
       const st = (item.rawStatus || "").toUpperCase();
       const autoCancelled =
@@ -445,31 +476,9 @@ const RDashboard = () => {
       return STATUS_PRIORITY_MAP[st] || 99;
     };
 
-    const getDayTimestamp = (dateStr) => {
-      if (!dateStr) return 0;
-      let day, month, year;
-      if (dateStr.includes("/")) {
-        const parts = dateStr.split("/").map(Number);
-        if (parts[2] > 1000) [day, month, year] = parts;
-        else [month, day, year] = parts;
-      } else if (dateStr.includes("-")) {
-        const parts = dateStr.split("-").map(Number);
-        if (parts[0] > 1000) [year, month, day] = parts;
-        else [day, month, year] = parts;
-      } else return 0;
-      return new Date(year, month - 1, day).getTime();
-    };
-
     return [...requests].sort((a, b) => {
-      // 1. So sánh theo ngày (Giảm dần: Ngày mới nhất đứng trước)
-      const dateA = getDayTimestamp(a.date);
-      const dateB = getDayTimestamp(b.date);
-
-      if (dateA !== dateB) {
-        return dateB - dateA;
-      }
-
-      // 2. Nếu cùng ngày: Ưu tiên theo thứ tự IN-PROGRESS, AWAIT-REVIEW, PAID, PENDING, COMPLETED, REJECTED, CANCELLED
+      // 1. Ưu tiên theo mức độ khẩn của status (tier thấp hơn = lên trước):
+      //    1) IN_PROGRESS/AWAIT_REVIEW  2) PENDING  3) ACCEPTED/PAID  4) đã kết thúc
       const priorityA = getStatusPriority(a);
       const priorityB = getStatusPriority(b);
 
@@ -477,10 +486,16 @@ const RDashboard = () => {
         return priorityA - priorityB;
       }
 
-      // 3. Nếu cùng status nữa thì xếp theo thời gian trong ngày (Giảm dần)
+      // 2. Trong cùng tier, hướng sort theo ngày đổi chiều tuỳ nhóm:
+      //    - Tier "đã kết thúc": mới nhất lên trước (giống lịch sử hoạt động)
+      //    - Các tier còn lại (đang xử lý / sắp diễn ra): gần đến hạn nhất lên trước
       const aTime = toTimestamp(a.date, a.time);
       const bTime = toTimestamp(b.date, b.time);
-      return bTime - aTime;
+
+      if (priorityA === TERMINAL_TIER) {
+        return bTime - aTime;
+      }
+      return aTime - bTime;
     });
   }, [requests, submittedBookings, nowTick]);
 
@@ -542,13 +557,9 @@ const RDashboard = () => {
                 return (
                   <motion.div
                     key={req.id}
-                    layout
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{
-                      layout: { duration: 0.4, ease: "easeInOut" },
-                    }}
                     className="r-dashboard-row-wrap"
                   >
                     <div className="r-dashboard-row r-dashboard-data-row">
@@ -616,18 +627,33 @@ const RDashboard = () => {
                           animate={{ height: "auto", opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.28, ease: "easeInOut" }}
+                          style={{ overflow: "hidden" }}
                           className="update-panel-wrap"
                         >
                           <div className="update-panel">
-                            <div className="update-field">
-                              <span className="update-label">Candidate</span>
-                              <div className="update-pill">
-                                {req.interviewee}
+                            {/* Hàng 1: CANDIDATE (Trái) & MONEY / FEE (Trái) */}
+                            <div className="update-header-row">
+                              <div className="update-field-left">
+                                <span className="update-label">CANDIDATE</span>
+                                <div className="update-pill">
+                                  {req.interviewee}
+                                </div>
+                              </div>
+
+                              <div className="update-field-left">
+                                <span className="update-label">
+                                  MONEY / FEE
+                                </span>
+                                <div className="update-pill">
+                                  {req.money} securely held via Stripe
+                                  Authorization
+                                </div>
                               </div>
                             </div>
 
+                            {/* Hàng 2: FEEDBACK */}
                             <div className="update-field">
-                              <span className="update-label">Feedback</span>
+                              <span className="update-label">FEEDBACK</span>
                               <textarea
                                 className="update-feedback-box"
                                 rows={4}
@@ -641,32 +667,24 @@ const RDashboard = () => {
                               />
                             </div>
 
-                            <div className="update-money-row">
-                              <span className="update-label">Money</span>
-                              <p className="update-money-note">
-                                {req.money} securely held via Stripe
-                                Authorization
-                              </p>
-                            </div>
-
-                            <div className="update-decision-row">
-                              <button
-                                type="button"
-                                disabled={
-                                  !isFeedbackProvided ||
-                                  isFinalized ||
-                                  submittingId === req.id
-                                }
-                                className="decision-btn done-btn"
-                                onClick={() => finalizeStatus(req.id)}
-                              >
-                                {submittingId === req.id
-                                  ? "SUBMITTING..."
-                                  : isFinalized
-                                    ? "COMPLETED"
+                            {/* Hàng 3: ACTION BUTTON */}
+                            {!isFinalized && (
+                              <div className="update-decision-row">
+                                <button
+                                  type="button"
+                                  disabled={
+                                    !isFeedbackProvided ||
+                                    submittingId === req.id
+                                  }
+                                  className="decision-btn done-btn"
+                                  onClick={() => finalizeStatus(req.id)}
+                                >
+                                  {submittingId === req.id
+                                    ? "SUBMITTING..."
                                     : "COMPLETE"}
-                              </button>
-                            </div>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </motion.div>
                       )}

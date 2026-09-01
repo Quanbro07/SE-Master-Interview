@@ -9,6 +9,7 @@ import "../MockInterviewPage/MockInterviewPage.css";
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
+// ✅ 1. Hàm lấy Access Token chuẩn hoá triệt để
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
   const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
@@ -21,10 +22,21 @@ const getAccessToken = () => {
     }
   }
   if (!token) return "";
+
+  // Xóa sạch ngoặc kép và chữ Bearer nếu bị lưu thừa trong localStorage
   return token
-    .replace(/^"(.*)"$/, "$1")
+    .replace(/^"+|"+$/g, "")
     .replace(/^Bearer\s+/i, "")
     .trim();
+};
+
+// ✅ Helper tạo Authorization Header chuẩn
+const authHeaders = () => {
+  const token = getAccessToken();
+  if (!token) return {};
+  return {
+    Authorization: `Bearer ${token}`,
+  };
 };
 
 const DIFFICULTY_OPTIONS = [
@@ -74,7 +86,7 @@ const SelfPracticePage = () => {
   const [evaluationResult, setEvaluationResult] = useState(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
 
-  // Auto-complete API
+  // Auto-complete API tìm kiếm Position
   useEffect(() => {
     if (!positionQuery.trim()) {
       setPositionSuggestions([]);
@@ -82,13 +94,13 @@ const SelfPracticePage = () => {
     }
     const timeoutId = setTimeout(async () => {
       try {
-        const cleanToken = getAccessToken();
-        const headers = cleanToken
-          ? { Authorization: `Bearer ${cleanToken}` }
-          : {};
         const res = await fetch(
           `${API_BASE}/api/v1/position/search?q=${encodeURIComponent(positionQuery)}`,
-          { headers },
+          {
+            headers: {
+              ...authHeaders(), // ✅ Token đã được chuẩn hóa
+            },
+          },
         );
         if (res.ok) {
           const data = await res.json();
@@ -147,7 +159,7 @@ const SelfPracticePage = () => {
 
     try {
       const params = new URLSearchParams({
-        position: selectedPosition.trim(),
+        position: selectedPosition.trim(), // Truyền nguyên bản position cho backend
         numQuestions: String(numQuestions),
       });
 
@@ -155,14 +167,13 @@ const SelfPracticePage = () => {
         params.set("difficulty", selectedDifficulty);
       }
 
-      const cleanToken = getAccessToken();
       const res = await fetch(
         `${API_BASE}/api/v1/question/get-question?${params.toString()}`,
         {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {}),
+            ...authHeaders(), // ✅ Token đã được chuẩn hóa
           },
         },
       );
@@ -220,7 +231,6 @@ const SelfPracticePage = () => {
     setEvaluationResult(null);
 
     try {
-      const cleanToken = getAccessToken();
       const payload = {
         answer_list: [
           {
@@ -236,7 +246,7 @@ const SelfPracticePage = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {}),
+            ...authHeaders(), // ✅ Token đã được chuẩn hóa
           },
           body: JSON.stringify(payload),
         },
@@ -301,6 +311,7 @@ const SelfPracticePage = () => {
                         key={name}
                         className="mock-position-dropdown-item"
                         onClick={() => handleSelectPosition(name)}
+                        style={{ textTransform: "uppercase" }}
                       >
                         {name}
                       </button>
@@ -371,8 +382,12 @@ const SelfPracticePage = () => {
             <div className="mock-question-wrapper">
               <div className="mock-question-card">
                 <div className="mock-card-header">
+                  {/* ✅ In hoa hiển thị tên vị trí trên Tiêu đề Card */}
                   <p className="mock-card-title">
-                    Self Practice: {selectedPosition}
+                    Self Practice:{" "}
+                    <span style={{ textTransform: "uppercase" }}>
+                      {selectedPosition}
+                    </span>
                   </p>
                   <span className="self-card-step">
                     {poolIndex + 1}/{pool.length}

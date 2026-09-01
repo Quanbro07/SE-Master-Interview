@@ -8,6 +8,7 @@ import "./CVAssessmentPage.css";
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
+// ✅ Hàm lấy Access Token chuẩn hoá triệt để
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
   const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
@@ -20,7 +21,21 @@ const getAccessToken = () => {
     }
   }
   if (!token) return "";
-  return token.replace(/^"(.*)"$/, "$1").trim();
+
+  // Xóa sạch ngoặc kép và chữ Bearer nếu bị lưu thừa trong localStorage
+  return token
+    .replace(/^"+|"+$/g, "")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
+};
+
+// ✅ Helper tạo Authorization Header chuẩn
+const authHeaders = () => {
+  const token = getAccessToken();
+  if (!token) return {};
+  return {
+    Authorization: `Bearer ${token}`,
+  };
 };
 
 const SECTION_LABELS = {
@@ -76,9 +91,6 @@ const CVAssessmentPage = () => {
 
   const fetchPositions = async (query) => {
     try {
-      const rawToken = getAccessToken();
-      const cleanToken = rawToken ? rawToken.replace(/^Bearer\s+/i, "") : "";
-
       const endpoint = query.trim()
         ? `${API_BASE}/api/v1/position/search?q=${encodeURIComponent(query)}`
         : `${API_BASE}/api/v1/position/get-all`;
@@ -87,7 +99,7 @@ const CVAssessmentPage = () => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {}),
+          ...authHeaders(), // ✅ Sử dụng authHeaders mới
         },
       });
 
@@ -151,9 +163,6 @@ const CVAssessmentPage = () => {
     setError(null);
 
     try {
-      const rawToken = getAccessToken();
-      const cleanToken = rawToken ? rawToken.replace(/^Bearer\s+/i, "") : "";
-
       const formData = new FormData();
       formData.append("file", file);
       formData.append("position", position.trim());
@@ -161,7 +170,7 @@ const CVAssessmentPage = () => {
       const res = await fetch(`${API_BASE}/api/v1/cv-assessment/assess-cv`, {
         method: "POST",
         headers: {
-          ...(cleanToken ? { Authorization: `Bearer ${cleanToken}` } : {}),
+          ...authHeaders(), // ✅ Sử dụng authHeaders mới
         },
         body: formData,
       });
@@ -227,6 +236,7 @@ const CVAssessmentPage = () => {
                 color: "#fff",
                 fontSize: "14px",
                 outline: "none",
+                textTransform: "uppercase", // ✅ Chuyển giao diện hiển thị trong ô nhập thành IN HOA
               }}
             />
 
@@ -265,6 +275,7 @@ const CVAssessmentPage = () => {
                       textAlign: "left",
                       fontSize: "14px",
                       transition: "background-color 0.2s",
+                      textTransform: "uppercase", // ✅ Chuyển giao diện các item gợi ý thành IN HOA
                     }}
                     onMouseEnter={(e) =>
                       (e.currentTarget.style.backgroundColor = "#2b2b3d")
@@ -372,11 +383,6 @@ const CVAssessmentPage = () => {
                         })}
                       </ul>
                     )}
-
-                  <div className="report-actions">
-                    <button className="ghost">Self-practice</button>
-                    <button className="primary">AI mock interview</button>
-                  </div>
                 </div>
               </div>
             )}

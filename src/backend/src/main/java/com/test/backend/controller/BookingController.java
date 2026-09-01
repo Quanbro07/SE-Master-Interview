@@ -6,6 +6,7 @@ import com.test.backend.dto.booking.ConfirmBookingRequest;
 import com.test.backend.dto.booking.bookingResponse.BookingResponse;
 import com.test.backend.dto.booking.FilterInterviewerPositionResponse;
 import com.test.backend.dto.interview.InterviewResponse;
+import com.test.backend.dto.interview.InterviewResultResponse;
 import com.test.backend.dto.interview.InterviewResultRequest;
 import com.test.backend.dto.interview.InterviewerReviewResponse;
 import com.test.backend.dto.interview.ReviewInterviewerRequest;
@@ -173,5 +174,15 @@ public class BookingController {
         bookingService.reviewBooking(bookerId, request);
 
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{bookingId}/result")
+    public ResponseEntity<InterviewResultResponse> getInterviewResult(
+            @PathVariable Long bookingId,
+            @AuthenticationPrincipal CustomUserDetail userDetail) {
+
+        InterviewResultResponse response = bookingService.getInterviewResultByBookingId(bookingId);
+
+        return ResponseEntity.ok(response);
     }
 }

@@ -7,12 +7,28 @@ import "./RBookingRequest.css";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
-const getAccessToken = () =>
-  typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+const getAccessToken = () => {
+  if (typeof window === "undefined") return "";
+  const rawToken =
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("token") ||
+    localStorage.getItem("jwt") ||
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("access_token") ||
+    "";
+  // Xóa sạch chữ Bearer và dấu ngoặc kép thừa trong localStorage
+  return rawToken
+    .replace(/^"+|"+$/g, "")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
+};
 
 const authHeaders = () => {
   const token = getAccessToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  if (!token) return {};
+  return {
+    Authorization: `Bearer ${token}`,
+  };
 };
 
 const convertBookingToRequest = (booking) => {

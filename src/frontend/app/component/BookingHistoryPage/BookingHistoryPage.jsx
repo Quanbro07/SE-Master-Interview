@@ -67,19 +67,25 @@ const STATUS_LABEL = {
   cancelled: "CANCELLED",
 };
 
+// Tier 1: đang diễn ra / cần xử lý ngay
+// Tier 2: đang chờ interviewer quyết định
+// Tier 3: đã chốt, chờ đến giờ (sort theo ngày gần nhất trước)
+// Tier 4: đã kết thúc (thành công/thất bại/quá giờ chưa xử lý) - luôn chìm xuống đáy, sort mới nhất trước
 const STATUS_PRIORITY_MAP = {
   IN_PROGRESS: 1,
   "IN-PROGRESS": 1,
-  AWAIT_REVIEW: 2,
-  "AWAIT-REVIEW": 2,
+  AWAIT_REVIEW: 1,
+  "AWAIT-REVIEW": 1,
+  PENDING: 2,
+  ACCEPTED: 3,
   PAID: 3,
-  PENDING: 4,
-  ACCEPTED: 4,
-  COMPLETED: 5,
-  DONE: 5,
-  REJECTED: 6,
-  CANCELLED: 7,
+  COMPLETED: 4,
+  DONE: 4,
+  REJECTED: 4,
+  CANCELLED: 4,
 };
+
+const TERMINAL_STATUSES = ["COMPLETED", "REJECTED", "CANCELLED"];
 
 const toTimestamp = (dateStr, timeStr) => {
   if (!dateStr || !timeStr) return 0;
@@ -113,10 +119,19 @@ const isMeetingTimeValid = (dateStr, timeStr) => {
   if (!meetingTimestamp) return false;
 
   const now = Date.now();
-  const before = 5 * 60 * 1000;
+  const before = 30 * 60 * 1000;
   const after = 60 * 60 * 1000; // Mở rộng khoảng thời gian diễn ra cuộc họp
 
   return now >= meetingTimestamp - before && now <= meetingTimestamp + after;
+};
+
+const isPastMeetingEnd = (dateStr, timeStr, endDateTime, now = Date.now()) => {
+  const endTimestamp = endDateTime
+    ? endDateTime.getTime()
+    : toTimestamp(dateStr, timeStr) + 60 * 60 * 1000;
+
+  if (!endTimestamp) return false;
+  return now > endTimestamp;
 };
 
 const convertBookingToDashboardRow = (booking) => {
@@ -124,6 +139,9 @@ const convertBookingToDashboardRow = (booking) => {
 
   const startTimeStr = booking.startTime || booking.start_time;
   const startTime = new Date(startTimeStr);
+
+  const endTimeStr = booking.endTime || booking.end_time;
+  const endTime = new Date(endTimeStr);
 
   const dateStr = !isNaN(startTime)
     ? startTime.toLocaleDateString("en-GB")
@@ -192,6 +210,7 @@ const convertBookingToDashboardRow = (booking) => {
     feedback: existingComment,
     rating: existingRating,
     isReviewed: isReviewed,
+    endDateTime: !isNaN(endTime) ? endTime : null,
     rawBooking: booking,
   };
 };
@@ -213,6 +232,12 @@ const BookingHistoryPage = () => {
 
   const [paymentTarget, setPaymentTarget] = useState(null);
   const [creatingIntent, setCreatingIntent] = useState(false);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNowTick(Date.now()), 30 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     try {
@@ -386,36 +411,21 @@ const BookingHistoryPage = () => {
   };
 
   const sortedRequests = useMemo(() => {
+    const TERMINAL_TIER = STATUS_PRIORITY_MAP["CANCELLED"]; // = 4
+
     const getStatusPriority = (item) => {
       const st = (item.rawStatus || "").toUpperCase();
+      const autoCancelled =
+        !TERMINAL_STATUSES.includes(st) &&
+        isPastMeetingEnd(item.date, item.time, item.endDateTime);
+
+      if (autoCancelled) return STATUS_PRIORITY_MAP["CANCELLED"];
       return STATUS_PRIORITY_MAP[st] || 99;
     };
 
-    const getDayTimestamp = (dateStr) => {
-      if (!dateStr) return 0;
-      let day, month, year;
-      if (dateStr.includes("/")) {
-        const parts = dateStr.split("/").map(Number);
-        if (parts[2] > 1000) [day, month, year] = parts;
-        else [month, day, year] = parts;
-      } else if (dateStr.includes("-")) {
-        const parts = dateStr.split("-").map(Number);
-        if (parts[0] > 1000) [year, month, day] = parts;
-        else [day, month, year] = parts;
-      } else return 0;
-      return new Date(year, month - 1, day).getTime();
-    };
-
     return [...requests].sort((a, b) => {
-      // 1. So sánh theo ngày (Giảm dần: Ngày mới nhất đứng trước)
-      const dateA = getDayTimestamp(a.date);
-      const dateB = getDayTimestamp(b.date);
-
-      if (dateA !== dateB) {
-        return dateB - dateA;
-      }
-
-      // 2. Nếu cùng ngày: Ưu tiên theo thứ tự IN-PROGRESS, AWAIT-REVIEW, PAID, PENDING, COMPLETED, REJECTED, CANCELLED
+      // 1. Ưu tiên theo mức độ khẩn của status (tier thấp hơn = lên trước):
+      //    1) IN_PROGRESS/AWAIT_REVIEW  2) PENDING  3) ACCEPTED/PAID  4) đã kết thúc
       const priorityA = getStatusPriority(a);
       const priorityB = getStatusPriority(b);
 
@@ -423,12 +433,18 @@ const BookingHistoryPage = () => {
         return priorityA - priorityB;
       }
 
-      // 3. Nếu cùng status nữa thì xếp theo thời gian trong ngày (Giảm dần)
+      // 2. Trong cùng tier, hướng sort theo ngày đổi chiều tuỳ nhóm:
+      //    - Tier "đã kết thúc": mới nhất lên trước (giống lịch sử hoạt động)
+      //    - Các tier còn lại (đang xử lý / sắp diễn ra): gần đến hạn nhất lên trước
       const aTime = toTimestamp(a.date, a.time);
       const bTime = toTimestamp(b.date, b.time);
-      return bTime - aTime;
+
+      if (priorityA === TERMINAL_TIER) {
+        return bTime - aTime;
+      }
+      return aTime - bTime;
     });
-  }, [requests]);
+  }, [requests, nowTick]);
 
   return (
     <div className="booking-history-root">
@@ -473,7 +489,6 @@ const BookingHistoryPage = () => {
                   const hasStartUrl = Boolean(req.startUrl);
                   const hasJoinUrl = Boolean(req.joinUrl);
 
-                  // 🟢 Nút Join Meeting Enable khi: Có start_url HOẶC Tới trước 5 phút
                   const canJoinMeeting =
                     hasJoinUrl &&
                     (isInProgress || (isPaid && (isTimeValid || hasStartUrl)));
@@ -487,6 +502,7 @@ const BookingHistoryPage = () => {
                       return "Not In Time";
                     return "Ended";
                   };
+
                   const localSubmitted =
                     submittedReviewsMap[Number(req.bookingId)];
                   const isAlreadyReviewed =
@@ -501,13 +517,13 @@ const BookingHistoryPage = () => {
                   return (
                     <motion.div
                       key={req.id}
-                      layout
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       className="booking-history-row-wrap"
                     >
-                      <div className="booking-history-row booking-history-data-row">
+                      {/* Hàng chính - Giờ chỉ chứa nút View/Close ở cell-action */}
+                      <div className="booking-history-data-row booking-history-row">
                         <span className="cell-date">{req.date}</span>
                         <span className="cell-time">{req.time}</span>
                         <span className="cell-interviewer">
@@ -530,7 +546,6 @@ const BookingHistoryPage = () => {
                         </span>
 
                         <span className="cell-action">
-                          {/* 🟢 Nút View LUÔN ENABLE ở mọi status */}
                           <button
                             type="button"
                             className={`details-btn ${isOpen ? "is-open" : ""}`}
@@ -541,6 +556,7 @@ const BookingHistoryPage = () => {
                         </span>
                       </div>
 
+                      {/* Khung Chi Tiết (Detail Panel) */}
                       <AnimatePresence initial={false}>
                         {isOpen && (
                           <motion.div
@@ -549,12 +565,13 @@ const BookingHistoryPage = () => {
                             animate={{ height: "auto", opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
                             transition={{ duration: 0.28, ease: "easeInOut" }}
+                            style={{ overflow: "hidden" }}
                             className="details-panel-wrap"
                           >
                             <div className="details-panel">
-                              {/* Hàng 1: Tiêu đề + Giá trị nằm chung 1 hàng trong các Pill Box */}
-                              <div className="details-info-row">
-                                <div className="details-inline-field">
+                              {/* Hàng 1: Interviewer (Left) - Fee (Center) - Pay (Right) */}
+                              <div className="details-header-row">
+                                <div className="details-field-left">
                                   <span className="details-label">
                                     INTERVIEWER
                                   </span>
@@ -563,114 +580,137 @@ const BookingHistoryPage = () => {
                                   </div>
                                 </div>
 
-                                <div className="details-inline-field">
+                                <div className="details-field-center">
                                   <span className="details-label">FEE</span>
                                   <div className="details-pill">
                                     {req.price}
                                   </div>
                                 </div>
+
+                                <div className="details-field-right">
+                                  {isPending ? (
+                                    <button
+                                      type="button"
+                                      className="pay-btn btn-disabled"
+                                      disabled
+                                    >
+                                      PAY
+                                    </button>
+                                  ) : isAccepted ? (
+                                    <button
+                                      type="button"
+                                      className="pay-btn"
+                                      onClick={() =>
+                                        handleOpenPaymentModal(req)
+                                      }
+                                      disabled={creatingIntent}
+                                    >
+                                      {creatingIntent ? "..." : "PAY"}
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="pay-btn btn-disabled"
+                                      disabled
+                                    >
+                                      PAID
+                                    </button>
+                                  )}
+                                </div>
                               </div>
 
-                              {/* Nút Pay Now (Nếu có) */}
-                              {isAccepted && (
-                                <div>
-                                  <button
-                                    type="button"
-                                    className="pay-now-btn"
-                                    onClick={() => handleOpenPaymentModal(req)}
-                                    disabled={creatingIntent}
-                                  >
-                                    {creatingIntent
-                                      ? "INITIALIZING..."
-                                      : "PAY NOW"}
-                                  </button>
-                                </div>
-                              )}
-
-                              {/* Khung Review lớn */}
-                              {(isAwaitReview || isCompleted) && (
-                                <div className="review-section">
-                                  <span className="details-label">
-                                    REVIEW INTERVIEWER
-                                  </span>
-                                  {isAlreadyReviewed ? (
-                                    <div className="existing-review-box">
-                                      <div className="font-semibold text-yellow-500 mb-1">
-                                        Rating: {displayRating} ★
-                                      </div>
-                                      <div className="text-gray-300">
-                                        {displayComment
-                                          ? displayComment
-                                          : "No comment provided."}
-                                      </div>
+                              {/* Section Feedback */}
+                              <div className="review-section">
+                                <span className="details-label">FEEDBACK</span>
+                                {isAlreadyReviewed ? (
+                                  <div className="existing-review-box">
+                                    <div className="font-semibold text-yellow-500 mb-1">
+                                      RATING: {displayRating} ★
                                     </div>
-                                  ) : (
-                                    <div className="review-input-container">
-                                      <div className="rating-select-row">
-                                        <span className="rating-label">
-                                          Rating:
-                                        </span>
-                                        <select
-                                          className="rating-select"
-                                          value={
-                                            ratingDrafts[req.id] ??
-                                            req.rating ??
-                                            5
-                                          }
-                                          onChange={(e) =>
-                                            updateRatingDraft(
-                                              req.id,
-                                              e.target.value,
-                                            )
-                                          }
-                                        >
-                                          <option value={5}>
-                                            5 ★ - Excellent
-                                          </option>
-                                          <option value={4}>
-                                            4 ★ - Very Good
-                                          </option>
-                                          <option value={3}>3 ★ - Good</option>
-                                          <option value={2}>2 ★ - Fair</option>
-                                          <option value={1}>1 ★ - Poor</option>
-                                        </select>
-                                      </div>
-
-                                      <textarea
-                                        className="feedback-textarea"
-                                        rows={4}
-                                        placeholder="Write your review for the interviewer..."
+                                    <div className="text-gray-300">
+                                      {displayComment
+                                        ? displayComment
+                                        : "No comment provided."}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="review-input-container">
+                                    <div className="rating-select-row">
+                                      <span className="rating-label">
+                                        Rating:
+                                      </span>
+                                      <select
+                                        className="rating-select"
                                         value={
-                                          feedbackDrafts[req.id] ??
-                                          req.feedback ??
-                                          ""
+                                          ratingDrafts[req.id] ??
+                                          req.rating ??
+                                          5
                                         }
                                         onChange={(e) =>
-                                          updateFeedbackDraft(
+                                          updateRatingDraft(
                                             req.id,
                                             e.target.value,
                                           )
                                         }
-                                      />
-
-                                      <div className="submit-btn-row">
-                                        <button
-                                          type="button"
-                                          className="submit-review-btn"
-                                          disabled={submittingId === req.id}
-                                          onClick={() =>
-                                            handleSubmitReview(req)
-                                          }
-                                        >
-                                          {submittingId === req.id
-                                            ? "SUBMITTING..."
-                                            : "SUBMIT REVIEW"}
-                                        </button>
-                                      </div>
+                                        disabled={
+                                          !isAwaitReview && !isCompleted
+                                        }
+                                      >
+                                        <option value={5}>
+                                          5 ★ - Excellent
+                                        </option>
+                                        <option value={4}>
+                                          4 ★ - Very Good
+                                        </option>
+                                        <option value={3}>3 ★ - Good</option>
+                                        <option value={2}>2 ★ - Fair</option>
+                                        <option value={1}>1 ★ - Poor</option>
+                                      </select>
                                     </div>
-                                  )}
-                                </div>
-                              )}
+
+                                    <textarea
+                                      className="feedback-textarea"
+                                      rows={4}
+                                      placeholder={
+                                        isAwaitReview || isCompleted
+                                          ? "Write your feedback about the interviewer..."
+                                          : "Feedback will be available after the interview is completed."
+                                      }
+                                      value={
+                                        feedbackDrafts[req.id] ??
+                                        req.feedback ??
+                                        ""
+                                      }
+                                      disabled={!isAwaitReview && !isCompleted}
+                                      readOnly={!isAwaitReview && !isCompleted}
+                                      onChange={(e) =>
+                                        updateFeedbackDraft(
+                                          req.id,
+                                          e.target.value,
+                                        )
+                                      }
+                                    />
+
+                                    {/* Nút Submit căn giữa */}
+                                    <div className="submit-btn-row">
+                                      <button
+                                        type="button"
+                                        className="submit-review-btn"
+                                        disabled={
+                                          (!isAwaitReview && !isCompleted) ||
+                                          submittingId === req.id ||
+                                          !(feedbackDrafts[req.id] || "").trim()
+                                        }
+                                        onClick={() => handleSubmitReview(req)}
+                                      >
+                                        {submittingId === req.id
+                                          ? "SUBMITTING..."
+                                          : "SUBMIT"}
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </motion.div>
                         )}

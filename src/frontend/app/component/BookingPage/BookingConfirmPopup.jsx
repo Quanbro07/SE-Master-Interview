@@ -7,6 +7,36 @@ import "./BookingConfirmPopup.css";
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
+// ✅ Hàm lấy Access Token chuẩn hoá triệt để
+const getAccessToken = () => {
+  if (typeof window === "undefined") return "";
+  const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
+  let token = "";
+  for (const key of keys) {
+    const val = localStorage.getItem(key);
+    if (val) {
+      token = val;
+      break;
+    }
+  }
+  if (!token) return "";
+
+  // Xóa sạch ngoặc kép và chữ Bearer nếu bị lưu thừa trong localStorage
+  return token
+    .replace(/^"+|"+$/g, "")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
+};
+
+// ✅ Helper tạo Authorization Header chuẩn
+const authHeaders = () => {
+  const token = getAccessToken();
+  if (!token) return {};
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+};
+
 const monthNames = [
   "January",
   "February",
@@ -113,20 +143,13 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
       setSelectedSlot(null);
       try {
         const dateStr = formatDateForBackend(selectedDate);
-        const rawToken =
-          localStorage.getItem("accessToken") ||
-          localStorage.getItem("token") ||
-          localStorage.getItem("jwt");
-        const cleanToken = rawToken
-          ? rawToken.trim().replace(/^Bearer\s+/i, "")
-          : "";
 
         const res = await fetch(
           `${API_BASE}/api/v1/schedule/get?interviewerId=${mentor.id}&dateInWeek=${dateStr}`,
           {
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${cleanToken}`,
+              ...authHeaders(), // ✅ Sử dụng authHeaders đã tối ưu
             },
           },
         );
@@ -212,23 +235,17 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
     setSubmitting(true);
 
     try {
-      const rawToken =
-        localStorage.getItem("accessToken") ||
-        localStorage.getItem("token") ||
-        localStorage.getItem("jwt");
-      const cleanToken = rawToken
-        ? rawToken.trim().replace(/^Bearer\s+/i, "")
-        : "";
-      const authHeader = `Bearer ${cleanToken}`;
-
       const formattedDate = formatDateForBackend(selectedDate);
       const startDateTime = `${formattedDate} ${selectedSlot.start}:00`;
       const endDateTime = `${formattedDate} ${selectedSlot.end}:00`;
 
+      // raw position_name được giữ nguyên gốc để truyền cho backend
+      const rawPosition =
+        mentor?.displayPosition || mentor?.position || "SOFTWARE ENGINEER";
+
       const bookingPayload = {
         interviewer_id: mentor?.id,
-        position_name:
-          mentor?.displayPosition || mentor?.position || "SOFTWARE ENGINEER",
+        position_name: rawPosition,
         start_date: startDateTime,
         end_date: endDateTime,
         note: "Interview Booking",
@@ -240,7 +257,7 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: authHeader,
+            ...authHeaders(), // ✅ Sử dụng authHeaders đã tối ưu
           },
           body: JSON.stringify(bookingPayload),
         },
@@ -353,6 +370,18 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
               <div className="summary-row">
                 <span className="summary-label">Interviewer</span>
                 <span className="summary-value">{mentor?.name}</span>
+              </div>
+              <div className="summary-row">
+                <span className="summary-label">Position</span>
+                {/* ✅ Thêm textTransform để hiển thị chữ IN HOA chỉ trên UI */}
+                <span
+                  className="summary-value"
+                  style={{ textTransform: "uppercase" }}
+                >
+                  {mentor?.displayPosition ||
+                    mentor?.position ||
+                    "SOFTWARE ENGINEER"}
+                </span>
               </div>
               <div className="summary-row">
                 <span className="summary-label">Date</span>

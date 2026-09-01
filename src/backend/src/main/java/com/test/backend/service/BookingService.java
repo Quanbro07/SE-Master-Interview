@@ -11,10 +11,12 @@ import com.test.backend.dto.booking.bookingResponse.BookingResponse;
 import com.test.backend.dto.booking.FilterInterviewerPositionResponse;
 import com.test.backend.dto.booking.bookingResponse.InterviewerResponseDTO;
 import com.test.backend.dto.interview.InterviewResultRequest;
+import com.test.backend.dto.interview.InterviewResultResponse;
 import com.test.backend.dto.booking.bookingResponse.BookingReviewResponse;
 import com.test.backend.dto.interview.InterviewerReviewResponse;
 import com.test.backend.dto.interview.ReviewInterviewerRequest;
 import com.test.backend.dto.schedule.AddBlockedScheduleRequest;
+import com.test.backend.repository.InterviewResultRepository;
 import com.test.backend.dto.schedule.DailyFreeScheduleDTO;
 import com.test.backend.dto.schedule.WeeklyFreeScheduleResponse;
 import com.test.backend.entity.blockedSchedule.BlockedSchedulePurpose;
@@ -81,6 +83,8 @@ public class BookingService {
     private final BookingReviewRepository bookingReviewRepository;
 
     private final FileService fileService;
+
+    private final InterviewResultRepository interviewResultRepository;
 
     private final CVBucketConfig cvBucket;
 
@@ -514,6 +518,28 @@ public class BookingService {
                 .rating(review.getRating())
                 .comment(review.getComment())
                 .createdAt(review.getCreatedAt())
+                .build();
+    }
+
+    public InterviewResultResponse getInterviewResultByBookingId(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new NotFoundException("Booking không tồn tại"));
+
+        InterviewResult result = interviewResultRepository.findByBookingId(bookingId)
+                .orElse(null);
+
+        if (result == null) {
+            return InterviewResultResponse.builder()
+                    .overallComment("")
+                    .build();
+        }
+
+        return InterviewResultResponse.builder()
+                .resultId(result.getResultId())
+                .technicalScore(result.getTechnicalScore())
+                .communicationScore(result.getCommunicationScore())
+                .preparationLevel(result.getPreparationLevel())
+                .overallComment(result.getOverallComment())
                 .build();
     }
 

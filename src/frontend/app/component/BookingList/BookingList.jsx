@@ -5,7 +5,7 @@ import "./BookingList.css";
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
-// Hàm lấy token đã được chuẩn hoá
+// ✅ 1. Hàm lấy token đã được chuẩn hoá triệt để
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
   const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
@@ -19,14 +19,20 @@ const getAccessToken = () => {
   }
   if (!token) return "";
 
-  let cleanToken = token.trim();
-  if (cleanToken.startsWith('"') && cleanToken.endsWith('"')) {
-    cleanToken = cleanToken.slice(1, -1);
-  }
-  if (cleanToken.toLowerCase().startsWith("bearer ")) {
-    cleanToken = cleanToken.substring(7).trim();
-  }
-  return cleanToken;
+  // Xóa sạch ngoặc kép và chữ Bearer nếu bị lưu thừa trong localStorage
+  return token
+    .replace(/^"+|"+$/g, "")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
+};
+
+// Helper tạo Authorization Header chuẩn
+const authHeaders = () => {
+  const token = getAccessToken();
+  if (!token) return {};
+  return {
+    Authorization: `Bearer ${token}`,
+  };
 };
 
 // Component hiển thị danh sách Interviewer cho từng Position
@@ -45,27 +51,20 @@ const BookingSection = ({
     const fetchInterviewers = async () => {
       setLoading(true);
       try {
-        const token = getAccessToken();
-        const headers = {
-          "Content-Type": "application/json",
-        };
-
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-
         if (!positionName) return;
 
-        // BẮT ĐẦU TRUYỀN NGUYÊN BẢN CHUỖI KHÔNG BIẾN ĐỔI KÝ TỰ
         const today = new Date();
-        const dateString = today.toISOString().split('T')[0]; 
+        const dateString = today.toISOString().split("T")[0];
 
-        // 2. Ghép thêm biến date vào URL
+        // ✅ Gửi request kèm authHeaders đã chuẩn hóa
         const res = await fetch(
           `${API_BASE}/api/v1/booking/filter-interviewer?position=${encodeURIComponent(positionName)}&date=${dateString}&page=0&size=20`,
           {
             method: "GET",
-            headers,
+            headers: {
+              "Content-Type": "application/json",
+              ...authHeaders(),
+            },
           },
         );
 
@@ -113,7 +112,7 @@ const BookingSection = ({
               Math.random().toString(),
             name: name,
             email: email,
-            displayPosition: rawPos,
+            displayPosition: rawPos, // Giữ nguyên chuỗi từ DB
             expYears: expYears,
             expText: `${expYears} YRS EXP`,
             role: `${rawPos} • ${expYears} YRS EXP`,
@@ -155,7 +154,7 @@ const BookingSection = ({
 
   return (
     <div className="booking-section">
-      {/* Hiển thị tiêu đề nguyên bản hoặc hiển thị theo thiết kế CSS font-transform */}
+      {/* Hiển thị tiêu đề theo dạng IN HOA trên UI */}
       <h3 className="section-title" style={{ textTransform: "uppercase" }}>
         {positionName}
       </h3>
@@ -224,23 +223,19 @@ const BookingList = ({ navCollapsed, chatCollapsed, onViewProfile }) => {
   useEffect(() => {
     const fetchAllPositions = async () => {
       try {
-        const token = getAccessToken();
-        const headers = {
-          "Content-Type": "application/json",
-        };
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-
+        // ✅ Gửi token chuẩn hoá khi gọi vị trí
         const res = await fetch(`${API_BASE}/api/v1/position/get-all`, {
           method: "GET",
-          headers,
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeaders(),
+          },
         });
 
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
-            // Giữ NGUYÊN BẢN chuỗi từ DB trả về, chỉ lọc loại bỏ giá trị rỗng/null
+            // Giữ NGUYÊN BẢN chuỗi từ DB trả về
             const cleanList = data
               .map((p) =>
                 typeof p === "string" ? p : p.positionName || p.name || "",
@@ -342,6 +337,7 @@ const BookingList = ({ navCollapsed, chatCollapsed, onViewProfile }) => {
                     <div className="dropdown-item-info">
                       <span className="dropdown-item-name">{item.name}</span>
                       <span className="dropdown-item-separator">•</span>
+                      {/* ✅ 2. Đã chỉnh sửa in hoa vị trí trong ô tìm kiếm (Search Dropdown) */}
                       <span
                         className="dropdown-item-pos"
                         style={{ textTransform: "uppercase" }}
