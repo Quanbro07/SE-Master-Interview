@@ -1,13 +1,13 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import "./ChatPanel.css";
-// Lưu ý: Nếu đường dẫn BookingConfirmPopup của ông khác thì tự sửa lại nhé
+// Note: If your BookingConfirmPopup path is different, please adjust it accordingly
 // import BookingConfirmPopup from "../BookingPage/BookingConfirmPopup"; 
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
-// Helper lấy JWT token an toàn
+// Helper to safely get the JWT token
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
   const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
@@ -32,7 +32,7 @@ const getAccessToken = () => {
 };
 
 // ==========================================
-// COMPONENT: LUỒNG PHỎNG VẤN MINI (ĐÃ FIX LỖI)
+// COMPONENT: MINI INTERVIEW FLOW (FIXED)
 // ==========================================
 const MiniInterviewFlow = ({ questions }) => {
   const [isStarted, setIsStarted] = useState(false);
@@ -40,7 +40,7 @@ const MiniInterviewFlow = ({ questions }) => {
   const [evaluationResults, setEvaluationResults] = useState(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   
-  // KHAI BÁO BIẾN BỊ THIẾU Ở ĐÂY NÈ ÔNG:
+  // DECLARE MISSING VARIABLE HERE:
   const [answerStatus, setAnswerStatus] = useState({});
 
   const safeQuestions = Array.isArray(questions) ? questions : [];
@@ -75,13 +75,13 @@ const MiniInterviewFlow = ({ questions }) => {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Lỗi khi chấm điểm!");
+      if (!res.ok) throw new Error("Evaluation error!");
       
       const data = await res.json();
       setEvaluationResults(data);
     } catch (error) {
       console.error(error);
-      alert("Chấm điểm thất bại, vui lòng thử lại!");
+      alert("Evaluation failed, please try again!");
     } finally {
       setIsEvaluating(false);
     }
@@ -90,9 +90,9 @@ const MiniInterviewFlow = ({ questions }) => {
   if (!isStarted) {
     return (
       <div className="mini-interview-intro">
-        <p>Tôi đã tìm thấy {safeQuestions.length} câu hỏi. Bạn đã sẵn sàng bắt đầu trả lời chưa?</p>
+        <p>I have found {safeQuestions.length} questions. Are you ready to start answering?</p>
         <button className="btn-mini-primary" onClick={() => setIsStarted(true)}>
-          Sẵn sàng
+          Ready
         </button>
       </div>
     );
@@ -107,46 +107,46 @@ const MiniInterviewFlow = ({ questions }) => {
           ? evaluationResults.find((res) => res.questionId === q.questionId) 
           : null;
           
-        // LẤY TRẠNG THÁI HIỆN TẠI (ĐÃ HẾT LỖI UNDEFINED)
+        // GET CURRENT STATUS (UNDEFINED ERROR FIXED)
         const currentStatus = answerStatus[q.questionId];
 
         return (
           <div key={q.questionId} className="mini-question-item">
             <p className="mini-question-text">
-              {index + 1}. {q.content || "Câu hỏi không xác định"} 
+              {index + 1}. {q.content || "Unknown question"} 
               {q.difficulty && <span className="mini-question-diff">({q.difficulty})</span>}
             </p>
             
             <textarea
               className="mini-answer-input"
-              placeholder="Nhập câu trả lời của bạn..."
+              placeholder="Enter your answer..."
               value={userAnswers[q.questionId] || ""}
               onChange={(e) => handleAnswerChange(q.questionId, e.target.value)}
               disabled={evaluationResults !== null}
             />
 
-            {/* 1. Nút xem đáp án ban đầu */}
+            {/* 1. Initial view answer button */}
             {q.answer && !currentStatus && (
               <button 
                 type="button"
                 className="btn-show-answer"
                 onClick={() => setAnswerStatus(prev => ({ ...prev, [q.questionId]: 'confirming' }))}
               >
-                Nhấn để xem đáp án mẫu
+                Click to view suggested answer
               </button>
             )}
 
-            {/* 2. Hộp thoại xác nhận Inline màu vàng */}
+            {/* 2. Yellow inline confirmation box */}
             {currentStatus === 'confirming' && (
               <div className="inline-confirm-box">
-                <p>💡 Lời khuyên: Bạn nên thử tự viết câu trả lời trước khi xem đáp án mẫu để luyện tập hiệu quả nhất.</p>
-                <p style={{ fontWeight: 600 }}>Bạn có chắc chắn muốn xem đáp án không?</p>
+                <p>💡 Tip: You should try writing your own answer before viewing the suggested one for the best practice.</p>
+                <p style={{ fontWeight: 600 }}>Are you sure you want to view the answer?</p>
                 <div className="inline-confirm-actions">
                   <button 
                     className="btn-confirm-yes"
                     onClick={() => setAnswerStatus(prev => ({ ...prev, [q.questionId]: 'revealed' }))}
                   >
-                    Chắc chắn
+                    Yes, I'm sure
                   </button>
                   <button 
                     className="btn-confirm-no"
@@ -158,24 +158,24 @@ const MiniInterviewFlow = ({ questions }) => {
                       });
                     }}
                   >
-                    Quay lại
+                    Go back
                   </button>
                 </div>
               </div>
             )}
 
-            {/* 3. Hiện đáp án */}
+            {/* 3. Show answer */}
             {currentStatus === 'revealed' && (
               <div className="model-answer-box">
-                <strong>Đáp án mẫu:</strong>
+                <strong>Suggested answer:</strong>
                 <p style={{ margin: 0, lineHeight: 1.5 }}>{q.answer}</p>
               </div>
             )}
 
-            {/* KHU VỰC FEEDBACK TỪ AI */}
+            {/* AI FEEDBACK AREA */}
             {evalData && evalData.analysis && (
               <div className="mini-feedback-box">
-                <strong className="mini-feedback-title">Nhận xét từ AI:</strong>
+                <strong className="mini-feedback-title">AI Feedback:</strong>
                 {evalData.analysis.smartSuggestions && evalData.analysis.smartSuggestions.length > 0 && (
                   <ul className="mini-feedback-list">
                     {evalData.analysis.smartSuggestions.map((sug, i) => (
@@ -185,14 +185,14 @@ const MiniInterviewFlow = ({ questions }) => {
                 )}
                 
                 <div className="mini-feedback-metrics" style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "8px" }}>
-                  <span>🎯 Độ sâu: <span className="metric-score">{evalData.analysis.depth?.rating || "N/A"}</span></span>
+                  <span>🎯 Depth: <span className="metric-score">{evalData.analysis.depth?.rating || "N/A"}</span></span>
                   
-                  <span>🔍 Bám sát: <span className="metric-score">{evalData.analysis.relevance?.status || "N/A"}</span> 
-                  {evalData.analysis.relevance ? ` (Khớp ${evalData.analysis.relevance.matchedKeywords}/${evalData.analysis.relevance.totalKeywords} keywords)` : ""}</span>
+                  <span>🔍 Relevance: <span className="metric-score">{evalData.analysis.relevance?.status || "N/A"}</span> 
+                  {evalData.analysis.relevance ? ` (Matched ${evalData.analysis.relevance.matchedKeywords}/${evalData.analysis.relevance.totalKeywords} keywords)` : ""}</span>
                   
-                  <span>💪 Tự tin: <span className="metric-score">{evalData.analysis.confidence?.status || "N/A"}</span></span>
+                  <span>💪 Confidence: <span className="metric-score">{evalData.analysis.confidence?.status || "N/A"}</span></span>
                   
-                  <span>📝 Độ dài: <span className="metric-score">{evalData.analysis.comparison?.status || "N/A"}</span> 
+                  <span>📝 Length: <span className="metric-score">{evalData.analysis.comparison?.status || "N/A"}</span> 
                   {evalData.analysis.comparison ? ` (${evalData.analysis.comparison.avgWords} words)` : ""}</span>
                 </div>
               </div>
@@ -207,7 +207,7 @@ const MiniInterviewFlow = ({ questions }) => {
           onClick={handleEvaluate}
           disabled={!isAllAnswered || isEvaluating}
         >
-          {isEvaluating ? "Đang chấm điểm..." : "Nộp bài & Đánh giá"}
+          {isEvaluating ? "Evaluating..." : "Submit & Evaluate"}
         </button>
       )}
     </div>
@@ -215,16 +215,16 @@ const MiniInterviewFlow = ({ questions }) => {
 };
 
 // ==========================================
-// COMPONENT: LUỒNG TÌM KIẾM LỊCH (SCHEDULE)
+// COMPONENT: SCHEDULE SEARCH FLOW
 // ==========================================
 const MiniScheduleFlow = ({ interviewers, onBookClick }) => {
   if (!interviewers || interviewers.length === 0) {
-    return <p style={{ margin: 0, color: "#94a3b8" }}>Rất tiếc, hiện tại không có lịch trống nào phù hợp với yêu cầu của bạn.</p>;
+    return <p style={{ margin: 0, color: "#94a3b8" }}>Sorry, there are currently no available schedules matching your request.</p>;
   }
 
   return (
     <div className="mini-schedule-container">
-      <p style={{ margin: "0 0 4px 0", color: "#e2e8f0" }}>Tôi đã tìm thấy {interviewers.length} người phù hợp:</p>
+      <p style={{ margin: "0 0 4px 0", color: "#e2e8f0" }}>I have found {interviewers.length} suitable candidates:</p>
       
       {interviewers.map((interviewer, idx) => (
         <div key={interviewer.interviewer_id || idx} className="mini-schedule-card">
@@ -241,7 +241,7 @@ const MiniScheduleFlow = ({ interviewers, onBookClick }) => {
           <div className="mini-schedule-body">
             {interviewer.available_schedules?.schedules?.map((schedule, sIdx) => (
               <div key={sIdx}>
-                <p className="mini-schedule-date">📅 Ngày: {schedule.date}</p>
+                <p className="mini-schedule-date">📅 Date: {schedule.date}</p>
                 <div className="mini-time-slots">
                   {schedule.schedule_times?.map((time, tIdx) => (
                     <span key={tIdx} className="mini-time-slot">
@@ -278,7 +278,7 @@ const MiniScheduleFlow = ({ interviewers, onBookClick }) => {
 };
 
 // ==========================================
-// COMPONENT CHÍNH: CHAT PANEL
+// MAIN COMPONENT: CHAT PANEL
 // ==========================================
 const ChatPanel = ({ isCollapsed, onBookFromChat }) => {
   const [messages, setMessages] = useState([
@@ -286,7 +286,7 @@ const ChatPanel = ({ isCollapsed, onBookFromChat }) => {
       id: 1,
       sender: "agent",
       type: "text",
-      text: "Xin chào! Tôi là AI Assistant. Bạn muốn đặt lịch phỏng vấn hay tìm hiểu thông tin gì?",
+      text: "Hello! I am your AI Assistant. Would you like to book an interview or find out more information?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -322,13 +322,23 @@ const ChatPanel = ({ isCollapsed, onBookFromChat }) => {
       });
 
       if (!res.ok) {
-        if (res.status === 401) throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
-        throw new Error(`Lỗi server (${res.status})`);
+        if (res.status === 401) throw new Error("Session expired. Please log in again!");
+        throw new Error(`Server error (${res.status})`);
       }
 
       const data = await res.json();
 
-      if (data?.toolUsed === "searchQuestions" && Array.isArray(data?.answer)) {
+      // IF TOOLUSED IS EMPTY OR FALSY
+      if (!data?.toolUsed || data.toolUsed.trim() === "") {
+        const fallbackMsg = { 
+          id: Date.now() + 1, 
+          sender: "agent", 
+          type: "text", 
+          text: "This feature is currently under development." 
+        };
+        setMessages((prev) => [...prev, fallbackMsg]);
+
+      } else if (data?.toolUsed === "searchQuestions" && Array.isArray(data?.answer)) {
         const agentQuizMsg = {
           id: Date.now() + 1,
           sender: "agent",
@@ -347,7 +357,7 @@ const ChatPanel = ({ isCollapsed, onBookFromChat }) => {
         setMessages((prev) => [...prev, agentScheduleMsg]);
 
       } else {
-        let replyText = "Đã thực hiện xong yêu cầu của bạn!";
+        let replyText = "Your request has been completed!";
         if (typeof data === "string") replyText = data;
         else if (data?.answer) {
           replyText = typeof data.answer === "string" ? data.answer : JSON.stringify(data.answer, null, 2);
@@ -362,7 +372,7 @@ const ChatPanel = ({ isCollapsed, onBookFromChat }) => {
       }
     } catch (err) {
       console.error("[AGENT CHAT ERROR]:", err);
-      setMessages((prev) => [...prev, { id: Date.now() + 1, sender: "agent", type: "text", text: `⚠️ Lỗi: ${err.message || "Không thể kết nối đến AI Agent."}` }]);
+      setMessages((prev) => [...prev, { id: Date.now() + 1, sender: "agent", type: "text", text: `⚠️ Error: ${err.message || "Cannot connect to AI Agent."}` }]);
     } finally {
       setLoading(false);
     }
@@ -398,7 +408,7 @@ const ChatPanel = ({ isCollapsed, onBookFromChat }) => {
         {loading && (
           <div className="message-row agent">
             <div className="message-bubble loading">
-              <p style={{ margin: 0 }}>AI đang xử lý yêu cầu...</p>
+              <p style={{ margin: 0 }}>AI is processing your request...</p>
             </div>
           </div>
         )}
@@ -409,7 +419,7 @@ const ChatPanel = ({ isCollapsed, onBookFromChat }) => {
         <input
           className="chat-input"
           type="text"
-          placeholder="Let's Master Interview help you !"
+          placeholder="Let Master Interview help you!"
           value={input}
           disabled={loading}
           onChange={(e) => setInput(e.target.value)}
