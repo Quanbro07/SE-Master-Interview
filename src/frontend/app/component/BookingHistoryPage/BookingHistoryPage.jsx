@@ -67,10 +67,6 @@ const STATUS_LABEL = {
   cancelled: "CANCELLED",
 };
 
-// Tier 1: đang diễn ra / cần xử lý ngay
-// Tier 2: đang chờ interviewer quyết định
-// Tier 3: đã chốt, chờ đến giờ (sort theo ngày gần nhất trước)
-// Tier 4: đã kết thúc (thành công/thất bại/quá giờ chưa xử lý) - luôn chìm xuống đáy, sort mới nhất trước
 const STATUS_PRIORITY_MAP = {
   IN_PROGRESS: 1,
   "IN-PROGRESS": 1,
@@ -113,14 +109,13 @@ const toTimestamp = (dateStr, timeStr) => {
   return new Date(year, month - 1, day, hour, minute).getTime();
 };
 
-// Kiếm tra tới trước meeting 5 phút
 const isMeetingTimeValid = (dateStr, timeStr) => {
   const meetingTimestamp = toTimestamp(dateStr, timeStr);
   if (!meetingTimestamp) return false;
 
   const now = Date.now();
   const before = 30 * 60 * 1000;
-  const after = 60 * 60 * 1000; // Mở rộng khoảng thời gian diễn ra cuộc họp
+  const after = 60 * 60 * 1000;
 
   return now >= meetingTimestamp - before && now <= meetingTimestamp + after;
 };
@@ -293,7 +288,6 @@ const BookingHistoryPage = () => {
       const dashboardBookings = (Array.isArray(bookings) ? bookings : [])
         .map((b) => convertBookingToDashboardRow(b))
         .filter((r) => r !== null);
-      console.log("=== MAPPED DASHBOARD BOOKINGS ===", dashboardBookings);
 
       setRequests(dashboardBookings);
     } catch (err) {
@@ -306,6 +300,24 @@ const BookingHistoryPage = () => {
 
   useEffect(() => {
     loadBookings();
+  }, [loadBookings]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadBookings();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [loadBookings]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        loadBookings();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
   }, [loadBookings]);
 
   const handleOpenPaymentModal = async (req) => {
@@ -411,7 +423,7 @@ const BookingHistoryPage = () => {
   };
 
   const sortedRequests = useMemo(() => {
-    const TERMINAL_TIER = STATUS_PRIORITY_MAP["CANCELLED"]; // = 4
+    const TERMINAL_TIER = STATUS_PRIORITY_MAP["CANCELLED"];
 
     const getStatusPriority = (item) => {
       const st = (item.rawStatus || "").toUpperCase();
@@ -424,8 +436,6 @@ const BookingHistoryPage = () => {
     };
 
     return [...requests].sort((a, b) => {
-      // 1. Ưu tiên theo mức độ khẩn của status (tier thấp hơn = lên trước):
-      //    1) IN_PROGRESS/AWAIT_REVIEW  2) PENDING  3) ACCEPTED/PAID  4) đã kết thúc
       const priorityA = getStatusPriority(a);
       const priorityB = getStatusPriority(b);
 
@@ -433,9 +443,6 @@ const BookingHistoryPage = () => {
         return priorityA - priorityB;
       }
 
-      // 2. Trong cùng tier, hướng sort theo ngày đổi chiều tuỳ nhóm:
-      //    - Tier "đã kết thúc": mới nhất lên trước (giống lịch sử hoạt động)
-      //    - Các tier còn lại (đang xử lý / sắp diễn ra): gần đến hạn nhất lên trước
       const aTime = toTimestamp(a.date, a.time);
       const bTime = toTimestamp(b.date, b.time);
 
@@ -485,6 +492,10 @@ const BookingHistoryPage = () => {
                   const isAwaitReview = req.rawStatus === "AWAIT_REVIEW";
                   const isCompleted = req.rawStatus === "COMPLETED";
 
+                  // ✅ Khai báo canReview chính xác bên trong phạm vi của req
+                  const canReview =
+                    isInProgress || isAwaitReview || isCompleted;
+
                   const isTimeValid = isMeetingTimeValid(req.date, req.time);
                   const hasStartUrl = Boolean(req.startUrl);
                   const hasJoinUrl = Boolean(req.joinUrl);
@@ -522,7 +533,6 @@ const BookingHistoryPage = () => {
                       exit={{ opacity: 0 }}
                       className="booking-history-row-wrap"
                     >
-                      {/* Hàng chính - Giờ chỉ chứa nút View/Close ở cell-action */}
                       <div className="booking-history-data-row booking-history-row">
                         <span className="cell-date">{req.date}</span>
                         <span className="cell-time">{req.time}</span>
@@ -556,7 +566,6 @@ const BookingHistoryPage = () => {
                         </span>
                       </div>
 
-                      {/* Khung Chi Tiết (Detail Panel) */}
                       <AnimatePresence initial={false}>
                         {isOpen && (
                           <motion.div
@@ -569,7 +578,6 @@ const BookingHistoryPage = () => {
                             className="details-panel-wrap"
                           >
                             <div className="details-panel">
-                              {/* Hàng 1: Interviewer (Left) - Fee (Center) - Pay (Right) */}
                               <div className="details-header-row">
                                 <div className="details-field-left">
                                   <span className="details-label">
@@ -619,13 +627,12 @@ const BookingHistoryPage = () => {
                                 </div>
                               </div>
 
-                              {/* Section Feedback */}
                               <div className="review-section">
                                 <span className="details-label">FEEDBACK</span>
                                 {isAlreadyReviewed ? (
                                   <div className="existing-review-box">
                                     <div className="font-semibold text-yellow-500 mb-1">
-                                      RATING: {displayRating} ★
+                                      Rating: {displayRating} ★
                                     </div>
                                     <div className="text-gray-300">
                                       {displayComment
@@ -652,9 +659,7 @@ const BookingHistoryPage = () => {
                                             e.target.value,
                                           )
                                         }
-                                        disabled={
-                                          !isAwaitReview && !isCompleted
-                                        }
+                                        disabled={!canReview}
                                       >
                                         <option value={5}>
                                           5 ★ - Excellent
@@ -669,20 +674,20 @@ const BookingHistoryPage = () => {
                                     </div>
 
                                     <textarea
-                                      className="feedback-textarea"
+                                      className={`feedback-textarea ${!canReview ? "cursor-not-allowed opacity-60" : ""}`}
                                       rows={4}
                                       placeholder={
-                                        isAwaitReview || isCompleted
+                                        canReview
                                           ? "Write your feedback about the interviewer..."
-                                          : "Feedback will be available after the interview is completed."
+                                          : "Feedback will be available after the interview is completed or in progress."
                                       }
                                       value={
                                         feedbackDrafts[req.id] ??
                                         req.feedback ??
                                         ""
                                       }
-                                      disabled={!isAwaitReview && !isCompleted}
-                                      readOnly={!isAwaitReview && !isCompleted}
+                                      disabled={!canReview}
+                                      readOnly={!canReview}
                                       onChange={(e) =>
                                         updateFeedbackDraft(
                                           req.id,
@@ -691,13 +696,12 @@ const BookingHistoryPage = () => {
                                       }
                                     />
 
-                                    {/* Nút Submit căn giữa */}
                                     <div className="submit-btn-row">
                                       <button
                                         type="button"
                                         className="submit-review-btn"
                                         disabled={
-                                          (!isAwaitReview && !isCompleted) ||
+                                          !canReview ||
                                           submittingId === req.id ||
                                           !(feedbackDrafts[req.id] || "").trim()
                                         }

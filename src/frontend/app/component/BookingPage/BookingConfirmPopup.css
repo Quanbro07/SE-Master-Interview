@@ -11,10 +11,11 @@
   align-items: center;
   z-index: 1000;
   backdrop-filter: blur(4px);
+  background: #1a1b1e;
 }
 
 .popup-content.payment-popup-box {
-  background: #111625; /* Tone xanh đen xám sâu chuẩn Hình 2 */
+  background: #1a1b1e;
   color: #f3f4f6;
   border-radius: 16px;
   width: 90%;

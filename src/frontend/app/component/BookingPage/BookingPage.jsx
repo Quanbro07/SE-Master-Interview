@@ -1,9 +1,10 @@
 "use client";
+
+import React, { useState, useEffect } from "react";
 import NavigationBar from "../NavigationBar/NavigationBar";
 import ChatPanel from "../ChatPanel/ChatPanel";
 import BookingList from "../BookingList/BookingList";
 import UserHeader from "../UserHeader/UserHeader";
-import React, { useState, useEffect } from "react";
 import BookingConfirmPopup from "./BookingConfirmPopup";
 import Toast from "../Toast/Toast";
 import "./BookingPage.css";
@@ -22,17 +23,12 @@ const BookingPage = () => {
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [chatCollapsed, setChatCollapsed] = useState(true);
 
-  const [activePopup, setActivePopup] = useState(null);
+  // Quản lý duy nhất 1 state Popup & Mentor đang chọn
+  const [activePopup, setActivePopup] = useState(null); // 'confirm' | null
   const [selectedMentor, setSelectedMentor] = useState(null);
 
   const [currentUser, setCurrentUser] = useState(null);
   const [toast, setToast] = useState(null);
-  const [showPopup, setShowPopup] = useState(false);
-
-  const handleBookFromChat = (mentorData) => {
-    setSelectedMentor(mentorData);
-    setShowPopup(true);
-  };
 
   useEffect(() => {
     const user = getStoredUser();
@@ -44,16 +40,28 @@ const BookingPage = () => {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Thay vì mở profile popup, nhảy thẳng sang bước confirm đặt lịch
+  // Trigger mở popup từ Chat Panel
+  const handleBookFromChat = (mentorData) => {
+    setSelectedMentor(mentorData);
+    setActivePopup("confirm");
+  };
+
+  // Trigger mở popup từ Booking List (Danh sách Interviewer)
   const handleOpenProfile = (mentor) => {
     setSelectedMentor(mentor);
     setActivePopup("confirm");
   };
 
+  // Hàm dọn dẹp và đóng tất cả popup
   const handleCloseAllPopups = () => {
     setActivePopup(null);
     setSelectedMentor(null);
-    setShowPopup(false);
+  };
+
+  // Hàm xử lý sau khi đặt lịch thành công
+  const handleConfirmBooking = () => {
+    handleCloseAllPopups();
+    showToastNotice("Booking request submitted! Check your Booking History.");
   };
 
   return (
@@ -82,28 +90,11 @@ const BookingPage = () => {
         onBookFromChat={handleBookFromChat}
       />
 
-      {showPopup && selectedMentor && (
+      {/* Render duy nhất 1 instance của BookingConfirmPopup */}
+      {activePopup === "confirm" && selectedMentor && (
         <BookingConfirmPopup
           mentor={selectedMentor}
-          onConfirm={() => {
-            handleCloseAllPopups();
-            showToastNotice(
-              "Booking request submitted! Please wait for Interviewer approval.",
-            );
-          }}
-          onCancel={handleCloseAllPopups}
-        />
-      )}
-
-      {activePopup === "confirm" && (
-        <BookingConfirmPopup
-          mentor={selectedMentor}
-          onConfirm={() => {
-            handleCloseAllPopups();
-            showToastNotice(
-              "Booking request submitted! Check your Booking History.",
-            );
-          }}
+          onConfirm={handleConfirmBooking}
           onCancel={handleCloseAllPopups}
         />
       )}

@@ -432,3 +432,12 @@
   align-items: center;
   margin-left: auto; /* Tự động đẩy nút PAID sang góc phải màn hình */
 }
+
+.submit-review-btn:disabled {
+  background: #3f3f46 !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  opacity: 0.6 !important;
+  transform: none !important;
+}

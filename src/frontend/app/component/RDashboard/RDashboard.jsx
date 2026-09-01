@@ -295,6 +295,26 @@ const RDashboard = () => {
     loadBookings();
   }, [loadBookings]);
 
+  // Polling mỗi 5s để đồng bộ status/thời gian gần như real-time cho demo
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadBookings();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [loadBookings]);
+
+  // Fetch ngay lập tức khi quay lại tab, không cần đợi tick tiếp theo
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        loadBookings();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, [loadBookings]);
+
   useEffect(() => {
     const interval = setInterval(() => setNowTick(Date.now()), 30 * 1000);
     return () => clearInterval(interval);

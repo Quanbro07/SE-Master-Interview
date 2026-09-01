@@ -7,7 +7,7 @@ import "./BookingConfirmPopup.css";
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
-// ✅ Hàm lấy Access Token chuẩn hoá triệt để
+// ✅ Hàm lấy Access Token chuẩn hoá
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
   const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
@@ -21,14 +21,12 @@ const getAccessToken = () => {
   }
   if (!token) return "";
 
-  // Xóa sạch ngoặc kép và chữ Bearer nếu bị lưu thừa trong localStorage
   return token
     .replace(/^"+|"+$/g, "")
     .replace(/^Bearer\s+/i, "")
     .trim();
 };
 
-// ✅ Helper tạo Authorization Header chuẩn
 const authHeaders = () => {
   const token = getAccessToken();
   if (!token) return {};
@@ -149,7 +147,7 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
           {
             headers: {
               "Content-Type": "application/json",
-              ...authHeaders(), // ✅ Sử dụng authHeaders đã tối ưu
+              ...authHeaders(),
             },
           },
         );
@@ -181,7 +179,11 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
           });
         }
 
+        // ✅ KHAI BÁO BIẾN THỜI GIAN HIỆN TẠI ĐỂ DÙNG FILTER LỖI
+        const now = new Date();
+        const isSelectedToday = isSameDate(selectedDate, now);
         const blockedList = data.blockedSchedules || [];
+
         const finalAvailableSlots = validSlots.filter((slot) => {
           const slotStart = new Date(
             `${dateStr}T${String(slot.startHour).padStart(2, "0")}:00:00`,
@@ -189,16 +191,30 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
           const slotEnd = new Date(
             `${dateStr}T${String(slot.startHour + 1).padStart(2, "0")}:00:00`,
           );
-          return !blockedList.some(
+
+          // 1. Loại bỏ khung giờ bị Block
+          const isBlocked = blockedList.some(
             (b) =>
               slotStart < new Date(b.endTime) &&
               slotEnd > new Date(b.startTime),
           );
+          if (isBlocked) return false;
+
+          // 2. Loại bỏ khung giờ trong quá khứ nếu chọn ngày hôm nay
+          if (isSelectedToday && slotStart < now) {
+            return false;
+          }
+
+          return true;
         });
 
+        // ✅ SET STATE DUY NHẤT 1 LẦN (Đã sửa lỗi trùng lặp)
         setAvailableTimeSlots(finalAvailableSlots);
-        if (finalAvailableSlots.length > 0)
+        if (finalAvailableSlots.length > 0) {
           setSelectedSlot(finalAvailableSlots[0]);
+        } else {
+          setSelectedSlot(null);
+        }
       } catch (err) {
         console.error("Fetch schedule error:", err);
         setAvailableTimeSlots([]);
@@ -239,7 +255,6 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
       const startDateTime = `${formattedDate} ${selectedSlot.start}:00`;
       const endDateTime = `${formattedDate} ${selectedSlot.end}:00`;
 
-      // raw position_name được giữ nguyên gốc để truyền cho backend
       const rawPosition =
         mentor?.displayPosition || mentor?.position || "SOFTWARE ENGINEER";
 
@@ -257,7 +272,7 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...authHeaders(), // ✅ Sử dụng authHeaders đã tối ưu
+            ...authHeaders(),
           },
           body: JSON.stringify(bookingPayload),
         },
@@ -373,7 +388,6 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
               </div>
               <div className="summary-row">
                 <span className="summary-label">Position</span>
-                {/* ✅ Thêm textTransform để hiển thị chữ IN HOA chỉ trên UI */}
                 <span
                   className="summary-value"
                   style={{ textTransform: "uppercase" }}
@@ -425,7 +439,7 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
                 onClick={handleSubmitBooking}
                 disabled={submitting}
               >
-                {submitting ? "PROCESSING..." : "CONFIRM BOOKING"}
+                {submitting ? "PROCESSING..." : "CONFIRM"}
               </button>
               <button
                 type="button"

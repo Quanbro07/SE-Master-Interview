@@ -205,9 +205,7 @@ services:
     build:
       context: ./core_ai
 
-      dockerfile: dockerfile
-    env_file:
-      - .env
+      dockerfile: Dockerfile
 
     env_file:
       - .env
