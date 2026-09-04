@@ -98,7 +98,6 @@ public class JwtFilterChain extends OncePerRequestFilter {
                 CustomUserDetail userDetail = (CustomUserDetail) userDetailsService.loadUserByUsername(userEmail);
 
                 if (jwtService.isTokenValid(userDetail, jwtToken)) {
-                    log.info("=== TOKEN VALID ===");
 
                     UsernamePasswordAuthenticationToken authenToken =
                             new UsernamePasswordAuthenticationToken(
