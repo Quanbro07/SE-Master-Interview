@@ -75,12 +75,9 @@ const SelfPracticePage = () => {
   const [pool, setPool] = useState([]);
   const [poolIndex, setPoolIndex] = useState(0);
 
-  // States cho User Interaction
-  const [answerText, setAnswerText] = useState("");
-  const [showAnswer, setShowAnswer] = useState(false);
-
-  // State cho AI Evaluation
-  const [evaluationResult, setEvaluationResult] = useState(null);
+  // ✅ STATE MỚI: Dùng object để lưu lại dữ liệu (câu trả lời, evaluation, showKey) của TỪNG câu hỏi
+  // Cấu trúc: { [qId]: { answerText: "", evaluationResult: null, showAnswer: false } }
+  const [userAnswers, setUserAnswers] = useState({});
   const [isEvaluating, setIsEvaluating] = useState(false);
 
   // Auto-complete API tìm kiếm Position
@@ -95,7 +92,7 @@ const SelfPracticePage = () => {
           `${API_BASE}/api/v1/position/search?q=${encodeURIComponent(positionQuery)}`,
           {
             headers: {
-              ...authHeaders(), // ✅ Token đã được chuẩn hóa
+              ...authHeaders(),
             },
           },
         );
@@ -113,7 +110,6 @@ const SelfPracticePage = () => {
     return () => clearTimeout(timeoutId);
   }, [positionQuery]);
 
-  // Click outside to close suggestion dropdown
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
@@ -139,7 +135,7 @@ const SelfPracticePage = () => {
     setSuggestionsOpen(false);
   };
 
-  // Hàm Fetch Questions
+  // Fetch Questions
   const fetchQuestions = async () => {
     if (!selectedPosition.trim()) {
       setLoadError("Please enter or select a position first!");
@@ -149,14 +145,11 @@ const SelfPracticePage = () => {
     setLoadError(null);
     setPool([]);
     setPoolIndex(0);
-
-    setAnswerText("");
-    setShowAnswer(false);
-    setEvaluationResult(null);
+    setUserAnswers({}); // Reset toàn bộ bộ nhớ câu trả lời khi tạo đề mới
 
     try {
       const params = new URLSearchParams({
-        position: selectedPosition.trim(), // Truyền nguyên bản position cho backend
+        position: selectedPosition.trim(),
         numQuestions: String(numQuestions),
       });
 
@@ -170,7 +163,7 @@ const SelfPracticePage = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            ...authHeaders(), // ✅ Token đã được chuẩn hóa
+            ...authHeaders(),
           },
         },
       );
@@ -202,46 +195,64 @@ const SelfPracticePage = () => {
   };
 
   const currentQuestion = pool[poolIndex] || null;
+  const currentQId = currentQuestion
+    ? currentQuestion.questionId || poolIndex
+    : null;
+
+  // Lấy dữ liệu tạm thời của câu hỏi hiện tại ra
+  const currentSavedData = (currentQId && userAnswers[currentQId]) || {
+    answerText: "",
+    evaluationResult: null,
+    showAnswer: false,
+  };
+
   const hasMoreInPool = poolIndex < pool.length - 1;
   const showCard = pool.length > 0 && !loading && currentQuestion;
+
+  // Helper hàm để cập nhật dữ liệu của riêng câu hiện tại
+  const updateCurrentData = (fields) => {
+    if (!currentQId) return;
+    setUserAnswers((prev) => ({
+      ...prev,
+      [currentQId]: {
+        ...(prev[currentQId] || {
+          answerText: "",
+          evaluationResult: null,
+          showAnswer: false,
+        }),
+        ...fields,
+      },
+    }));
+  };
 
   const nextQuestion = () => {
     if (!hasMoreInPool) return;
     setPoolIndex((prev) => prev + 1);
-
-    setAnswerText("");
-    setShowAnswer(false);
-    setEvaluationResult(null);
   };
 
   const prevQuestion = () => {
     if (poolIndex <= 0) return;
     setPoolIndex((prev) => prev - 1);
-
-    setAnswerText("");
-    setShowAnswer(false);
-    setEvaluationResult(null);
   };
 
   const revealAnswer = () => {
-    setShowAnswer((prev) => !prev);
+    updateCurrentData({ showAnswer: !currentSavedData.showAnswer });
   };
 
   const handleEvaluate = async () => {
-    if (!answerText.trim()) {
+    if (!currentSavedData.answerText.trim()) {
       alert("Please input your answer first before evaluating!");
       return;
     }
 
     setIsEvaluating(true);
-    setEvaluationResult(null);
 
     try {
       const payload = {
         answer_list: [
           {
             questionId: currentQuestion.questionId,
-            answer: answerText,
+            answer: currentSavedData.answerText,
           },
         ],
       };
@@ -252,7 +263,7 @@ const SelfPracticePage = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...authHeaders(), // ✅ Token đã được chuẩn hóa
+            ...authHeaders(),
           },
           body: JSON.stringify(payload),
         },
@@ -263,7 +274,8 @@ const SelfPracticePage = () => {
       const data = await res.json();
 
       if (data && data.length > 0) {
-        setEvaluationResult(data[0]);
+        // ✅ Lưu lại kết quả Evaluate vào state câu hỏi hiện tại
+        updateCurrentData({ evaluationResult: data[0] });
       }
     } catch (err) {
       console.error(err);
@@ -388,7 +400,6 @@ const SelfPracticePage = () => {
             <div className="mock-question-wrapper">
               <div className="mock-question-card">
                 <div className="mock-card-header">
-                  {/* ✅ In hoa hiển thị tên vị trí trên Tiêu đề Card */}
                   <p className="mock-card-title">
                     Self Practice:{" "}
                     <span style={{ textTransform: "uppercase" }}>
@@ -406,81 +417,89 @@ const SelfPracticePage = () => {
                 <div className="mock-answer-area">
                   <textarea
                     className="mock-answer-textarea"
-                    value={answerText}
-                    onChange={(e) => setAnswerText(e.target.value)}
+                    value={currentSavedData.answerText}
+                    onChange={(e) =>
+                      updateCurrentData({ answerText: e.target.value })
+                    }
                     placeholder="Input your answer here or record audio."
                     disabled={isEvaluating}
                   />
                 </div>
 
-                {evaluationResult && evaluationResult.analysis && (
-                  <div className="self-evaluation-box">
-                    <h4 className="self-eval-title">AI Feedback</h4>
+                {/* HIỂN THỊ EVALUATION RESULT CỦA CÂU NÀY */}
+                {currentSavedData.evaluationResult &&
+                  currentSavedData.evaluationResult.analysis && (
+                    <div className="self-evaluation-box">
+                      <h4 className="self-eval-title">AI Feedback</h4>
 
-                    {evaluationResult.analysis.smartSuggestions &&
-                      evaluationResult.analysis.smartSuggestions.length > 0 && (
-                        <ul className="self-eval-list">
-                          {evaluationResult.analysis.smartSuggestions.map(
-                            (sug, i) => (
-                              <li key={i}>{sug}</li>
-                            ),
-                          )}
-                        </ul>
-                      )}
+                      {currentSavedData.evaluationResult.analysis
+                        .smartSuggestions &&
+                        currentSavedData.evaluationResult.analysis
+                          .smartSuggestions.length > 0 && (
+                          <ul className="self-eval-list">
+                            {currentSavedData.evaluationResult.analysis.smartSuggestions.map(
+                              (sug, i) => (
+                                <li key={i}>{sug}</li>
+                              ),
+                            )}
+                          </ul>
+                        )}
 
-                    <div className="self-eval-metrics">
-                      <div>
-                        🎯 Depth:{" "}
-                        <span
-                          className="metric-score"
-                          style={{ color: "#4ade80", fontWeight: "bold" }}
-                        >
-                          {evaluationResult.analysis.depth?.rating || "N/A"}
-                        </span>
-                      </div>
+                      <div className="self-eval-metrics">
+                        <div>
+                          🎯 Depth:{" "}
+                          <span
+                            className="metric-score"
+                            style={{ color: "#4ade80", fontWeight: "bold" }}
+                          >
+                            {currentSavedData.evaluationResult.analysis.depth
+                              ?.rating || "N/A"}
+                          </span>
+                        </div>
 
-                      <div>
-                        🔍 Relevance:{" "}
-                        <span
-                          className="metric-score"
-                          style={{ color: "#4ade80", fontWeight: "bold" }}
-                        >
-                          {evaluationResult.analysis.relevance?.status || "N/A"}
-                        </span>
-                        {evaluationResult.analysis.relevance
-                          ? ` (Matched ${evaluationResult.analysis.relevance.matchedKeywords}/${evaluationResult.analysis.relevance.totalKeywords} keywords)`
-                          : ""}
-                      </div>
+                        <div>
+                          🔍 Relevance:{" "}
+                          <span
+                            className="metric-score"
+                            style={{ color: "#4ade80", fontWeight: "bold" }}
+                          >
+                            {currentSavedData.evaluationResult.analysis
+                              .relevance?.status || "N/A"}
+                          </span>
+                          {currentSavedData.evaluationResult.analysis.relevance
+                            ? ` (Matched ${currentSavedData.evaluationResult.analysis.relevance.matchedKeywords}/${currentSavedData.evaluationResult.analysis.relevance.totalKeywords} keywords)`
+                            : ""}
+                        </div>
 
-                      <div>
-                        💪 Confidence:{" "}
-                        <span
-                          className="metric-score"
-                          style={{ color: "#4ade80", fontWeight: "bold" }}
-                        >
-                          {evaluationResult.analysis.confidence?.status ||
-                            "N/A"}
-                        </span>
-                      </div>
+                        <div>
+                          💪 Confidence:{" "}
+                          <span
+                            className="metric-score"
+                            style={{ color: "#4ade80", fontWeight: "bold" }}
+                          >
+                            {currentSavedData.evaluationResult.analysis
+                              .confidence?.status || "N/A"}
+                          </span>
+                        </div>
 
-                      <div>
-                        📝 Length:{" "}
-                        <span
-                          className="metric-score"
-                          style={{ color: "#4ade80", fontWeight: "bold" }}
-                        >
-                          {evaluationResult.analysis.comparison?.status ||
-                            "N/A"}
-                        </span>
-                        {evaluationResult.analysis.comparison
-                          ? ` (${evaluationResult.analysis.comparison.avgWords} words)`
-                          : ""}
+                        <div>
+                          📝 Length:{" "}
+                          <span
+                            className="metric-score"
+                            style={{ color: "#4ade80", fontWeight: "bold" }}
+                          >
+                            {currentSavedData.evaluationResult.analysis
+                              .comparison?.status || "N/A"}
+                          </span>
+                          {currentSavedData.evaluationResult.analysis.comparison
+                            ? ` (${currentSavedData.evaluationResult.analysis.comparison.avgWords} words)`
+                            : ""}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {showAnswer && (
+                {currentSavedData.showAnswer && (
                   <div className="self-answer-reveal">
                     <p className="self-answer-reveal-label">Suggested Answer</p>
                     <p className="self-answer-reveal-text">
@@ -504,6 +523,7 @@ const SelfPracticePage = () => {
                   </p>
                 )}
 
+                {/* HÀNG BẮT ĐẦU ĐIỀU KHIỂN NÚT */}
                 <div className="mock-control-row" style={{ marginTop: "24px" }}>
                   <button
                     type="button"
@@ -516,26 +536,31 @@ const SelfPracticePage = () => {
 
                   <button
                     type="button"
-                    className={`mock-action-btn key ${showAnswer ? "active" : ""}`}
+                    className={`mock-action-btn key ${currentSavedData.showAnswer ? "active" : ""}`}
                     onClick={revealAnswer}
                   >
-                    {showAnswer ? "Hide Key" : "Key"}
+                    {currentSavedData.showAnswer ? "Hide Key" : "Key"}
                   </button>
 
                   <button
                     type="button"
                     className="mock-action-btn evaluate-btn"
                     onClick={handleEvaluate}
-                    disabled={isEvaluating || !answerText.trim()}
+                    disabled={
+                      isEvaluating || !currentSavedData.answerText.trim()
+                    }
                   >
                     {isEvaluating ? "Evaluating..." : "Evaluate"}
                   </button>
 
+                  {/* ✅ BẮT BUỘC ĐÃ EVALUATE MỚI BẤM NEXT ĐƯỢC */}
                   <button
                     type="button"
                     className="mock-action-btn primary"
                     onClick={nextQuestion}
-                    disabled={!hasMoreInPool}
+                    disabled={
+                      !hasMoreInPool || !currentSavedData.evaluationResult
+                    }
                   >
                     Next
                   </button>

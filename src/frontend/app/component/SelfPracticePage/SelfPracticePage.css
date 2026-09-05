@@ -392,3 +392,37 @@
   cursor: not-allowed;
   transform: none;
 }
+
+/* ================= HÀNG NÚT ĐIỀU KHIỂN (CONTROL ROW) ================= */
+.mock-control-row {
+  display: flex !important;
+  gap: 12px !important;
+  width: 100% !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+/* Hai nút Prev và Next gọn hơn (Tỉ lệ 1) */
+.mock-control-row .mock-action-btn.prev,
+.mock-control-row .mock-action-btn.primary {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  width: auto !important;
+}
+
+/* Hai nút Key và Evaluate rộng hơn và bằng nhau (Tỉ lệ 2) */
+.mock-control-row .mock-action-btn.key,
+.mock-control-row .mock-action-btn.evaluate-btn {
+  flex: 2 1 0% !important;
+  min-width: 0 !important;
+  width: auto !important;
+}
+
+.mock-position-input {
+  text-transform: uppercase;
+}
+
+/* Đổi luôn placeholder thành chữ in hoa nếu muốn */
+.mock-position-input::placeholder {
+  text-transform: uppercase;
+}
