@@ -11,8 +11,8 @@ const ROLE_REDIRECTS = {
   INTERVIEWEE: "/interview-booking",
   Interviewer: "/interviewer/dashboard",
   INTERVIEWER: "/interviewer/dashboard",
-  Admin: "/admin/users",
-  ADMIN: "/admin/users",
+  Admin: "/admin/expertise",
+  ADMIN: "/admin/expertise",
 };
 
 const normalizeRole = (roleStr) => {

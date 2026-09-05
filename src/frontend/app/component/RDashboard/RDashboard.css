@@ -250,7 +250,14 @@
   background: linear-gradient(90deg, #b92d2d 0%, #791919 100%);
 }
 .done-btn {
-  background: linear-gradient(90deg, #2e824f 0%, #195e33 100%);
+  background: #468745;
+  background: linear-gradient(
+    265deg,
+    rgba(70, 135, 69, 1) 0%,
+    rgba(44, 130, 77, 1) 50%,
+    rgba(3, 51, 0, 1) 100%
+  );
+  color: #fff;
 }
 
 .r-dashboard-empty {

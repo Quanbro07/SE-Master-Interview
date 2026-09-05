@@ -113,11 +113,8 @@ const BookingSection = ({
             name: name,
             email: email,
             displayPosition: rawPos, // Giữ nguyên chuỗi từ DB
-            expYears: expYears,
-            expText: `${expYears} YRS EXP`,
             role: `${rawPos} • ${expYears} YRS EXP`,
             rate: Number(rating).toFixed(1),
-            reviews: reviewCount,
             price: priceDisplay,
             avatar: item.avatar || "/user.png",
           };
@@ -183,9 +180,7 @@ const BookingSection = ({
                   {mentor.role}
                 </p>
                 <div className="card-info">
-                  <span className="info-star">
-                    ⭐ {mentor.rate} ({mentor.reviews} reviews)
-                  </span>
+                  <span className="info-star">⭐ {mentor.rate}</span>
                   {mentor.price && (
                     <span className="info-price">💸 {mentor.price}</span>
                   )}

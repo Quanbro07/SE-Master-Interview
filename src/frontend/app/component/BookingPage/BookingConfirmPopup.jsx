@@ -410,7 +410,7 @@ const BookingConfirmPopup = ({ mentor, onConfirm, onCancel }) => {
               <div className="summary-row">
                 <span className="summary-label">Fee</span>
                 <span className="summary-value">
-                  {mentor?.price || "$10 / session"}
+                  {mentor?.price || "$12 / session"}
                 </span>
               </div>
             </div>
