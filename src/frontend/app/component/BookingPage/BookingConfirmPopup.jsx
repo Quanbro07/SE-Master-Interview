@@ -7,21 +7,19 @@ import "./BookingConfirmPopup.css";
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
-// ✅ Hàm lấy Access Token chuẩn hoá
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
   const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
-  let token = "";
+  let rawToken = "";
   for (const key of keys) {
     const val = localStorage.getItem(key);
-    if (val) {
-      token = val;
+    if (val && val !== "undefined" && val !== "null") {
+      rawToken = val;
       break;
     }
   }
-  if (!token) return "";
-
-  return token
+  if (!rawToken) return "";
+  return rawToken
     .replace(/^"+|"+$/g, "")
     .replace(/^Bearer\s+/i, "")
     .trim();

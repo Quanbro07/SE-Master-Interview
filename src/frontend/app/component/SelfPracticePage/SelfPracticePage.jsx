@@ -9,7 +9,6 @@ import "../MockInterviewPage/MockInterviewPage.css";
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
-// ✅ 1. Hàm lấy Access Token chuẩn hoá triệt để
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
   const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
@@ -23,14 +22,12 @@ const getAccessToken = () => {
   }
   if (!token) return "";
 
-  // Xóa sạch ngoặc kép và chữ Bearer nếu bị lưu thừa trong localStorage
   return token
     .replace(/^"+|"+$/g, "")
     .replace(/^Bearer\s+/i, "")
     .trim();
 };
 
-// ✅ Helper tạo Authorization Header chuẩn
 const authHeaders = () => {
   const token = getAccessToken();
   if (!token) return {};
@@ -211,6 +208,15 @@ const SelfPracticePage = () => {
   const nextQuestion = () => {
     if (!hasMoreInPool) return;
     setPoolIndex((prev) => prev + 1);
+
+    setAnswerText("");
+    setShowAnswer(false);
+    setEvaluationResult(null);
+  };
+
+  const prevQuestion = () => {
+    if (poolIndex <= 0) return;
+    setPoolIndex((prev) => prev - 1);
 
     setAnswerText("");
     setShowAnswer(false);
@@ -499,6 +505,15 @@ const SelfPracticePage = () => {
                 )}
 
                 <div className="mock-control-row" style={{ marginTop: "24px" }}>
+                  <button
+                    type="button"
+                    className="mock-action-btn prev"
+                    onClick={prevQuestion}
+                    disabled={poolIndex === 0}
+                  >
+                    Prev
+                  </button>
+
                   <button
                     type="button"
                     className={`mock-action-btn key ${showAnswer ? "active" : ""}`}

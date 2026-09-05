@@ -162,3 +162,30 @@ body {
 html {
   scroll-behavior: smooth;
 }
+
+/* ==========================================================================
+   GLOBAL / ROOT SCROLLBAR CONFIGURATION
+   ========================================================================== */
+
+/* Ép buộc luôn hiển thị thanh cuộn dọc để tránh layout shift khi expand/collapse */
+html {
+  overflow-y: scroll;
+}
+
+/* Tùy chỉnh thanh cuộn đẹp mắt hợp với Dark Theme (tùy chọn) */
+html::-webkit-scrollbar {
+  width: 8px;
+}
+
+html::-webkit-scrollbar-track {
+  background: #0f0f13;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 4px;
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}

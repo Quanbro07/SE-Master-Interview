@@ -4,13 +4,7 @@ import { usePathname } from "next/navigation";
 import "./AdNavigationBar.css";
 import { useState } from "react";
 
-const navItems = [
-  { label: "Admin Dashboard", href: "/admin" },
-  { label: "User Management", href: "/admin/users" },
-  { label: "Expertise Requests", href: "/admin/expertise" },
-  { label: "System Analytics", href: "/admin/analytics" },
-  { label: "Global Settings", href: "/admin/settings" },
-];
+const navItems = [{ label: "Expertise Requests", href: "/admin/expertise" }];
 
 const AdNavigationBar = () => {
   const pathname = usePathname();
@@ -21,7 +15,7 @@ const AdNavigationBar = () => {
   };
 
   const isActive = (href) =>
-    pathname === href || (href === "/admin" && pathname === "/admin/dashboard");
+    pathname === href || (href === "/admin" && pathname === "/admin/expertise");
 
   return (
     <aside className={`ad-navigation-bar ${isCollapsed ? "collapsed" : ""}`}>

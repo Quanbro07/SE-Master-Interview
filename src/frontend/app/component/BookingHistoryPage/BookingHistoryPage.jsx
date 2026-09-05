@@ -13,21 +13,25 @@ const API_BASE =
 
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
-  return (
+  const rawToken =
     localStorage.getItem("accessToken") ||
     localStorage.getItem("token") ||
     localStorage.getItem("jwt") ||
     localStorage.getItem("authToken") ||
     localStorage.getItem("access_token") ||
-    ""
-  );
+    "";
+
+  return String(rawToken)
+    .replace(/^"+|"+$/g, "")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
 };
 
 const authHeaders = () => {
   const token = getAccessToken();
   if (!token) return {};
   return {
-    Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
+    Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
   };
 };
@@ -305,7 +309,7 @@ const BookingHistoryPage = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       loadBookings();
-    }, 5000);
+    }, 30000);
     return () => clearInterval(interval);
   }, [loadBookings]);
 

@@ -358,3 +358,37 @@
 .evaluate-btn {
   background-color: #4d1977;
 }
+
+/* Trong file SelfPracticePage.css (hoặc MockInterviewPage.css) */
+
+/* Styling cho Nút Prev (Vàng Gradient) */
+.mock-action-btn.prev {
+  background: linear-gradient(90deg, #d97706 0%, #b45309 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 0 24px;
+  height: 48px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.mock-action-btn.prev:hover:not(:disabled) {
+  background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+  transform: translateY(-1px);
+}
+
+/* Xử lý giao diện khi nút bị Disabled (ví dụ: Câu đầu tiên) */
+.mock-action-btn.prev:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}

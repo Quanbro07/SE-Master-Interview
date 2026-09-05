@@ -28,14 +28,16 @@ const dayOfWeekToWeekdayIndex = (dayOfWeek) => dayOfWeek - 2;
 
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
-  const rawToken =
-    localStorage.getItem("accessToken") ||
-    localStorage.getItem("token") ||
-    localStorage.getItem("jwt") ||
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("access_token") ||
-    "";
-  // Xóa sạch chữ Bearer và dấu ngoặc kép thừa trong localStorage
+  const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
+  let rawToken = "";
+  for (const key of keys) {
+    const val = localStorage.getItem(key);
+    if (val && val !== "undefined" && val !== "null") {
+      rawToken = val;
+      break;
+    }
+  }
+  if (!rawToken) return "";
   return rawToken
     .replace(/^"+|"+$/g, "")
     .replace(/^Bearer\s+/i, "")

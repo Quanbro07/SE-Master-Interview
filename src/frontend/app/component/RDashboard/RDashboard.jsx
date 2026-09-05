@@ -17,7 +17,6 @@ const getAccessToken = () => {
     localStorage.getItem("authToken") ||
     localStorage.getItem("access_token") ||
     "";
-  // Xóa sạch chữ Bearer và dấu ngoặc kép thừa trong localStorage
   return rawToken
     .replace(/^"+|"+$/g, "")
     .replace(/^Bearer\s+/i, "")
@@ -526,7 +525,7 @@ const RDashboard = () => {
 
       <main className="r-dashboard-main">
         <section className="r-dashboard-inner">
-          <h1 className="r-dashboard-title">-----DASHBOARD-----</h1>
+          <h1 className="r-dashboard-title">DASHBOARD</h1>
 
           {error && <div className="r-dashboard-error-banner">{error}</div>}
 

@@ -7,16 +7,19 @@ import "./RBookingRequest.css";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+
 const getAccessToken = () => {
   if (typeof window === "undefined") return "";
-  const rawToken =
-    localStorage.getItem("accessToken") ||
-    localStorage.getItem("token") ||
-    localStorage.getItem("jwt") ||
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("access_token") ||
-    "";
-  // Xóa sạch chữ Bearer và dấu ngoặc kép thừa trong localStorage
+  const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
+  let rawToken = "";
+  for (const key of keys) {
+    const val = localStorage.getItem(key);
+    if (val && val !== "undefined" && val !== "null") {
+      rawToken = val;
+      break;
+    }
+  }
+  if (!rawToken) return "";
   return rawToken
     .replace(/^"+|"+$/g, "")
     .replace(/^Bearer\s+/i, "")
@@ -30,7 +33,6 @@ const authHeaders = () => {
     Authorization: `Bearer ${token}`,
   };
 };
-
 const convertBookingToRequest = (booking) => {
   if (!booking) return null;
   console.log("RAW BOOKING ITEM FROM API:", booking);
@@ -294,7 +296,7 @@ const RBookingRequest = () => {
       <UserHeader user={user} />
       <main className="rbr-main">
         <section className="rbr-inner">
-          <h1 className="rbr-title">-----REQUESTS-----</h1>
+          <h1 className="rbr-title">REQUESTS</h1>
           <p className="rbr-subtitle">REQUESTS' INFORMATION</p>
 
           {error && (

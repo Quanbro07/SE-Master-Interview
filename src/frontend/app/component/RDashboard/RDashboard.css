@@ -396,3 +396,50 @@
   font-size: 14px;
   width: fit-content;
 }
+
+/* Styling & Hiệu ứng gạch ngang xanh biển đậm cho Title Interviewer */
+.r-calendar-title,
+.r-dashboard-title,
+.rp-title,
+.r-booking-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin: 0 0 28px;
+  color: #e4e4e7;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.r-calendar-title::before,
+.r-calendar-title::after,
+.r-dashboard-title::before,
+.r-dashboard-title::after,
+.rp-title::before,
+.rp-title::after,
+.r-booking-title::before,
+.r-booking-title::after {
+  content: "";
+  height: 3px;
+  width: 80px;
+  border-radius: 2px;
+}
+
+/* Đổi dải màu gradient từ tím sang XANH BIỂN ĐẬM */
+.r-calendar-title::before,
+.r-dashboard-title::before,
+.rp-title::before,
+.r-booking-title::before {
+  background: linear-gradient(to left, #1d4ed8, transparent);
+}
+
+.r-calendar-title::after,
+.r-dashboard-title::after,
+.rp-title::after,
+.r-booking-title::after {
+  background: linear-gradient(to right, #1d4ed8, transparent);
+}

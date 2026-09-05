@@ -51,24 +51,29 @@ const RProfile = () => {
     }
   }, []);
 
-  const getAuthHeader = () => {
-    const rawToken =
-      localStorage.getItem("accessToken") ||
-      localStorage.getItem("token") ||
-      localStorage.getItem("jwt") ||
-      localStorage.getItem("authToken") ||
-      "";
-
-    if (!rawToken || rawToken === "undefined" || rawToken === "null") return "";
-
-    const normalizedToken = String(rawToken)
-      .replace(/^"(.*)"$/, "$1")
+  const getAccessToken = () => {
+    if (typeof window === "undefined") return "";
+    const keys = ["accessToken", "token", "jwt", "authToken", "access_token"];
+    let rawToken = "";
+    for (const key of keys) {
+      const val = localStorage.getItem(key);
+      if (val && val !== "undefined" && val !== "null") {
+        rawToken = val;
+        break;
+      }
+    }
+    if (!rawToken) return "";
+    return rawToken
+      .replace(/^"+|"+$/g, "")
+      .replace(/^Bearer\s+/i, "")
       .trim();
-    return normalizedToken.startsWith("Bearer ")
-      ? normalizedToken
-      : `Bearer ${normalizedToken}`;
   };
 
+  const getAuthHeader = () => {
+    const token = getAccessToken();
+    if (!token) return "";
+    return `Bearer ${token}`;
+  };
   // Trích xuất tên Position từ đối tượng DTO hoặc database
   const extractPositionName = (item) => {
     if (typeof item === "string") return item;
@@ -351,8 +356,7 @@ const RProfile = () => {
       <RNavigationBar />
       <main className="rp-main">
         <section className="rp-inner">
-          <h1 className="rp-title">----- PROFILE & EXPERTISE -----</h1>
-
+          <h1 className="rp-title">PROFILE & EXPERTISE</h1>
           {/* BASIC INFO CARD */}
           <div className="rp-basic-card">
             <div className="rp-basic-header">

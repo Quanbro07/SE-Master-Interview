@@ -122,21 +122,24 @@ const getStoredAccessToken = () => {
     "";
 
   return String(savedToken)
-    .replace(/^"(.*)"$/, "$1")
+    .replace(/^"+|"+$/g, "")
+    .replace(/^Bearer\s+/i, "")
     .trim();
 };
 
 const authHeaders = (token) => {
-  const normalizedToken = String(token || getStoredAccessToken()).trim();
+  const raw = token || getStoredAccessToken();
+  const cleanToken = String(raw)
+    .replace(/^"+|"+$/g, "")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
 
-  if (!normalizedToken) {
+  if (!cleanToken) {
     return {};
   }
 
   return {
-    Authorization: normalizedToken.startsWith("Bearer ")
-      ? normalizedToken
-      : `Bearer ${normalizedToken}`,
+    Authorization: `Bearer ${cleanToken}`,
   };
 };
 

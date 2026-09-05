@@ -56,7 +56,31 @@ const PaymentForm = ({ bookingId, onPaid, onCancel, showToast }) => {
           paymentIntent.status === "requires_capture"
         ) {
           try {
-            const token = localStorage.getItem("token");
+            const getAccessToken = () => {
+              if (typeof window === "undefined") return "";
+              const keys = [
+                "accessToken",
+                "token",
+                "jwt",
+                "authToken",
+                "access_token",
+              ];
+              let rawToken = "";
+              for (const key of keys) {
+                const val = localStorage.getItem(key);
+                if (val && val !== "undefined" && val !== "null") {
+                  rawToken = val;
+                  break;
+                }
+              }
+              if (!rawToken) return "";
+              return rawToken
+                .replace(/^"+|"+$/g, "")
+                .replace(/^Bearer\s+/i, "")
+                .trim();
+            };
+
+            const token = getAccessToken();
             const targetBookingId =
               bookingId || paymentIntent.metadata?.bookingId;
 
