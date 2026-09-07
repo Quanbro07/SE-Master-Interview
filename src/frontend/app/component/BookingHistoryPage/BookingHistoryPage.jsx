@@ -118,7 +118,7 @@ const isMeetingTimeValid = (dateStr, timeStr) => {
   if (!meetingTimestamp) return false;
 
   const now = Date.now();
-  const before = 30 * 60 * 1000;
+  const before = 60 * 60 * 1000;
   const after = 60 * 60 * 1000;
 
   return now >= meetingTimestamp - before && now <= meetingTimestamp + after;
