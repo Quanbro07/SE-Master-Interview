@@ -1,0 +1,43 @@
+jwt:
+  secret_key: ${JWT_SECRET_KEY}
+
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:5432/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Redis
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      timeout: 5s
+
+
+
+init:
+  isDev: false
+
+#Internal
+internal:
+  url: ${INTERNAL_URL}
+
+
+fe:
+  url: ${FRONTEND_URL}

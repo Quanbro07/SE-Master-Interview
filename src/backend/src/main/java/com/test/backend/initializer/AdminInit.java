@@ -1,0 +1,78 @@
+package com.test.backend.initializer;
+
+import com.test.backend.entity.socialAccount.SocialAccount;
+import com.test.backend.entity.socialAccount.SocialAccountProvider;
+import com.test.backend.entity.user.Role;
+import com.test.backend.entity.user.User;
+import com.test.backend.repository.SocialAccountRepository;
+import com.test.backend.repository.UserRepository;
+import com.test.backend.service.jwt.JwtService;
+import com.test.backend.service.jwt.TokenType;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Optional;
+
+@RequiredArgsConstructor
+@Component
+public class AdminInit {
+
+    private final UserRepository userRepository;
+
+    private final SocialAccountRepository socialAccountRepository;
+
+    private final JwtService jwtService;
+
+
+    @Order(2)
+    @Bean
+    CommandLineRunner initAdmin(UserRepository userRepository) {
+        return args -> {
+            // Tạo 1 admin
+            Optional<User> admin = userRepository.findByEmail("ngocquan612006@gmail.com");
+            if(admin.isPresent()) {
+                User adminUser = admin.get();
+                if(!Role.Admin.equals(adminUser.getRole())) {
+                    adminUser.setRole(Role.Admin);
+                }
+                userRepository.save(adminUser);
+            }
+            else {
+                // Chưa có admin tạo
+                SocialAccount socialAccount = SocialAccount.builder()
+                        .provider(SocialAccountProvider.GOOGLE)
+                        .providerId("113635588445946844380")
+                        .build();
+
+                User newAdmin = User.builder()
+                        .email("ngocquan612006@gmail.com")
+                        .userName("Quanbroisdead")
+                        .fullName("Trần Ngọc Quân")
+                        .role(Role.Admin)
+                        .isEnabled(Boolean.TRUE)
+                        .build();
+
+                newAdmin.addSocialAccount(socialAccount);
+                userRepository.save(newAdmin);
+            }
+
+
+            User adminMain = userRepository.findByEmail("ngocquan612006@gmail.com")
+                    .orElseThrow(() -> new RuntimeException("Admin not exists"));
+
+            String email = adminMain.getEmail();
+
+            String accessToken = jwtService.generateToken(new HashMap<>(), email, TokenType.ACCESS);
+            String refreshToken = jwtService.generateToken(new HashMap<>(), email, TokenType.REFRESH);
+
+            System.out.println("=== ADMIN TOKENS ===");
+            System.out.println("Admin Access Token: " + accessToken);
+            System.out.println("Admin Refresh Token: " + refreshToken);
+        }
+        ;
+    }
+}

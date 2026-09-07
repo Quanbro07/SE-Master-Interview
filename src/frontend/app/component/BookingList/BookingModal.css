@@ -1,0 +1,76 @@
+/* Container bên trái của Modal */
+.booking-modal-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Tiêu đề Available time */
+.available-time-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f4f4f5;
+  margin-bottom: 8px;
+}
+
+/* KHỐI CHỨA TIME SLOTS CỐ ĐỊNH CHIỀU CAO (3 hàng x 4 cột) */
+.available-time-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 slot mỗi hàng */
+  gap: 8px;
+  height: 132px; /* Cố định chiều cao tương đương 3 hàng slot */
+  max-height: 132px;
+  overflow-y: auto; /* Cho phép cuộn nếu nhiều hơn 12 slot */
+  padding-right: 4px;
+}
+
+/* Tùy chỉnh thanh cuộn cho nhỏ gọn */
+.available-time-grid::-webkit-scrollbar {
+  width: 4px;
+}
+.available-time-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+/* Style cho từng nút time slot */
+.time-slot-btn {
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 20px;
+  color: #e4e4e7;
+  padding: 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 36px; /* Chiều cao mỗi slot button */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.time-slot-btn:hover {
+  border-color: #6366f1;
+  background: #3f3f46;
+}
+
+.time-slot-btn.selected {
+  background: #3b82f6;
+  border-color: #60a5fa;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
+
+/* Hiển thị khi không có slot nào rảnh */
+.no-slots-message {
+  grid-column: span 4;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a1a1aa;
+  font-size: 13px;
+  font-style: italic;
+}

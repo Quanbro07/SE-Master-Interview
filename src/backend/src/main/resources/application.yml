@@ -1,0 +1,94 @@
+authentication:
+  redirect_url: ${REDIRECT_URL}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      namespace: default
+
+spring:
+  application:
+    name: master-interview-backend
+
+  # OAUTH2
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - openid
+              - profile
+              - email
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            scope:
+              - read:user
+              - user:email
+
+  #Gemini
+  ai:
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY}
+        chat:
+          model: gemini-3.6-flash
+          temperature: 0.0
+
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+
+  profiles:
+    active: dev
+
+# MINIO
+minio:
+  server:
+    url: ${MINIO_SERVER_URL}
+  access:
+    key: ${MINIO_ROOT_USER}
+  secret:
+    key: ${MINIO_ROOT_PASSWORD}
+
+  bucket:
+    cv: cv-bucket
+    avatar: avatar-bucket
+
+# Internal
+internal:
+  cv-assessment:
+    endpoint: /assess-cv
+
+# Stripe
+stripe:
+  secret_key: ${STRIPE_SECRET_KEY}
+  webhook_secret: ${STRIPE_WEBHOOK_SECRET}
+
+# Mail
+mail:
+  username: ${MAIL_USERNAME}
+  password: ${MAIL_PASSWORD}
+
+# Zoom
+zoom:
+  account_id: ${ZOOM_ACCOUNT_ID}
+  client_id: ${ZOOM_CLIENT_ID}
+  client_secret: ${ZOOM_CLIENT_SECRET}
+  webhook_secret: ${ZOOM_WEBHOOK_SECRET_TOKEN}
+
+logging:
+  level:
+    org.springframework.ai: DEBUG

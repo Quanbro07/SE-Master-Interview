@@ -1,0 +1,443 @@
+/* ==========================================================================
+   BOOKING HISTORY & DETAILS PANEL STYLES
+   ========================================================================== */
+
+/* Layout chính */
+.booking-history-root {
+  display: flex;
+  min-height: 100vh;
+  background: #0f0f13;
+  color: #f4f4f5;
+  font-family: inherit;
+  position: relative;
+}
+
+.booking-history-main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px;
+  width: 100%;
+  transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.booking-history-main.with-chat {
+  margin-right: 400px;
+}
+
+.booking-history-inner {
+  width: 100%;
+  max-width: 1040px;
+  padding: 40px 48px;
+  border-radius: 20px;
+  background: #18181c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+}
+
+.booking-history-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin: 0 0 32px;
+  color: #e4e4e7;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.booking-history-title::before,
+.booking-history-title::after {
+  content: "";
+  height: 3px;
+  width: 80px;
+  border-radius: 2px;
+}
+.booking-history-title::before {
+  background: linear-gradient(to left, #7c3aed, transparent);
+}
+.booking-history-title::after {
+  background: linear-gradient(to right, #7c3aed, transparent);
+}
+
+/* Grid Table Layout */
+.booking-history-table {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.booking-history-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.3fr 1.3fr 1fr 1.2fr 1.4fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.booking-history-header {
+  padding: 0 16px 10px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9c9ca8;
+  font-style: italic;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.booking-history-row-wrap {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.booking-history-data-row {
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background-color 0.2s ease;
+}
+
+.booking-history-data-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.cell-date,
+.cell-time {
+  font-size: 14px;
+  color: #d4d4d8;
+}
+.cell-interviewer {
+  font-weight: 600;
+  color: #f4f4f5;
+}
+.cell-about {
+  font-style: italic;
+  color: #a1a1aa;
+}
+
+/* Status Styles */
+.cell-status {
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 600;
+}
+.status-pending {
+  color: #f97316;
+}
+.status-accepted {
+  color: #dcd025;
+}
+.status-paid {
+  color: #d853c4;
+}
+.status-in-progress,
+.status-await-review {
+  color: #3b82f6;
+}
+.status-done {
+  color: #22c55e;
+}
+.status-rejected {
+  color: #ef4444;
+}
+.status-cancelled {
+  color: #f4f4f5;
+}
+
+/* Buttons */
+.join-meeting-btn,
+.details-btn,
+.pay-btn {
+  height: 38px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.825rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  transition: all 0.2s ease-in-out;
+}
+
+.join-meeting-btn {
+  width: 120px;
+  background: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #60a5fa 100%);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+}
+
+.details-btn {
+  width: 120px;
+  background: linear-gradient(90deg, #5e1d94, #38166c, #1f0b45);
+  color: #ffffff;
+}
+
+.pay-btn {
+  width: 120px;
+  margin-right: 8px;
+  background: #574485;
+  background: linear-gradient(
+    90deg,
+    rgba(87, 68, 133, 1) 0%,
+    rgba(103, 49, 120, 1) 48%,
+    rgba(29, 19, 87, 1) 100%
+  );
+  color: #ffffff;
+}
+
+.join-meeting-btn:hover:not(:disabled),
+.details-btn:hover:not(:disabled),
+.pay-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+.join-meeting-btn:disabled,
+.join-meeting-btn.btn-disabled,
+.details-btn:disabled,
+.details-btn.btn-disabled,
+.pay-btn:disabled,
+.pay-btn.btn-disabled {
+  background: #3f3f46 !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  opacity: 0.6 !important;
+  transform: none !important;
+}
+
+.cell-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Dropdown Details Panel */
+.details-panel-wrap {
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.details-panel {
+  padding: 22px 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #7c3aed;
+  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Header Row trong Details Panel (Grid 3 cột) */
+.details-header-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+  width: 100%;
+}
+
+.details-field-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  justify-self: start;
+}
+
+.details-field-center {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  justify-self: center;
+}
+
+.details-field-right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  justify-self: end;
+}
+
+.details-label {
+  font-size: 13px;
+  color: #c084fc;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.details-pill {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  font-style: italic;
+  color: #f4f4f5;
+  width: fit-content;
+  font-size: 14px;
+}
+
+/* Feedback Section */
+.review-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.rating-select-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.rating-label {
+  font-size: 13px;
+  color: #c084fc;
+  font-weight: 700;
+}
+
+.rating-select {
+  background: #18181c;
+  color: #fbbf24;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  outline: none;
+}
+
+.feedback-textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: #f4f4f5;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+}
+
+.feedback-textarea:focus {
+  border-color: #a855f7;
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.3);
+}
+
+.existing-review-box {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.submit-btn-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.submit-review-btn {
+  padding: 8px 24px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fff;
+  cursor: pointer;
+  background: #468745;
+  background: linear-gradient(
+    265deg,
+    rgba(70, 135, 69, 1) 0%,
+    rgba(44, 130, 77, 1) 50%,
+    rgba(3, 51, 0, 1) 100%
+  );
+  color: #fff;
+  transition: all 0.15s ease;
+}
+
+.submit-review-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+.booking-history-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: #71717a;
+  font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .booking-history-main.with-chat {
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .booking-history-main {
+    padding: 20px;
+  }
+  .booking-history-inner {
+    padding: 24px;
+  }
+}
+
+/* Layout hàng 1 trong Details Panel: Chuyển sang Flexbox để căn trái cho Interviewer & Fee */
+.details-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* Tất cả dồn về bên trái */
+  width: 100%;
+  gap: 32px; /* Khoảng cách giữa mục Interviewer và Fee */
+}
+
+/* Cấu trúc phần tử bên trái */
+.details-field-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+/* Chuyển details-field-center thành căn trái giống details-field-left */
+.details-field-center {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+/* Nút PAID đẩy hẳn về sát bên phải */
+.details-field-right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-left: auto; /* Tự động đẩy nút PAID sang góc phải màn hình */
+}
+
+.submit-review-btn:disabled {
+  background: #3f3f46 !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  opacity: 0.6 !important;
+  transform: none !important;
+}

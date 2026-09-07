@@ -1,0 +1,1077 @@
+/* CONTAINER TOÀN CỤM BOOKING PAGE */
+.dashboard-container {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background-color: #0b0b0e;
+  overflow: hidden; /* Triệt tiêu hoàn toàn scroll tổng của cả trang */
+  position: relative;
+  z-index: 1;
+}
+
+/* KHUNG CHÍNH Ở GIỮA chứa List Đóng vai trò là một viewport độc lập */
+.dashboard-main {
+  flex: 1;
+  height: 100vh;
+  overflow-y: auto; /* CHỈ CHO PHÉP SCROLL Ở ĐÂY */
+  background-color: #0b0b0e;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* NÚT TRIGGER HEADER - SỬA LẠI ĐỊNH VỊ FIXED */
+/* .chat-trigger-header {
+  position: fixed; 
+  top: 16px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  z-index: 999; 
+  padding: 8px 16px;
+  background-color: #18181c; 
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
+}  */
+
+.chat-trigger-header:hover {
+  transform: scale(1.05);
+  background-color: #27272a;
+}
+
+/* .chat-trigger-header .chatbot-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+} */
+
+.chat-trigger-header .chatbot-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* .chat-trigger-header .user-name {
+  color: #e4e4e7;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+} */
+
+/* .chat-trigger-header .user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+} */
+
+.chat-trigger-header .user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* CHỈNH SỬA THANH CUỘN TỔNG Ở GIỮA */
+.dashboard-main::-webkit-scrollbar {
+  width: 6px;
+  background-color: transparent;
+}
+
+.dashboard-main::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  transition: background-color 0.2s ease;
+}
+
+.dashboard-main::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.dashboard-main::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ============================================================
+   POPUP - SHARED SHELL
+   ============================================================ */
+
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.popup-content {
+  background-color: #1c1c21;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  color: #f4f4f5;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  animation: scaleUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.popup-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.popup-btn {
+  padding: 10px 32px;
+  font-weight: 600;
+  border-radius: 20px;
+  cursor: pointer;
+  border: none;
+  font-size: 14px;
+  width: 140px;
+  transition: all 0.2s ease;
+}
+
+.popup-btn.btn-book {
+  background: linear-gradient(90deg, #243e2d 0%, #082c03 100%);
+  color: #fff;
+}
+.popup-btn.btn-book:hover {
+  background: linear-gradient(90deg, #16a34a 0%, #15803d 100%);
+}
+.popup-btn.btn-cancel {
+  background: linear-gradient(90deg, #552828 0%, #2b0303 100%);
+  color: #fff;
+}
+.popup-btn.btn-cancel:hover {
+  background: linear-gradient(90deg, #b91c1c 0%, #991b1b 100%);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes scaleUp {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ============================================================
+   PROFILE POPUP
+   The gradient border is painted as part of the element's own
+   background (background-clip trick) instead of a separate
+   absolutely-positioned pseudo-element. Because it's the same
+   box being scaled by the shared `scaleUp` animation, there is
+   no flash/flicker of an unstyled rectangle on open.
+   ============================================================ */
+
+.profile-popup-box {
+  width: 584px;
+  max-width: 92vw;
+  padding: 28px 32px;
+  border-radius: 16px;
+  border-top: 2px solid transparent;
+  border-right: 1px solid transparent;
+  border-bottom: 0;
+  border-left: 0;
+  background-image:
+    linear-gradient(349deg, #1d1d1d 26%, #011932 99.8%),
+    linear-gradient(135deg, #ffeb6a 0%, #bf7103 100%);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 4px 4px 4px 3px rgba(0, 0, 0, 0.25);
+}
+
+.profile-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 24px;
+}
+
+.profile-avatar-wrapper {
+  width: 88px;
+  height: 88px;
+  min-width: 88px;
+  border-radius: 50%;
+  border: 3px solid #7dd3fc;
+  overflow: hidden;
+}
+
+.profile-avatar-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.profile-name {
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.profile-role {
+  color: #cbd5e1;
+  font-size: 14px;
+  margin: 0;
+}
+
+.profile-rating {
+  margin-left: auto;
+  align-self: flex-start;
+  white-space: nowrap;
+  color: #fbbf24;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.profile-details-body {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 22px;
+  color: #d4d4d8;
+  line-height: 1.65;
+}
+
+.profile-left-panel {
+  background: linear-gradient(
+    180deg,
+    rgba(88, 43, 130, 0.96) 0%,
+    rgba(50, 14, 80, 0.96) 100%
+  );
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-left-header {
+  margin-bottom: 18px;
+}
+
+.profile-left-header h4,
+.profile-right-section h4 {
+  color: #c7c7d4;
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.profile-right-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-right-section {
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profile-right-section:first-child {
+  padding-top: 0;
+}
+
+.profile-right-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.profile-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.profile-list li {
+  color: #e5e7eb;
+  margin-bottom: 10px;
+  padding-left: 14px;
+  position: relative;
+  font-size: 13px;
+}
+
+.profile-list li::before {
+  content: "-";
+  position: absolute;
+  left: 0;
+  color: #a78bfa;
+}
+
+.fee-text {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.profile-popup-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+/* ============================================================
+   PAYMENT POPUP
+   ============================================================ */
+
+.payment-popup-box {
+  width: 820px;
+  padding: 32px;
+}
+
+.payment-grid {
+  display: flex;
+  gap: 40px;
+}
+
+.payment-schedule,
+.payment-form-details {
+  flex: 1 1 50%;
+  min-width: 0;
+}
+
+.payment-schedule {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.popup-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  text-align: center;
+}
+
+.payment-schedule h3,
+.payment-form-details h3 {
+  font-size: 18px;
+  margin-top: 0;
+  color: #fff;
+}
+
+.calendar-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.calendar-header {
+  text-align: center;
+  color: #a78bfa;
+  font-weight: 600;
+}
+
+.calendar-nav-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calendar-nav-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.calendar-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.calendar-weekdays span {
+  color: #9ca3af;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.calendar-dates {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  min-height: calc(38px * 5 + 8px * 4);
+  height: calc(38px * 5 + 8px * 4);
+}
+
+.calendar-day {
+  height: 30px;
+  width: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+.calendar-day:hover:not(.disabled):not(.active) {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.calendar-day.empty {
+  background: transparent;
+  cursor: default;
+  border: none;
+}
+
+.calendar-day.disabled {
+  color: rgba(123, 127, 134, 0.7);
+  cursor: not-allowed;
+}
+
+.calendar-day.active {
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 700;
+  border-color: #3b82f6;
+}
+
+.time-slots-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.time-action-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.time-slots {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.payment-actions-inline {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-left: auto;
+  margin-top: 60px;
+}
+
+.slot-btn {
+  background-color: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.slot-btn.selected {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.1);
+}
+.slot-btn.disabled-slot {
+  color: #52525b;
+  background: linear-gradient(90deg, #131316 0%, #27272a 100%);
+  cursor: not-allowed;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.input-group label {
+  font-size: 11px;
+  color: #a1a1aa;
+  font-weight: 600;
+}
+.input-group input {
+  background-color: #27272a;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  color: #fff;
+  outline: none;
+}
+.input-row {
+  display: flex;
+  gap: 16px;
+}
+
+.total-price-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #27272a;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 20px 0 10px;
+}
+.price-tag {
+  background-color: #22c55e;
+  color: #000;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+.payment-note {
+  font-size: 11px;
+  color: #71717a;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.payment-actions {
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.booking-notice {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  gap: 16px;
+  width: fit-content;
+  max-width: 90%;
+  margin: 16px auto 20px;
+  padding: 10px 24px;
+  border-radius: 8px;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  animation:
+    noticeSlideIn 0.35s ease-out,
+    noticeFadeOut 0.4s ease-in 4.6s forwards;
+}
+
+.notice-text {
+  color: #4ade80;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.notice-dash {
+  width: 40px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes noticeSlideIn {
+  from {
+    transform: translateY(-24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes noticeFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.booking-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background-color: #27272a;
+  border-radius: 8px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.summary-label {
+  color: #a1a1aa;
+}
+
+.summary-value {
+  color: #fff;
+  font-weight: 600;
+}
+
+.cv-upload-group {
+  margin-bottom: 20px;
+}
+
+.cv-upload-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background-color: #27272a;
+  color: #a1a1aa;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.cv-upload-dropzone:hover {
+  border-color: #2a127f;
+  color: #e5e7eb;
+}
+
+.booking-error {
+  color: #f87171;
+  font-size: 12px;
+  margin: -8px 0 12px;
+}
+
+.popup-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cv-upload-dropzone:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   FIXED AVAILABLE TIME SLOTS (GRID 4 COLUMNS & FIXED HEIGHT)
+   ============================================================ */
+
+.time-slots-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  width: 100%;
+}
+
+.time-slots-section h4 {
+  margin: 0;
+  font-size: 13px;
+  color: #e4e4e7;
+  font-weight: 600;
+}
+
+/* Khung chứa các ô time: cố định chiều cao cho đúng 2 hàng */
+.time-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* Đúng 4 ô trên 1 hàng */
+  gap: 8px;
+  height: 74px; /* Cố định chiều cao tương đương 2 hàng ô nút */
+  overflow-y: auto; /* Tự cuộn nếu nhiều hơn 2 hàng */
+  padding-right: 4px;
+  box-sizing: border-box;
+}
+
+/* Custom scrollbar nhỏ gọn cho danh sách time */
+.time-slots-grid::-webkit-scrollbar {
+  width: 4px;
+}
+.time-slots-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+/* Nút time slot thu nhỏ */
+.slot-btn {
+  background-color: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 6px 4px; /* Giảm padding để chữ không bị tràn */
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 11px; /* Font size thu nhỏ */
+  text-align: center;
+  white-space: nowrap;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.slot-btn.selected {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+.time-slots-empty,
+.time-slots-loading {
+  grid-column: span 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #71717a;
+  font-size: 12px;
+  font-style: italic;
+  height: 100%;
+}
+/* ============================================================
+   FIXED AVAILABLE TIME SLOTS (KEEP BOX SIZE & FIXED CONTAINER)
+   ============================================================ */
+
+.time-slots-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  width: 100%;
+}
+
+.time-slots-section h4 {
+  margin: 0;
+  font-size: 13px;
+  color: #e4e4e7;
+  font-weight: 600;
+}
+
+/* 
+  Khung chứa time slots: 
+  - Cố định height vừa đúng 2 hàng slot (hoặc theo độ cao chuẩn bạn muốn).
+  - align-content: start giúp các ô slot giữ nguyên kích thước tự nhiên, 
+    không bị kéo dãn (stretch) để lấp đầy khung khi chỉ có 1 hoặc ít ô.
+*/
+.time-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(84px, 1fr)
+  ); /* Hoặc dùng 4 cột cố định: repeat(4, 1fr) */
+  gap: 8px;
+  height: 84px; /* Cố định chiều cao tổng của khu vực time slots */
+  align-content: start; /* GIỮ NGUYÊN KÍCH THƯỚC Ô - Không bị dãn full chiều cao */
+  overflow-y: auto; /* Hiện thanh cuộn nếu danh sách slot vượt quá 2 hàng */
+  padding-right: 4px;
+  box-sizing: border-box;
+}
+
+/* Custom scrollbar nhỏ gọn */
+.time-slots-grid::-webkit-scrollbar {
+  width: 4px;
+}
+.time-slots-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+/* Kích thước ô Nút time slot giữ nguyên thiết kế ban đầu */
+.slot-btn {
+  background-color: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 8px 4px; /* Chiều cao & padding chuẩn của box */
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  height: 34px; /* Cố định độ cao chính xác của 1 box time */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slot-btn.selected {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+/* Trạng thái trống hoặc đang tải cũng chiếm trọn chiều cao cố định */
+.time-slots-empty,
+.time-slots-loading {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #71717a;
+  font-size: 12px;
+  font-style: italic;
+  height: 100%; /* Lấp đầy chiều cao 84px đã cố định */
+}
+
+/* ============================================================
+   FIXED AVAILABLE TIME SLOTS (ALIGN CALENDAR & FIX 2 SLOTS HEIGHT)
+   ============================================================ */
+
+.time-slots-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  width: 100%; /* Chiều rộng tự động khớp với khung lịch bên trên */
+  box-sizing: border-box;
+}
+
+.time-slots-section h4 {
+  margin: 0;
+  font-size: 13px;
+  color: #e4e4e7;
+  font-weight: 600;
+  text-align: center; /* Căn giữa tiêu đề "Available time" cho cân đối */
+}
+
+/* 
+  Khung chứa các ô slot:
+  - Cố định height = (34px height của 1 slot * 2) + 8px gap = 76px 
+    (Vừa khít chiều cao của đúng 2 slot thời gian)
+  - Căn giữa các slot nếu số lượng ít
+*/
+.time-slots-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center; /* Căn giữa các ô time slot */
+  align-content: start;
+  width: 100%; /* Bằng 100% độ rộng của khung Lịch */
+  max-height: 76px; /* Độ cao vừa khít 2 hàng slot (34px * 2 + 8px gap) */
+  height: 76px;
+  overflow-y: auto; /* Tự hiện scroll bar nếu có hơn 2 slot */
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+
+/* Custom scrollbar nhỏ gọn cho danh sách slot */
+.time-slots-grid::-webkit-scrollbar {
+  width: 4px;
+}
+.time-slots-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+/* Kích thước & kiểu dáng từng nút Time Slot */
+.slot-btn {
+  background-color: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  height: 34px; /* Chiều cao cố định của 1 slot */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px; /* Chiều rộng chuẩn vừa chữ thời gian (vd: 13:00-14:00) */
+}
+
+.slot-btn:hover {
+  border-color: rgba(59, 130, 246, 0.5);
+  background-color: #3f3f46;
+}
+
+.slot-btn.selected {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+/* Trạng thái khi không có slot hoặc đang load */
+.time-slots-empty,
+.time-slots-loading {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #71717a;
+  font-size: 12px;
+  font-style: italic;
+  height: 100%;
+}
+
+/* ============================================================
+   FIXED POPUP SIZE & FIXED TIME SLOTS GRID (4 COLUMNS x 2 ROWS)
+   ============================================================ */
+
+/* 1. Giữ kích thước Popup cố định hoàn toàn */
+.payment-popup-box {
+  width: 820px;
+  min-width: 820px;
+  height: 580px; /* Khóa chiều cao cố định để popup không co giãn */
+  max-height: 90vh;
+  padding: 32px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 2. Giữ kích thước Lịch cố định (không bị nhảy khi chuyển tháng/ngày) */
+.calendar-dates {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  height: 222px; /* Cố định height cho 5-6 hàng ngày */
+  align-content: start;
+}
+
+/* 3. Khung chứa Time Slots Section */
+.time-slots-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.time-slots-section h4 {
+  margin: 0;
+  font-size: 13px;
+  color: #e4e4e7;
+  font-weight: 600;
+  text-align: left;
+}
+
+/* 
+   4. Wrapper cho Time Slots Grid:
+   - grid-template-columns: repeat(4, 1fr) -> Đúng 4 slots / hàng
+   - Cố định height vừa khít 2 hàng (32px * 2 + 8px gap = 72px)
+   - Nếu > 8 slots sẽ tự động bật scrollbar
+*/
+.time-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 slots trên 1 hàng */
+  gap: 8px;
+  height: 72px; /* Cố định height đúng 2 hàng */
+  max-height: 72px;
+  align-content: start;
+  overflow-y: auto; /* Hiện scrollbar nếu quá 8 slots */
+  padding-right: 4px;
+  box-sizing: border-box;
+}
+
+/* Thanh cuộn nhỏ gọn, tinh tế */
+.time-slots-grid::-webkit-scrollbar {
+  width: 4px;
+}
+.time-slots-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+}
+.time-slots-grid::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* 5. Định dạng từng Nút Timeslot */
+.slot-btn {
+  background-color: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0 4px;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 11px; /* Font vừa vặn với ô 4 cột */
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  height: 32px; /* Chiều cao chuẩn của 1 slot */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.slot-btn:hover {
+  border-color: #3b82f6;
+  background-color: #3f3f46;
+}
+
+.slot-btn.selected {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.25);
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+/* 6. Trạng thái trống / đang tải cũng chiếm trọn khung cố định 72px */
+.time-slots-empty,
+.time-slots-loading {
+  grid-column: span 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #71717a;
+  font-size: 12px;
+  font-style: italic;
+  height: 72px; /* Cố định bằng độ cao của 2 hàng */
+}

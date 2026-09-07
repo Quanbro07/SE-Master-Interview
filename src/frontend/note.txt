@@ -1,0 +1,1 @@
+Self-practice sẽ giống MockInterview bây giờ, cho một list questions rồi trả lời, sau đó sẽ nhận được đáp án 

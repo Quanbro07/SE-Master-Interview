@@ -62,7 +62,6 @@ lerna-debug.log*
 
 # === Archives ===
 *.zip
-*.tar.gz
 *.rar
 
 # === OS / Editor ===
@@ -84,4 +83,8 @@ lerna-debug.log*
 .env.local
 .env.*.local
 
+# === Database volume ===
+*.sh
+
+# === Docker Volumes Data ===
 /data/

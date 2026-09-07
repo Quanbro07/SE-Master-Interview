@@ -1,0 +1,503 @@
+/* Custom Scrollbar mượt mà */
+.rp-main,
+.rp-root,
+body {
+  scrollbar-width: thin;
+  scrollbar-color: #3b3e54 #12131a;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #12131a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3b3e54;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5b5f7e;
+}
+
+/* Base Layout */
+.rp-root {
+  display: flex;
+  min-height: 100vh;
+  background: #0f0f13;
+  color: #f4f4f5;
+}
+
+.rp-main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px;
+}
+
+.rp-inner {
+  width: 100%;
+  max-width: 900px;
+  padding: 40px 48px;
+  border-radius: 20px;
+  background: #18181c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+}
+
+.rp-title {
+  text-align: center;
+  margin: 0 0 28px;
+  font-size: 28px;
+  letter-spacing: 0.06em;
+  color: #e4e4e7;
+  font-weight: 900;
+}
+
+/* Basic Info Card */
+.rp-basic-card {
+  padding: 26px 28px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 25px;
+}
+
+.rp-basic-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.rp-avatar-block {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.rp-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #4338ca);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.rp-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rp-name {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #f8f8ff;
+}
+
+.rp-input-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.rp-edit-btn {
+  padding: 10px 22px;
+  border-radius: 8px;
+  border: none;
+  background: #6d28d9;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.rp-edit-btn:hover {
+  background: #5b21b6;
+}
+
+.rp-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.rp-cancel-btn,
+.rp-save-btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.rp-cancel-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e4e4e7;
+}
+
+.rp-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.rp-save-btn {
+  background: #16a34a;
+  color: #fff;
+}
+
+.rp-save-btn:hover {
+  background: #15803d;
+}
+
+.rp-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 24px;
+}
+
+.rp-field-grid-mt {
+  margin-top: 20px;
+}
+
+.rp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.rp-field-full {
+  grid-column: span 2;
+}
+
+.rp-label {
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #9c9ca8;
+}
+
+.rp-value {
+  margin: 0;
+  font-size: 14px;
+  color: #e4e4e7;
+}
+
+.rp-input,
+.rp-select {
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f4f4f5;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.rp-select {
+  background-color: #12131a;
+  color: #ffffff;
+  border-color: #2d2f3e;
+  cursor: pointer;
+}
+
+.rp-select option {
+  background-color: #12131a;
+  color: #ffffff;
+}
+
+.rp-input:focus,
+.rp-select:focus {
+  outline: none;
+  border-color: #7c3aed;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Block 1: Tag Expertise đã duyệt */
+.rp-expertise-tags-container {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.rp-expertise-tags-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.rp-no-expertise {
+  color: #777;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.rp-expertise-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(
+    135deg,
+    rgba(30, 58, 138, 0.4) 0%,
+    rgba(17, 24, 39, 0.6) 100%
+  );
+  border: 1px solid #2563eb;
+  color: #60a5fa;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.rp-expertise-badge:hover {
+  transform: translateY(-2px);
+  border-color: #93c5fd;
+  color: #93c5fd;
+}
+
+.rp-expertise-level {
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.rp-expertise-fee {
+  color: #34d399;
+  font-weight: 700;
+}
+
+/* Block 2: Stripe Payment */
+.rp-stripe-flex-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rp-card-title {
+  color: #fff;
+  font-size: 1.15rem;
+  margin-bottom: 6px;
+}
+
+.rp-card-subtitle {
+  color: #aaa;
+  font-size: 0.85rem;
+}
+
+.rp-stripe-btn {
+  background: #635bff;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.rp-stripe-btn.connected {
+  background: linear-gradient(90deg, #2c5282 0%, #1e3a5f 100%);
+  border: 1px solid #3b82f6;
+  cursor: default;
+}
+
+/* Block 3: Form Đăng ký Expertise */
+.rp-section-subtitle {
+  color: #fff;
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+}
+
+.rp-warning-box {
+  background-color: #3b1313;
+  color: #f87171;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  border: 1px solid #7f1d1d;
+}
+
+.rp-autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #12131a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  margin-top: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+  z-index: 10;
+  list-style: none;
+  padding: 4px 0;
+}
+
+.rp-autocomplete-item {
+  padding: 8px 12px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.rp-autocomplete-item:hover {
+  background-color: #2563eb;
+}
+
+.rp-file-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.rp-file-btn {
+  background-color: #1e2130;
+  color: #fff;
+  border: 1px solid #3b3e54;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.rp-file-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.rp-file-status {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.rp-file-status.selected {
+  color: #10b981;
+}
+
+.rp-submit-btn-wrapper {
+  grid-column: span 2;
+  margin-top: 15px;
+}
+
+.rp-submit-btn {
+  background:
+    linear-gradient(90deg, #0338aa, #140470, #32047b, #411484) border-box,
+    rgba(84, 55, 116, 0.557) padding-box;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.rp-submit-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.rp-loading {
+  color: #fff;
+  padding: 40px;
+}
+
+@media (max-width: 720px) {
+  .rp-main {
+    padding: 20px;
+  }
+  .rp-inner {
+    padding: 24px;
+  }
+  .rp-field-grid {
+    grid-template-columns: 1fr;
+  }
+  .rp-submit-btn-wrapper,
+  .rp-field-full {
+    grid-column: span 1;
+  }
+}
+
+/* Styling & Hiệu ứng gạch ngang xanh biển đậm cho Title Interviewer */
+.r-calendar-title,
+.r-dashboard-title,
+.rp-title,
+.r-booking-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin: 0 0 28px;
+  color: #e4e4e7;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.r-calendar-title::before,
+.r-calendar-title::after,
+.r-dashboard-title::before,
+.r-dashboard-title::after,
+.rp-title::before,
+.rp-title::after,
+.r-booking-title::before,
+.r-booking-title::after {
+  content: "";
+  height: 3px;
+  width: 80px;
+  border-radius: 2px;
+}
+
+/* Đổi dải màu gradient từ tím sang XANH BIỂN ĐẬM */
+.r-calendar-title::before,
+.r-dashboard-title::before,
+.rp-title::before,
+.r-booking-title::before {
+  background: linear-gradient(to left, #1d4ed8, transparent);
+}
+
+.r-calendar-title::after,
+.r-dashboard-title::after,
+.rp-title::after,
+.r-booking-title::after {
+  background: linear-gradient(to right, #1d4ed8, transparent);
+}

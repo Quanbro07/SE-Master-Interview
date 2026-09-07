@@ -1,0 +1,274 @@
+/* CONTAINER NAVBAR BÊN TRÁI HỆ ADMIN */
+.ad-navigation-bar {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  max-height: 100vh;
+  width: 300px;
+  min-height: 100vh;
+  padding: 24px 16px;
+  background: #111118;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  color: #d7d7e1;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  box-sizing: border-box;
+  /* Premium UX transitions */
+  transition:
+    width 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+    background-color 0.3s ease,
+    border-color 0.3s ease;
+  position: relative;
+}
+
+/* TRẠNG THÁI COLLAPSED (THU GỌN) */
+.ad-navigation-bar.collapsed {
+  width: 80px;
+  padding: 24px 12px;
+}
+
+.ad-nav-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.ad-navigation-bar.collapsed .ad-nav-brand {
+  justify-content: center;
+}
+
+.ad-brand-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: transform 0.2s ease-in-out;
+}
+
+.ad-brand-icon:hover {
+  transform: scale(1.08);
+}
+
+.ad-logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.ad-brand-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  margin-left: 12px;
+}
+
+.ad-brand-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #f8f8ff;
+  white-space: nowrap;
+}
+
+/* Badge nhận diện khối Admin */
+.ad-admin-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: #fa5dd6;
+  background: rgba(156, 16, 137, 0.25);
+  padding: 1px 6px;
+  border-radius: 4px;
+  width: fit-content;
+  margin-top: 3px;
+  letter-spacing: 0.05em;
+  border: 1px solid rgba(250, 93, 214, 0.3);
+}
+
+.ad-close-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.ad-close-icon:hover {
+  opacity: 1;
+}
+
+.ad-close-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* DANH SÁCH MENU DI CHUYỂN */
+.ad-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ad-nav-item {
+  padding: 14px 16px;
+  border-radius: 8px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    padding 0.3s ease;
+  cursor: pointer;
+  color: #b9b9c9;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ad-navigation-bar.collapsed .ad-nav-item {
+  justify-content: center;
+  padding: 12px 0;
+  width: 100%;
+}
+
+.ad-nav-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #f4f4fd;
+}
+
+/* ITEM ĐANG ACTIVE - CHUYỂN SANG HỒNG ADMIN */
+.ad-nav-item--active {
+  background: rgba(156, 16, 137, 0.25);
+  color: #fff;
+  font-weight: 800;
+  border-left: 4px solid #fa5dd6;
+}
+
+.ad-nav-item--active:hover {
+  background: rgba(156, 16, 137, 0.4);
+}
+
+/* Active item khi thu gọn dạng bong bóng vuông bo góc */
+.ad-navigation-bar.collapsed .ad-nav-item--active {
+  border-left: none;
+  background: rgba(156, 16, 137, 0.25);
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  margin: 0 auto;
+}
+
+.ad-collapsed-icon-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fa5dd6;
+}
+
+/* ==========================================
+   DEV ROLE SWITCHER CONTROLS 
+   ========================================== */
+.ad-role-switch-container {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ad-role-switch-fab {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  top: 515px;
+  left: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  z-index: 30;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
+}
+
+/* Nút nhảy sang Interviewee (Xanh lục gốc) */
+.change-to-interviewee {
+  background: #0d8a72;
+  box-shadow: 0 6px 18px rgba(13, 138, 114, 0.3);
+  border-color: rgba(13, 138, 114, 0.5);
+}
+
+.change-to-interviewee:hover {
+  background: #0b7561;
+  transform: scale(1.08);
+}
+
+/* Nút nhảy sang Interviewer (Tím gốc) */
+.change-to-interviewer {
+  background: #39088f;
+  box-shadow: 0 6px 18px rgba(60, 7, 154, 0.4);
+  border-color: #310381;
+}
+
+.change-to-interviewer:hover {
+  background: #340780;
+  transform: scale(1.08);
+}
+
+.ad-role-switch-fab-label {
+  pointer-events: none;
+}
+
+.ad-role-switch-tooltip {
+  position: absolute;
+  left: calc(100% + 10px);
+  bottom: 6px;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #2a2a30;
+  color: #f4f4f5;
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ad-role-switch-fab:hover .ad-role-switch-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Canh đều tâm nút tròn Switch khi navbar chuyển sang trạng thái collapsed */
+.ad-navigation-bar.collapsed .ad-role-switch-container {
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.ad-navigation-bar.collapsed .ad-role-switch-fab {
+  left: 0;
+  transform: none;
+}
+
+.ad-navigation-bar.collapsed .ad-role-switch-fab:hover {
+  transform: scale(1.08);
+}

@@ -1,0 +1,428 @@
+.self-page-root {
+  display: flex;
+  min-height: 100vh;
+  background: #0f0f13;
+  color: #f4f4f5;
+}
+.self-main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px;
+  width: 100%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* === THÊM ĐOẠN NÀY ĐỂ XỬ LÝ THỤT VÀO Khi CHAT PANEL MỞ === */
+.dashboard-main.with-chat,
+.self-main.with-chat {
+  margin-right: 400px;
+}
+
+.self-inner {
+  width: 100%;
+  max-width: 880px;
+  padding: 40px 48px;
+  border-radius: 20px;
+  background: #18181c;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+}
+
+.selfpractice-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin: 0 0 32px;
+  color: #e4e4e7;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.selfpractice-title::before,
+.selfpractice-title::after {
+  content: "";
+  height: 3px;
+  width: 80px;
+  border-radius: 2px;
+}
+
+.selfpractice-title::before {
+  background: linear-gradient(to left, #7c3aed, transparent);
+}
+
+.selfpractice-title::after {
+  background: linear-gradient(to right, #7c3aed, transparent);
+}
+
+.self-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 26px;
+}
+
+.self-subtitle {
+  color: #bdbdc8;
+  margin: 0;
+  font-size: 14px;
+}
+
+.self-field-select-wrap {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 20px 0 16px;
+}
+
+.self-field-select {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f5f5ff;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  outline: none;
+  height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+.self-field-select:hover,
+.self-field-select:focus {
+  border-color: rgba(167, 139, 250, 0.55);
+}
+
+.self-field-select option {
+  background: #18181c;
+  color: #f5f5ff;
+}
+
+.self-position-search {
+  position: relative;
+  min-width: 260px;
+}
+
+.self-position-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.self-position-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background-color: #1c1c21;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  z-index: 50;
+}
+
+.self-position-dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #f4f4f5;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.self-position-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.self-position-dropdown-item:hover {
+  background-color: #27272a;
+}
+
+.self-position-dropdown-empty {
+  padding: 12px 14px;
+  color: #6b7280;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.self-difficulty-select,
+.self-count-select {
+  min-width: 160px;
+}
+
+.self-field-select-wrap .primary,
+.mock-action-btn.primary {
+  background: linear-gradient(90deg, #4c1d95 0%, #3b0764 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 0 24px;
+  height: 48px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+  min-width: 150px;
+  transition: all 0.2s ease;
+}
+
+.self-field-select-wrap .primary:hover,
+.mock-action-btn.primary:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.self-loader-area {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+  min-height: 92px;
+}
+
+.self-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.self-orbit {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  position: relative;
+  animation: orbitRotate 2s ease-in-out infinite;
+}
+
+.self-orbit .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #a78bfa;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: 50% 50%;
+}
+
+.self-orbit .dot:nth-child(1) {
+  transform: translate(-50%, -50%) rotate(0deg) translateY(-28px);
+  background: #4c1d95;
+}
+.self-orbit .dot:nth-child(2) {
+  transform: translate(-50%, -50%) rotate(30deg) translateY(-28px);
+  background: #5a26a8;
+}
+.self-orbit .dot:nth-child(3) {
+  transform: translate(-50%, -50%) rotate(60deg) translateY(-28px);
+  background: #6a2fb9;
+}
+.self-orbit .dot:nth-child(4) {
+  transform: translate(-50%, -50%) rotate(90deg) translateY(-28px);
+  background: #7a39cb;
+}
+.self-orbit .dot:nth-child(5) {
+  transform: translate(-50%, -50%) rotate(120deg) translateY(-28px);
+  background: #8f45d6;
+}
+.self-orbit .dot:nth-child(6) {
+  transform: translate(-50%, -50%) rotate(150deg) translateY(-28px);
+  background: #a050e1;
+}
+.self-orbit .dot:nth-child(7) {
+  transform: translate(-50%, -50%) rotate(180deg) translateY(-28px);
+  background: #b46af0;
+}
+.self-orbit .dot:nth-child(8) {
+  transform: translate(-50%, -50%) rotate(210deg) translateY(-28px);
+  background: #c58bff;
+}
+.self-orbit .dot:nth-child(9) {
+  transform: translate(-50%, -50%) rotate(240deg) translateY(-28px);
+  background: #d6a8ff;
+}
+.self-orbit .dot:nth-child(10) {
+  transform: translate(-50%, -50%) rotate(270deg) translateY(-28px);
+  background: #e6c6ff;
+}
+.self-orbit .dot:nth-child(11) {
+  transform: translate(-50%, -50%) rotate(300deg) translateY(-28px);
+  background: #f0d9ff;
+}
+.self-orbit .dot:nth-child(12) {
+  transform: translate(-50%, -50%) rotate(330deg) translateY(-28px);
+  background: #f6eaff;
+}
+
+@keyframes orbitRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(60deg);
+  }
+  40% {
+    transform: rotate(240deg);
+  }
+  60% {
+    transform: rotate(300deg);
+  }
+  80% {
+    transform: rotate(540deg);
+  }
+  100% {
+    transform: rotate(720deg);
+  }
+}
+
+.self-loading-text {
+  color: #bdbdc8;
+  font-style: italic;
+}
+
+.self-error {
+  text-align: center;
+  color: #f87171;
+  font-size: 13px;
+  margin: 8px 0 0;
+  font-weight: 600;
+}
+
+.self-answer-reveal {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: rgba(167, 139, 250, 0.08);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  border-radius: 10px;
+}
+
+.self-answer-reveal-label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #a78bfa;
+}
+
+.self-answer-reveal-text {
+  margin: 0;
+  color: #e5e7eb;
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.mock-action-btn.key {
+  background: linear-gradient(90deg, #1e3a5f 0%, #0f2942 100%);
+  width: 250px;
+  color: #fff;
+}
+
+.mock-action-btn.key:hover {
+  background: linear-gradient(90deg, #2c5282 0%, #1e3a5f 100%);
+}
+
+.mock-action-btn.key.active {
+  background: linear-gradient(90deg, #4c1d95 0%, #3b0764 100%);
+}
+
+@media (max-width: 1024px) {
+  .dashboard-main.with-chat,
+  .self-main.with-chat {
+    margin-right: 0; /* Tránh đè giao diện trên màn hình nhỏ */
+  }
+}
+
+.evaluate-btn {
+  background-color: #4d1977;
+}
+
+/* Trong file SelfPracticePage.css (hoặc MockInterviewPage.css) */
+
+/* Styling cho Nút Prev (Vàng Gradient) */
+.mock-action-btn.prev {
+  background: linear-gradient(90deg, #d97706 0%, #b45309 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 0 24px;
+  height: 48px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.mock-action-btn.prev:hover:not(:disabled) {
+  background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+  transform: translateY(-1px);
+}
+
+/* Xử lý giao diện khi nút bị Disabled (ví dụ: Câu đầu tiên) */
+.mock-action-btn.prev:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ================= HÀNG NÚT ĐIỀU KHIỂN (CONTROL ROW) ================= */
+.mock-control-row {
+  display: flex !important;
+  gap: 12px !important;
+  width: 100% !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+/* Hai nút Prev và Next gọn hơn (Tỉ lệ 1) */
+.mock-control-row .mock-action-btn.prev,
+.mock-control-row .mock-action-btn.primary {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  width: auto !important;
+}
+
+/* Hai nút Key và Evaluate rộng hơn và bằng nhau (Tỉ lệ 2) */
+.mock-control-row .mock-action-btn.key,
+.mock-control-row .mock-action-btn.evaluate-btn {
+  flex: 2 1 0% !important;
+  min-width: 0 !important;
+  width: auto !important;
+}
+
+.mock-position-input {
+  text-transform: uppercase;
+}
+
+/* Đổi luôn placeholder thành chữ in hoa nếu muốn */
+.mock-position-input::placeholder {
+  text-transform: uppercase;
+}

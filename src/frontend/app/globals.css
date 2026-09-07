@@ -1,0 +1,191 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Page transition overlay */
+.page-transition-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 20000;
+  backdrop-filter: blur(6px) brightness(0.6);
+  background: rgba(3, 7, 12, 0.35);
+  transition:
+    opacity 300ms ease,
+    visibility 300ms ease;
+  opacity: 0;
+  visibility: hidden;
+}
+.page-transition-overlay.active {
+  display: flex;
+  opacity: 1;
+  visibility: visible;
+}
+
+.page-transition-card {
+  width: auto;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+}
+
+.spinner {
+  display: none; /* hide ring spinner */
+}
+
+.spinner-dots {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+.spinner-dots .dot {
+  width: 12px;
+  height: 12px;
+  background: #a78bfa;
+  border-radius: 50%;
+  opacity: 0.95;
+  transform: translateY(0);
+  animation: dotBounce 0.6s ease-in-out infinite;
+}
+.spinner-dots .dot:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.spinner-dots .dot:nth-child(3) {
+  animation-delay: 0.16s;
+}
+
+@keyframes dotBounce {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+.page-transition-text {
+  display: none; /* hide text when only dots are desired */
+}
+
+/* Global page title styling: centered, bold 700, 30px, decorative dashes */
+.page-title {
+  display: inline-block;
+  font-size: 30px !important;
+  font-weight: 700 !important;
+  color: var(--foreground);
+  text-align: center;
+  margin: 0 auto 18px;
+  padding: 6px 12px;
+  position: relative;
+  vertical-align: middle;
+}
+.page-title::before,
+.page-title::after {
+  content: "-----";
+  color: rgba(167, 139, 250, 0.95);
+  font-weight: 700;
+  margin: 0 10px;
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 22px !important;
+    padding: 4px 8px;
+  }
+  .page-title::before,
+  .page-title::after {
+    content: "--";
+    margin: 0 6px;
+  }
+}
+
+/* ==========================================
+   CUSTOM SCROLLBAR STYLES (BookingList Style)
+   ========================================== */
+
+/* Dành cho Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Dành cho Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+}
+
+/* Smooth Scrolling toàn bộ ứng dụng */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ==========================================================================
+   GLOBAL / ROOT SCROLLBAR CONFIGURATION
+   ========================================================================== */
+
+/* Ép buộc luôn hiển thị thanh cuộn dọc để tránh layout shift khi expand/collapse */
+html {
+  overflow-y: scroll;
+}
+
+/* Tùy chỉnh thanh cuộn đẹp mắt hợp với Dark Theme (tùy chọn) */
+html::-webkit-scrollbar {
+  width: 8px;
+}
+
+html::-webkit-scrollbar-track {
+  background: #0f0f13;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 4px;
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}

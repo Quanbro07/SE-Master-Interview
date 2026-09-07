@@ -1,0 +1,368 @@
+.chat-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 340px;
+  height: 100vh;
+  background-color: #12121a; /* Màu nền khớp với theme */
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  padding-top: 80px; /* Chừa khoảng trống phía trên cho UserHeader nằm cố định */
+  padding-bottom: 20px;
+  z-index: 900; /* Nhỏ hơn z-index: 1000 của UserHeader */
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Khi Collapsed: Trượt toàn bộ ChatPanel ẩn khỏi màn hình sang bên phải */
+.chat-panel.collapsed {
+  transform: translateX(100%);
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.message-row {
+  display: flex;
+  width: 100%;
+}
+
+.message-row.user {
+  justify-content: flex-end;
+}
+
+.message-row.agent {
+  justify-content: flex-start;
+}
+
+.message-bubble {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.message-row.user .message-bubble {
+  background: #6366f1;
+  color: #ffffff;
+  border-bottom-right-radius: 2px;
+}
+
+.message-row.agent .message-bubble {
+  background: #272738;
+  color: #e2e8f0;
+  border-bottom-left-radius: 2px;
+}
+
+.chat-input-wrapper {
+  padding: 12px 16px 0 16px;
+}
+
+.chat-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: #1e1e2d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+}
+
+.chat-input::placeholder {
+  color: #64748b;
+}
+
+.mini-interview-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.mini-interview-intro p {
+  margin: 0;
+}
+
+.btn-mini-primary {
+  background: #6366f1;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px; /* Bo góc tròn chuẩn form cũ */
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+}
+
+.btn-mini-primary:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+.btn-mini-primary:disabled {
+  background: #334155;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.mini-interview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.mini-question-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mini-question-text {
+  margin: 0;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.mini-question-diff {
+  color: #fbbf24;
+  font-size: 11px;
+  margin-left: 6px;
+}
+
+.mini-answer-input {
+  width: 100%;
+  min-height: 60px;
+  resize: vertical;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: #1e1e2d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.mini-answer-input:focus {
+  border-color: #6366f1;
+}
+
+.mini-answer-input::placeholder {
+  color: #64748b;
+}
+
+.mini-feedback-box {
+  border-left: 3px solid #6366f1;
+  background: rgba(99, 102, 241, 0.05);
+  padding: 8px 12px;
+  border-radius: 0 8px 8px 0;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.mini-feedback-title {
+  color: #a78bfa;
+  font-weight: 600;
+}
+
+.mini-feedback-list {
+  padding-left: 16px;
+  margin: 6px 0;
+}
+
+.mini-feedback-metrics {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+.metric-score {
+  color: #4ade80;
+}
+
+/* =========================================
+   MINI SCHEDULE FLOW STYLES
+   ========================================= */
+.mini-schedule-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.mini-schedule-card {
+  background: #1e1e2d;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mini-schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 10px;
+}
+
+.mini-schedule-info h4 {
+  margin: 0 0 4px 0;
+  color: #e2e8f0;
+  font-size: 14px;
+}
+
+.mini-schedule-info p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.mini-schedule-rating {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mini-schedule-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mini-schedule-date {
+  font-size: 12px;
+  color: #cbd5e1;
+  font-weight: 600;
+  margin: 0 0 6px 0;
+}
+
+.mini-time-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mini-time-slot {
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #818cf8;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* =========================================
+   MODEL ANSWER STYLES
+   ========================================= */
+.btn-show-answer {
+  background: transparent;
+  color: #818cf8;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  align-self: flex-start;
+  padding: 0;
+  text-decoration: underline;
+  margin-top: 4px;
+  transition: color 0.2s;
+}
+
+.btn-show-answer:hover {
+  color: #a78bfa;
+}
+
+.model-answer-box {
+  background: rgba(34, 197, 94, 0.05);
+  border-left: 3px solid #22c55e;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #cbd5e1;
+  margin-top: 6px;
+  border-radius: 0 8px 8px 0;
+}
+
+.model-answer-box strong {
+  color: #4ade80;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* =========================================
+   INLINE CONFIRM BOX STYLES
+   ========================================= */
+.inline-confirm-box {
+  background: rgba(251, 191, 36, 0.1); /* Nền vàng nhạt cảnh báo */
+  border-left: 3px solid #fbbf24;
+  padding: 10px 12px;
+  border-radius: 0 8px 8px 0;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.inline-confirm-box p {
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.inline-confirm-box p:last-of-type {
+  margin-bottom: 10px;
+}
+
+.inline-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-confirm-yes, .btn-confirm-no {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-confirm-yes {
+  background: #fbbf24;
+  color: #1e1e2d;
+}
+
+.btn-confirm-yes:hover {
+  background: #f59e0b;
+}
+
+.btn-confirm-no {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.btn-confirm-no:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

@@ -1,0 +1,452 @@
+.r-dashboard-root {
+  display: flex;
+  min-height: 100vh;
+  background: #0f0f13;
+  color: #f4f4f5;
+}
+.r-dashboard-main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px;
+}
+.r-dashboard-inner {
+  width: 100%;
+  max-width: 1040px;
+  padding: 40px 48px;
+  border-radius: 20px;
+  background: #18181c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+}
+.r-dashboard-title {
+  text-align: center;
+  margin: 0 0 32px;
+  font-size: 28px;
+  letter-spacing: 0.06em;
+  color: #e4e4e7;
+  font-weight: 900;
+}
+
+.r-dashboard-table {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.r-dashboard-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.3fr 1.3fr 1fr 1.2fr 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.r-dashboard-header {
+  padding: 0 16px 10px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9c9ca8;
+  font-style: italic;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.r-dashboard-row-wrap {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.r-dashboard-data-row {
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cell-date,
+.cell-time {
+  font-size: 14px;
+  color: #d4d4d8;
+}
+.cell-interviewee {
+  font-weight: 600;
+  color: #f4f4f5;
+}
+.cell-about {
+  font-style: italic;
+  color: #a1a1aa;
+}
+
+/* 🟢 MÀU SẮC STATUS THỐNG NHẤT - mỗi trạng thái 1 màu riêng biệt */
+.cell-status {
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 600;
+}
+.status-pending {
+  color: #f97316; /* Cam - Pending */
+}
+.status-accepted {
+  color: #dcd025; /* Tím - Accepted */
+}
+.status-paid {
+  color: #d853c4; /* Xanh Cyan - Paid */
+}
+.status-in-progress,
+.status-await-review {
+  color: #3b82f6; /* Xanh biển - In Progress / Await Review */
+}
+.status-done {
+  color: #22c55e; /* Xanh lá - Completed */
+}
+.status-rejected {
+  color: #ef4444; /* Đỏ - Rejected */
+}
+.status-cancelled {
+  color: #f43f5e; /* Đỏ hồng - Cancelled */
+}
+
+.cell-action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 🟢 CỐ ĐỊNH KÍCH THƯỚC VÀ TRẠNG THÁI NÚT */
+.go-meeting-btn,
+.update-btn {
+  width: 120px;
+  height: 38px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.825rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
+}
+
+.go-meeting-btn {
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+}
+.go-meeting-btn:hover:not(:disabled) {
+  background: linear-gradient(90deg, #60a5fa 0%, #3b82f6 100%);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
+.update-btn {
+  background: linear-gradient(90deg, #4a14a6, #2229b3, #121369);
+  color: #fff;
+}
+.update-btn:hover:not(:disabled) {
+  background: linear-gradient(90deg, #5718c2, #262ec6, #171988);
+}
+
+/* Disabled chung cho tất cả các nút */
+.go-meeting-btn:disabled,
+.go-meeting-btn.btn-disabled,
+.update-btn:disabled,
+.update-btn.btn-disabled,
+.decision-btn:disabled {
+  background: #3f3f46 !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Update panel (drop-down) */
+.update-panel-wrap {
+  overflow: hidden;
+}
+.update-panel {
+  margin-top: 10px;
+  padding: 22px 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.15);
+}
+
+.update-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.update-label {
+  font-size: 13px;
+  color: #474fda;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+.update-pill {
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  font-style: italic;
+  color: #f4f4f5;
+  width: fit-content;
+}
+
+.update-feedback-box {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f4f4f5;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.6;
+  resize: vertical;
+}
+.update-feedback-box:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.update-money-row {
+  margin-bottom: 20px;
+}
+.update-money-note {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e4e4e7;
+}
+
+.update-decision-row {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+}
+
+.decision-btn {
+  width: 140px;
+  height: 42px;
+  border-radius: 10px;
+  border: none;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.decision-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+.no-show-btn {
+  background: linear-gradient(90deg, #b92d2d 0%, #791919 100%);
+}
+.done-btn {
+  background: #468745;
+  background: linear-gradient(
+    265deg,
+    rgba(70, 135, 69, 1) 0%,
+    rgba(44, 130, 77, 1) 50%,
+    rgba(3, 51, 0, 1) 100%
+  );
+  color: #fff;
+}
+
+.r-dashboard-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: #71717a;
+  font-style: italic;
+}
+
+.r-dashboard-toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+}
+.r-dashboard-toast.status-done {
+  background: #16a34a;
+}
+.r-dashboard-toast.status-no-show {
+  background: #dc2626;
+}
+
+@media (max-width: 900px) {
+  .r-dashboard-main {
+    padding: 20px;
+  }
+  .r-dashboard-inner {
+    padding: 24px;
+  }
+  .r-dashboard-row {
+    grid-template-columns: 1fr 1fr 1.2fr 1.2fr 1fr 1.2fr 1fr;
+    font-size: 12px;
+  }
+}
+
+.go-meeting-btn {
+  background: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #60a5fa 100%);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+}
+
+.go-meeting-btn:hover:not(:disabled) {
+  background: linear-gradient(90deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%);
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.6);
+  transform: translateY(-1px);
+}
+
+/* Làm chữ tiêu đề bên interviewer đậm lên giống interviewee */
+.update-label {
+  font-size: 13px;
+  color: #3b82f6;
+  text-transform: uppercase;
+  font-weight: 700; /* Cập nhật chữ đậm */
+}
+
+/* Khôi phục kích thước bự của nút Update / View ban đầu */
+.update-btn,
+.details-btn {
+  width: 120px;
+  height: 38px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.825rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Layout hàng 1 trong Detail Panel */
+.update-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 18px;
+  gap: 16px;
+}
+
+/* Align left cho Interviewer/Candidate & Fee (có khoảng trống nhỏ giữa các thuộc tính) */
+.update-field-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+/* Align right cho nút Pay / Status */
+.update-field-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto; /* Đẩy về góc phải */
+}
+
+/* Đóng khung style Pill cho thông tin Money */
+.update-pill {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 700;
+  font-style: italic;
+  color: #f4f4f5;
+  width: fit-content;
+  font-size: 14px;
+}
+
+.update-header-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 18px;
+  width: 100%;
+}
+
+.update-field-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+/* Đảm bảo class này tạo hiệu ứng đóng khung (box/pill) */
+.update-pill {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-weight: 700;
+  font-style: italic;
+  color: #f4f4f5;
+  font-size: 14px;
+  width: fit-content;
+}
+
+/* Styling & Hiệu ứng gạch ngang xanh biển đậm cho Title Interviewer */
+.r-calendar-title,
+.r-dashboard-title,
+.rp-title,
+.r-booking-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin: 0 0 28px;
+  color: #e4e4e7;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.r-calendar-title::before,
+.r-calendar-title::after,
+.r-dashboard-title::before,
+.r-dashboard-title::after,
+.rp-title::before,
+.rp-title::after,
+.r-booking-title::before,
+.r-booking-title::after {
+  content: "";
+  height: 3px;
+  width: 80px;
+  border-radius: 2px;
+}
+
+/* Đổi dải màu gradient từ tím sang XANH BIỂN ĐẬM */
+.r-calendar-title::before,
+.r-dashboard-title::before,
+.rp-title::before,
+.r-booking-title::before {
+  background: linear-gradient(to left, #1d4ed8, transparent);
+}
+
+.r-calendar-title::after,
+.r-dashboard-title::after,
+.rp-title::after,
+.r-booking-title::after {
+  background: linear-gradient(to right, #1d4ed8, transparent);
+}

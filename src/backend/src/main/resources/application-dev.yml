@@ -1,0 +1,45 @@
+jwt:
+  secret_key: ${JWT_SECRET_KEY}
+
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/master_interview
+    username: postgres
+    password: quanbro7
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: quanbro7
+
+init:
+  isDev: true
+
+#Internal
+internal:
+  url: http://localhost:8000
+  cv-assessment:
+    endpoint: /assess-cv
+
+# Fe
+fe:
+  url: http://localhost:3000
+  stripe_refresh: /refresh
+  stripe_success: /success
+

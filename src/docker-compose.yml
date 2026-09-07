@@ -1,0 +1,228 @@
+services:
+  database:
+    container_name: postgres
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5332:5432"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Minio
+  minio:
+    image: minio/minio
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - app-network
+
+  # Redis
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:v3.13.2
+    container_name: prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./config/prometheus:/etc/prometheus/
+      - ./data/prometheus:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yaml"
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+    networks:
+      - app-network
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:13.1
+    container_name: grafana
+    ports:
+      - 4000:3000
+
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_DOMAIN=localhost
+
+      - GF_LOG_MODE=console file
+      - GF_LOG_FILTERS=alerting.notifier.slack:debug alertmanager:debug ngalert:debug
+
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: master-interview-backend
+    depends_on:
+      database:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Profile
+      - SPRING_PROFILES_ACTIVE=prod
+
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+
+      # DB
+      - POSTGRES_HOST=database
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+      # OAuth2
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+
+      - REDIRECT_URL=${REDIRECT_URL}
+      - FRONTEND_URL=http://localhost:3000
+
+      # Minio
+      - MINIO_SERVER_URL=http://host.docker.internal:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET_CV=cv-bucket
+
+      # Internal
+      - INTERNAL_URL=http://host.docker.internal:8000
+      - INTERNAL_CV_ASSESSMENT_ENDPOINT=/api/ai/cv-assessment
+
+      # Stripe
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_PUBLISH_KEY=${STRIPE_PUBLISH_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+
+      # Mail
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+
+      # Zoom
+      - ZOOM_ACCOUNT_ID=${ZOOM_ACCOUNT_ID}
+      - ZOOM_CLIENT_ID=${ZOOM_CLIENT_ID}
+      - ZOOM_CLIENT_SECRET=${ZOOM_CLIENT_SECRET}
+      - ZOOM_WEBHOOK_SECRET_TOKEN=${ZOOM_WEBHOOK_SECRET_TOKEN}
+
+      # Redis
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+
+      # GEMINI
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  ngrok:
+    image: ngrok/ngrok:alpine
+    container_name: ngrok
+    ports:
+      - "4040:4040"
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    command: "http --domain=${NGROK_STATIC_DOMAIN} backend:8080"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  # Đã di chuyển frontend vào đúng vị trí bên trong 'services:'
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: DockerFile
+    container_name: master-interview-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+    depends_on:
+      - backend
+    networks:
+      - app-network
+      
+  core_ai:
+    build:
+      context: ./core_ai
+
+      dockerfile: Dockerfile
+
+    env_file:
+      - .env
+
+    container_name: master-interview-ai
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      - backend
+
+    networks:
+      - app-network
+
+    restart: unless-stopped
+volumes:
+  db_data:
+    name: master-interview_db_data
+  minio_data:
+  redis-data:
+
+networks:
+  app-network:
