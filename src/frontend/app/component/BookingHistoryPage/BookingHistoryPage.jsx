@@ -161,6 +161,21 @@ const convertBookingToDashboardRow = (booking) => {
     booking.interviewerName ||
     "Interviewer";
 
+  const resultData =
+    booking.interviewResult ||
+    booking.interview_result ||
+    booking.interviewResultResponseDTO;
+
+  let safeInterviewerFeedback = "";
+  if (typeof resultData === "string") {
+    safeInterviewerFeedback = resultData;
+  } else if (resultData && typeof resultData.overallComment === "string") {
+    safeInterviewerFeedback = resultData.overallComment;
+  } else if (resultData && typeof resultData.overall_comment === "string") {
+    safeInterviewerFeedback = resultData.overall_comment;
+  } else if (typeof booking.interviewerFeedback === "string") {
+    safeInterviewerFeedback = booking.interviewerFeedback;
+  }
   const rawStatus = (
     booking.bookingStatus ||
     booking.booking_status ||
@@ -209,6 +224,7 @@ const convertBookingToDashboardRow = (booking) => {
     feedback: existingComment,
     rating: existingRating,
     isReviewed: isReviewed,
+    interviewerFeedback: safeInterviewerFeedback,
     endDateTime: !isNaN(endTime) ? endTime : null,
     rawBooking: booking,
   };
@@ -225,6 +241,8 @@ const BookingHistoryPage = () => {
   const [submittedReviews, setSubmittedReviews] = useState([]);
   const [submittedReviewsMap, setSubmittedReviewsMap] = useState({});
 
+  const [fetchedInterviewerFeedbacks, setFetchedInterviewerFeedbacks] =
+    useState({});
   const [feedbackDrafts, setFeedbackDrafts] = useState({});
   const [ratingDrafts, setRatingDrafts] = useState({});
   const [submittingId, setSubmittingId] = useState(null);
@@ -366,8 +384,42 @@ const BookingHistoryPage = () => {
     }
   };
 
-  const toggleExpand = (id) => {
+  const toggleExpand = async (id) => {
+    const isOpening = expandedId !== id;
     setExpandedId((prev) => (prev === id ? null : id));
+
+    if (isOpening) {
+      const targetReq = requests.find((r) => r.id === id);
+      if (
+        targetReq &&
+        targetReq.bookingId &&
+        !fetchedInterviewerFeedbacks[targetReq.bookingId]
+      ) {
+        try {
+          const res = await fetch(
+            `${API_BASE}/api/v1/booking/${targetReq.bookingId}/result`,
+            {
+              headers: authHeaders(),
+            },
+          );
+
+          if (res.ok) {
+            const data = await res.json();
+            const fetchedComment =
+              data.overallComment || data.overall_comment || "";
+
+            if (fetchedComment) {
+              setFetchedInterviewerFeedbacks((prev) => ({
+                ...prev,
+                [targetReq.bookingId]: fetchedComment,
+              }));
+            }
+          }
+        } catch (err) {
+          console.error("Lỗi lấy interviewer feedback:", err);
+        }
+      }
+    }
   };
 
   const updateFeedbackDraft = (id, value) => {
@@ -632,7 +684,9 @@ const BookingHistoryPage = () => {
                               </div>
 
                               <div className="review-section">
-                                <span className="details-label">FEEDBACK</span>
+                                <span className="details-label">
+                                  RATING & REVIEW
+                                </span>
                                 {isAlreadyReviewed ? (
                                   <div className="existing-review-box">
                                     <div className="font-semibold text-yellow-500 mb-1">
@@ -718,6 +772,28 @@ const BookingHistoryPage = () => {
                                     </div>
                                   </div>
                                 )}
+
+                                {/* 🔹 KHUNG KHỦNG/FEEDBACK CỦA INTERVIEWER (THÊM MỚI Ở ĐÂY) */}
+                                <div className="interviewer-feedback-section mt-4">
+                                  <span className="details-label">
+                                    INTERVIEWER'S FEEDBACK
+                                  </span>
+                                  <div className="existing-review-box mt-2">
+                                    <div className="text-gray-300">
+                                      {(() => {
+                                        const feedbackText =
+                                          fetchedInterviewerFeedbacks[
+                                            req.bookingId
+                                          ] || req.interviewerFeedback;
+
+                                        return feedbackText &&
+                                          feedbackText.trim()
+                                          ? feedbackText
+                                          : "No feedback provided by the interviewer yet.";
+                                      })()}
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </motion.div>
